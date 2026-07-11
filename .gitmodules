@@ -1,0 +1,12 @@
+[submodule "vendor/paper-craft-skills"]
+	path = vendor/paper-craft-skills
+	url = https://github.com/Wm78gh/paper-craft-skills.git
+[submodule "vendor/paper-search-mcp"]
+	path = vendor/paper-search-mcp
+	url = https://github.com/openags/paper-search-mcp.git
+[submodule "vendor/infranodus-skills"]
+	path = vendor/infranodus-skills
+	url = https://github.com/infranodus/skills.git
+[submodule "vendor/obsidian-skills"]
+	path = vendor/obsidian-skills
+	url = https://github.com/kepano/obsidian-skills.git

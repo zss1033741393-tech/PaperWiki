@@ -4,4 +4,11 @@ __pycache__/
 .env
 .obsidian/workspace.json
 .obsidian/workspace-mobile.json
-
+raw/papers/*
+!raw/papers/.gitkeep
+reports/*
+!reports/.gitkeep
+reading-lists/*
+!reading-lists/.gitkeep
+wiki/papers/*
+!wiki/papers/.gitkeep

@@ -10,9 +10,24 @@ discover-papers -> read-paper -> deposit-paper-knowledge
 
 Every stage is independently invocable. See [docs/PROJECT_PLAN.md](docs/PROJECT_PLAN.md) for the implementation plan and [docs/WORKFLOW.md](docs/WORKFLOW.md) for the operating contract.
 
+## Quick start
+
+```powershell
+python paperwiki.py discover "agent memory" --limit 10
+python paperwiki.py read https://arxiv.org/abs/1706.03762
+python paperwiki.py deposit reports/1706.03762.md
+```
+
+Initialize submodules after cloning so the reading skill can invoke Paper Craft:
+
+```powershell
+git submodule update --init --recursive
+```
+
+Vendored integrations are pinned as Git submodules: Paper Craft, paper-search-mcp, InfraNodus skills, and Obsidian skills.
+
 ## Skills
 
 - `discover-papers`: search, normalize, deduplicate, and transparently rank candidates.
 - `read-paper`: create a structured learning report from a URL, DOI, arXiv ID, or PDF.
 - `deposit-paper-knowledge`: ingest a report or notes into an idempotent linked knowledge base.
-

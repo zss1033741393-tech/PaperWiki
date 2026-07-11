@@ -15,7 +15,9 @@ Every stage is independently invocable. See [docs/PROJECT_PLAN.md](docs/PROJECT_
 ```powershell
 python paperwiki.py discover "agent memory" --limit 10
 python paperwiki.py read https://arxiv.org/abs/1706.03762
-python paperwiki.py deposit reports/1706.03762.md
+python paperwiki.py finalize reports/arxiv-1706-03762.md analysis.json
+python paperwiki.py deposit reports/arxiv-1706-03762.md
+python paperwiki.py recommend --topic "agent memory"
 ```
 
 Initialize submodules after cloning so the reading skill can invoke Paper Craft:

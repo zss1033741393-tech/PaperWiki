@@ -9,8 +9,8 @@ description: Acquire and deeply explain one academic paper, producing a structur
 
 1. Accept a URL, DOI, arXiv ID, local PDF, title, or PaperWiki record. Do not require discovery metadata.
 2. Resolve metadata and accessible full text. Preserve original input, resolved URL, retrieval time, and source path.
-3. Invoke the installed `paper-craft-skills` workflow for deep analysis and requested visuals. Report a missing dependency rather than pretending it ran.
-4. Produce a readable report and structured question, contributions, method, experiments, findings, limitations, reproducibility, concepts, and open questions.
+3. Invoke `vendor/paper-craft-skills/skills/paper-analyzer/SKILL.md` for deep analysis. Use paper-summary, paper-mindmap, paper-comic, or paper-deck when the user requests that output. Report a missing dependency rather than pretending it ran.
+4. Write the analysis as JSON matching `references/analysis.schema.json`, including page/section/figure evidence. Run `python paperwiki.py finalize <report.md> <analysis.json>` to generate the readable Markdown and HTML report and update the record.
 5. Separate paper claims, interpretation, and user notes. Cite page, section, figure, or equation locations when available.
 6. Save under `reports/` inside PaperWiki. Set `reviewed` only after user confirmation.
 
@@ -19,4 +19,3 @@ description: Acquire and deeply explain one academic paper, producing a structur
 - Flag inaccessible appendices, missing pages, OCR uncertainty, and unsupported claims.
 - Never invent venue, citation, experiment, or code information.
 - Do not automatically invoke `deposit-paper-knowledge`.
-

@@ -1,0 +1,41 @@
+{
+  "tldr": "Transformer removes recurrence and convolution, using attention alone to improve parallelism while reaching strong translation quality.",
+  "research_question": "Can sequence transduction be modeled using attention alone, without recurrent or convolutional layers?",
+  "contributions": [
+    "Introduces the Transformer encoder-decoder architecture.",
+    "Defines scaled dot-product and multi-head attention.",
+    "Demonstrates faster training and strong WMT 2014 translation results."
+  ],
+  "method": "The encoder and decoder stack self-attention and position-wise feed-forward layers. Positional encodings inject order, while masked decoder attention prevents access to future tokens.",
+  "experiments": [
+    "Evaluates English-to-German and English-to-French translation on WMT 2014.",
+    "Compares translation quality, training cost, model variations, and constituency parsing transfer."
+  ],
+  "findings": [
+    "The large model reports 28.4 BLEU on WMT 2014 English-to-German.",
+    "Attention-only computation substantially improves training parallelism."
+  ],
+  "limitations": [
+    "Full self-attention has quadratic time and memory complexity in sequence length.",
+    "The original evaluation concentrates on translation and one parsing transfer task."
+  ],
+  "reproducibility": [
+    "Requires WMT preprocessing, tokenizer/vocabulary settings, optimizer schedule, and model hyperparameters from the paper.",
+    "The paper specifies base and large configurations and training hardware/time."
+  ],
+  "concepts": ["Self Attention", "Positional Encoding", "Sequence Transduction"],
+  "methods": ["Scaled Dot Product Attention", "Multi Head Attention", "Transformer"],
+  "datasets": ["WMT 2014 English German", "WMT 2014 English French"],
+  "topics": ["Transformer Architecture", "Neural Machine Translation"],
+  "open_questions": [
+    "How can attention scale efficiently to much longer sequences?",
+    "Which positional representation generalizes best beyond training lengths?"
+  ],
+  "evidence": [
+    "Section 3 defines the architecture and attention mechanisms.",
+    "Section 5 describes training settings.",
+    "Table 2 reports translation quality and training cost.",
+    "Section 6 discusses model variations and parsing."
+  ],
+  "mermaid": "flowchart LR\n  T[Tokens] --> E[Embeddings + Position]\n  E --> M[Multi-Head Attention]\n  M --> F[Feed Forward]\n  F --> D[Decoder]\n  D --> P[Output probabilities]"
+}

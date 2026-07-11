@@ -1,5 +1,6 @@
 import tempfile
 import unittest
+import json
 from pathlib import Path
 import paperwiki
 
@@ -25,6 +26,20 @@ class PaperWikiTests(unittest.TestCase):
             paperwiki.cmd_deposit(args)
             self.assertEqual(len(list((root/"wiki/papers").glob("*.md"))),1)
             self.assertIn("My insight",target.read_text(encoding="utf-8"))
+
+    def test_finalize_and_link_entities(self):
+        with tempfile.TemporaryDirectory() as td:
+            root=Path(td); reports=root/"reports"; reports.mkdir(); report=reports/"x.md"
+            report.write_text("# draft",encoding="utf-8")
+            record={"paper_id":"doi:10.1/x","title":"Linked Paper","authors":["A"],"year":2026,"source_url":"https://doi.org/10.1/x","reading":{"report_path":str(report)}}
+            report.with_suffix(".json").write_text(json.dumps(record),encoding="utf-8")
+            analysis={"tldr":"Result","research_question":"Why?","contributions":["C"],"method":"M","experiments":["E"],"findings":["F"],"limitations":["L"],"reproducibility":["R"],"concepts":["Memory Agent"],"methods":["Retrieval"],"datasets":["Bench"],"topics":["Agent Memory"],"open_questions":["Q"]}
+            ap=root/"analysis.json"; ap.write_text(json.dumps(analysis),encoding="utf-8")
+            paperwiki.cmd_finalize(type("A",(),{"report":str(report),"analysis":str(ap)}))
+            paperwiki.cmd_deposit(type("A",(),{"input":str(report),"root":str(root)}))
+            page=next((root/"wiki/papers").glob("*.md")).read_text(encoding="utf-8")
+            self.assertIn("Memory Agent",page); self.assertTrue((root/"wiki/concepts/memory-agent.md").exists())
+            self.assertTrue(report.with_suffix(".html").exists())
 
 
 if __name__ == "__main__": unittest.main()

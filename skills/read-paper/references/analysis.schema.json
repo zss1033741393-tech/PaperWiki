@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["research_question", "contributions", "method", "experiments", "findings", "limitations", "reproducibility", "concepts", "methods", "datasets", "topics", "open_questions"],
+  "properties": {
+    "tldr": {"type": "string"},
+    "research_question": {"type": "string"},
+    "contributions": {"type": "array", "items": {"type": "string"}},
+    "method": {"type": "string"},
+    "experiments": {"type": "array", "items": {"type": "string"}},
+    "findings": {"type": "array", "items": {"type": "string"}},
+    "limitations": {"type": "array", "items": {"type": "string"}},
+    "reproducibility": {"type": "array", "items": {"type": "string"}},
+    "concepts": {"type": "array", "items": {"type": "string"}},
+    "methods": {"type": "array", "items": {"type": "string"}},
+    "datasets": {"type": "array", "items": {"type": "string"}},
+    "topics": {"type": "array", "items": {"type": "string"}},
+    "open_questions": {"type": "array", "items": {"type": "string"}},
+    "evidence": {"type": "array", "items": {"type": "string"}},
+    "mermaid": {"type": "string"}
+  }
+}

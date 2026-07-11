@@ -14,10 +14,10 @@ description: Convert a paper report or user-authored reading notes into an idemp
 5. Extract concepts, methods, datasets, authors, and topics. Add reciprocal Obsidian wikilinks without duplication.
 6. Preserve human-authored sections verbatim. Mark uncertain generated material as draft; never silently replace conflicts.
 7. Update `index.md`, affected topics, and `log.md`. Set `deposited` only after validation.
+8. For a PaperWiki report, run `python paperwiki.py deposit <report.md> --root <vault>`. After deposition, run `python paperwiki.py recommend --topic "<topic>" --root <vault>` when the user asks for the next reading direction.
 
 ## Idempotency
 
 - Re-running the same input updates one paper page.
 - Normalize DOI case and URL variants; ignore arXiv version suffix for identity but retain source version.
 - Retain conflicting sourced values and add a resolution task.
-

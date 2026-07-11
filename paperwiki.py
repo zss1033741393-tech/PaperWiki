@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """PaperWiki v1 CLI: discover, acquire, and deposit papers using stdlib only."""
 
-import argparse, datetime as dt, hashlib, json, math, re, sys, urllib.parse, urllib.request
+import argparse, datetime as dt, hashlib, html, json, math, re, subprocess, sys, urllib.parse, urllib.request
 from pathlib import Path
 from xml.etree import ElementTree as ET
 
@@ -110,6 +110,90 @@ def cmd_read(a):
     if pdf_bytes: pdf.write_bytes(pdf_bytes); p["pdf_path"]=str(pdf)
     report=reports/f"{stem}.md"; report.write_text(f"---\npaper_id: {p['paper_id']}\nstatus: reading\nsource: {p.get('source_url') or str(local)}\n---\n\n# {p['title']}\n\n## Abstract\n\n{p.get('abstract') or 'Metadata source did not provide an abstract.'}\n\n## Paper Craft analysis\n\n> Run `$paper-analyzer` from `vendor/paper-craft-skills` against `{p.get('pdf_path') or p.get('source_url')}` and replace this block with the reviewed analysis.\n\n## User notes\n\n",encoding="utf-8"); p["reading"]={"report_path":str(report),"paper_craft_skill":"paper-analyzer","analysis_status":"pending-agent-review","full_text_available":bool(pdf_bytes)}; (report.with_suffix(".json")).write_text(json.dumps(p,ensure_ascii=False,indent=2),encoding="utf-8"); print(report)
 
+def bullets(values): return "\n".join(f"- {v}" for v in values) if values else "- Not established from the available paper."
+
+def cmd_finalize(a):
+    report=Path(a.report); side=report.with_suffix(".json")
+    if not side.exists(): raise FileNotFoundError(f"Missing reading record: {side}")
+    p=json.loads(side.read_text(encoding="utf-8")); analysis=json.loads(Path(a.analysis).read_text(encoding="utf-8"))
+    required=["research_question","contributions","method","experiments","findings","limitations","reproducibility","concepts","methods","datasets","topics","open_questions"]
+    missing=[k for k in required if k not in analysis]
+    if missing: raise ValueError("Analysis is missing fields: "+", ".join(missing))
+    src=p.get("source_url") or p.get("pdf_path"); mermaid=analysis.get("mermaid") or "flowchart LR\n  A[Input] --> B[Method] --> C[Output]"; content=f'''---
+paper_id: {p['paper_id']}
+status: reviewed
+source: {src}
+generated: true
+human_confirmed: false
+---
+
+# {p['title']}
+
+> [!summary] 一句话结论
+> {analysis.get('tldr','')}
+
+## 论文信息
+
+- 作者：{', '.join(p.get('authors') or [])}
+- 年份：{p.get('year') or 'unknown'}
+- Venue：{p.get('venue') or 'unknown'}
+- 原文：{src}
+
+## 研究问题
+
+{analysis['research_question']}
+
+## 核心贡献
+
+{bullets(analysis['contributions'])}
+
+## 方法直观解释
+
+{analysis['method']}
+
+```mermaid
+{mermaid}
+```
+
+## 实验与证据
+
+{bullets(analysis['experiments'])}
+
+## 主要发现
+
+{bullets(analysis['findings'])}
+
+## 局限与风险
+
+{bullets(analysis['limitations'])}
+
+## 复现条件
+
+{bullets(analysis['reproducibility'])}
+
+## 关键概念
+
+{bullets(analysis['concepts'])}
+
+## 开放问题
+
+{bullets(analysis['open_questions'])}
+
+## 证据定位
+
+{bullets(analysis.get('evidence',[]))}
+
+## User notes
+
+'''
+    report.write_text(content,encoding="utf-8"); p["status"]="reviewed"; p["reading"].update(analysis); p["reading"]["analysis_status"]="generated-awaiting-human-confirmation"; side.write_text(json.dumps(p,ensure_ascii=False,indent=2),encoding="utf-8")
+    out=report.with_suffix(".html"); generator=Path(__file__).parent/"vendor/paper-craft-skills/skills/paper-analyzer/scripts/generate_html.py"
+    if generator.exists():
+        try: subprocess.run([sys.executable,str(generator),str(report),str(out)],check=True,capture_output=True,text=True)
+        except subprocess.CalledProcessError: out.write_text("<!doctype html><meta charset=utf-8><title>"+html.escape(p["title"])+"</title><style>body{max-width:900px;margin:auto;padding:2rem;font:16px/1.7 system-ui;white-space:pre-wrap}</style><body>"+html.escape(content)+"</body>",encoding="utf-8")
+    else: out.write_text("<!doctype html><meta charset=utf-8><title>"+html.escape(p["title"])+"</title><style>body{max-width:900px;margin:auto;padding:2rem;font:16px/1.7 system-ui;white-space:pre-wrap}</style><body>"+html.escape(content)+"</body>",encoding="utf-8")
+    print(report)
+
 def slug(s): return re.sub(r"[^a-z0-9]+","-",s.lower()).strip("-")[:80] or hashlib.sha256(s.encode()).hexdigest()[:16]
 
 def link_entity(root, collection, name, paper_title, paper_target):
@@ -130,13 +214,29 @@ def cmd_deposit(a):
     target.write_text(body,encoding="utf-8"); (root/"index.md").parent.mkdir(parents=True,exist_ok=True); idx=root/"index.md"; line=f"- [[wiki/papers/{target.stem}|{p['title']}]]\n"; old=idx.read_text(encoding="utf-8") if idx.exists() else "# PaperWiki Index\n\n"; idx.write_text(old if line in old else old+line,encoding="utf-8")
     log=root/"log.md"; old=log.read_text(encoding="utf-8") if log.exists() else "# Operation Log\n\n"; log.write_text(old+f"- {dt.datetime.now(dt.timezone.utc).isoformat()} deposit {p['paper_id']}\n",encoding="utf-8"); print(target)
 
+def cmd_recommend(a):
+    root=Path(a.root); topics=[]; concepts=[]
+    for path in (root/"wiki/topics").glob("*.md"): topics.append(path.stem.replace("-"," "))
+    for path in (root/"wiki/concepts").glob("*.md"): concepts.append(path.stem.replace("-"," "))
+    query=a.topic or (topics[0] if topics else None)
+    if not query: raise ValueError("Provide --topic or deposit topic pages first")
+    known=set((topics+concepts)); candidates=merge(arxiv_search(query,a.limit*2)+crossref_search(query,a.limit*2))
+    candidates=[score(p,query) for p in candidates if slug(p["title"]) not in known][:a.limit]
+    out=Path(a.output); out.parent.mkdir(parents=True,exist_ok=True); out.write_text(json.dumps({"topic":query,"basis":{"known_topics":topics,"known_concepts":concepts},"recommendations":candidates},ensure_ascii=False,indent=2),encoding="utf-8"); print(out)
+
 def main():
     ap=argparse.ArgumentParser(); sub=ap.add_subparsers(required=True)
     d=sub.add_parser("discover"); d.add_argument("query"); d.add_argument("--limit",type=int,default=10); d.add_argument("--output",default="reading-lists/latest.json"); d.set_defaults(func=cmd_discover)
     r=sub.add_parser("read"); r.add_argument("paper"); r.add_argument("--root",default="."); r.set_defaults(func=cmd_read)
+    f=sub.add_parser("finalize"); f.add_argument("report"); f.add_argument("analysis"); f.set_defaults(func=cmd_finalize)
     k=sub.add_parser("deposit"); k.add_argument("input"); k.add_argument("--root",default="."); k.set_defaults(func=cmd_deposit)
+    n=sub.add_parser("recommend"); n.add_argument("--topic"); n.add_argument("--limit",type=int,default=5); n.add_argument("--root",default="."); n.add_argument("--output",default="reading-lists/recommended-next.json"); n.set_defaults(func=cmd_recommend)
     a=ap.parse_args()
     try: a.func(a)
-    except Exception as e: print(json.dumps({"error":str(e),"recoverable":True},ensure_ascii=False),file=sys.stderr); raise SystemExit(1)
+    except Exception as e:
+        event={"at":dt.datetime.now(dt.timezone.utc).isoformat(),"command":getattr(a,"func",lambda:None).__name__,"error":str(e),"recoverable":True}
+        error_root=Path(getattr(a,"root","."))/".paperwiki"; error_root.mkdir(parents=True,exist_ok=True)
+        with (error_root/"errors.jsonl").open("a",encoding="utf-8") as f: f.write(json.dumps(event,ensure_ascii=False)+"\n")
+        print(json.dumps(event,ensure_ascii=False),file=sys.stderr); raise SystemExit(1)
 
 if __name__=="__main__": main()

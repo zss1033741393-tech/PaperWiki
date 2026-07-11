@@ -20,7 +20,7 @@ python paperwiki.py recommend --topic "transformer architecture" --root <vault>
 | Requirement | Evidence |
 | --- | --- |
 | Independent skills | Each CLI command and Skill accepts its own external input; optional record sections are not prerequisites. |
-| Multi-source discovery | Live providers are arXiv, Semantic Scholar, and Crossref; provider failures are returned without discarding other results. paper-search-mcp is pinned for broader provider operation. |
+| Multi-source discovery | Live providers are arXiv, Semantic Scholar, Crossref, and OpenAlex, plus Hugging Face Papers engagement enrichment; provider failures are returned without discarding other results. paper-search-mcp is pinned for broader provider operation. |
 | Explainable ranking | Every result includes signals, score, evidence coverage, band, and reasons. Missing signals are renormalized. |
 | Stable identity | Unit tests cover DOI precedence, arXiv version normalization, and cross-provider merging. |
 | Paper acquisition | Live test downloads the arXiv PDF; CLI accepts arXiv, DOI, direct PDF URL, and local PDF. DOI without an accessible PDF still creates a metadata-backed reading record. |

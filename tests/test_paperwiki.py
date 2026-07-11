@@ -17,11 +17,21 @@ class PaperWikiTests(unittest.TestCase):
         ])
         self.assertEqual(len(rows),1); self.assertEqual(rows[0]["venue"],"X"); self.assertEqual(len(rows[0]["provenance"]),2)
 
+    def test_merge_doi_record_with_arxiv_only_record(self):
+        rows=paperwiki.merge([
+            {"title":"Same Paper","arxiv_id":"1234.5678","provenance":[{"provider":"arxiv"}]},
+            {"title":"Same Paper","arxiv_id":"1234.5678","doi":"10.1/same","citation_count":10,"provenance":[{"provider":"openalex"}]},
+        ])
+        self.assertEqual(len(rows),1); self.assertEqual(rows[0]["paper_id"],"doi:10.1/same"); self.assertEqual(rows[0]["citation_count"],10)
+
     def test_score_exposes_all_dimensions_and_missing_evidence(self):
-        result=paperwiki.score({"title":"A new agent memory method","abstract":"Code is available at github.com/x/y","year":2026,"provenance":[]},"agent memory")
+        result=paperwiki.score({"title":"A new agent memory method","abstract":"Code is available at github.com/x/y","year":2026,"hf_upvotes":25,"hf_url":"https://huggingface.co/papers/x","provenance":[]},"agent memory")
         self.assertEqual(set(result["discovery"]["signals"]),set(paperwiki.WEIGHTS))
         self.assertIn("author_continuity",result["discovery"]["missing_evidence"])
+        self.assertNotIn("novelty",result["discovery"]["missing_evidence"])
         self.assertGreater(result["discovery"]["signals"]["reproducibility"],0)
+        self.assertGreater(result["discovery"]["signals"]["novelty"],0)
+        self.assertLess(result["discovery"]["score"],result["discovery"]["raw_score"])
 
     def test_deposit_is_idempotent_and_preserves_notes(self):
         with tempfile.TemporaryDirectory() as td:

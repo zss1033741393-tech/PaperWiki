@@ -1,0 +1,48 @@
+{
+  "tldr": "LLMA-Mem shows that better lifelong memory can be a more efficient scaling axis than simply adding agents: smaller teams may outperform larger teams when experience is distilled and reused well.",
+  "research_question": "How should LLM multi-agent systems jointly scale team size and lifelong learning, and how can memory design improve long-horizon performance under coordination and token-cost constraints?",
+  "contributions": [
+    "Frames multi-agent scaling as a two-dimensional space spanning team size and learning over time.",
+    "Introduces LLMA-Mem with episodic, procedural, and transactive memory modules under local, shared, and hybrid topologies.",
+    "Empirically demonstrates non-monotonic team-size scaling and reports lower token cost than competing memory baselines."
+  ],
+  "method": "LLMA-Mem stores task trajectories as episodic memory, consolidates repeated lessons into reusable procedural memory, and maintains transactive memory about team capabilities. Retrieval prefers procedural knowledge and falls back to episodes. Memory can be private per agent, globally shared, or hybrid; periodic consolidation controls when experience becomes procedure.",
+  "experiments": [
+    "Evaluates collaborative coding, research, and database environments from MultiAgentBench, using 100 tasks per environment for the main comparison.",
+    "Tests Claude-Sonnet-4.5, DeepSeek-V3.2, Qwen3-next-80B, and Qwen3-32B-Instruct against no-memory, MARBLE, and A-Mem baselines.",
+    "Studies team sizes 1, 3, 5, and 7 on 16 compatible research tasks, then ablates local/shared/hybrid topology and consolidation intervals 2, 5, 10, and 20."
+  ],
+  "findings": [
+    "The paper reports improved long-horizon performance across its model-environment settings and token reductions ranging from 9.4% to 71.7% relative to memory baselines.",
+    "Team-size effects are non-monotonic: communication overhead and information fragmentation can make smaller memory-enabled teams preferable.",
+    "In the reported Qwen3-32B-Instruct coding ablation, local memory performs best across TS, CS, and AAS, and consolidation interval 5 is the strongest tested setting."
+  ],
+  "limitations": [
+    "The largest evaluated team has seven agents, so results may not extrapolate to much larger collectives.",
+    "Evaluation is restricted to three collaborative MultiAgentBench environments and excludes embodied control, web search, personalization, and competitive tasks.",
+    "The study does not directly evaluate memory redundancy, staleness, or robustness to retrieval errors.",
+    "This is a recent arXiv preprint; Hugging Face interest and released code improve inspectability but do not replace peer review."
+  ],
+  "reproducibility": [
+    "Code is linked at https://github.com/ShanglinWu/MAS_lifelong_learning.",
+    "Appendices provide experimental configurations, topology definitions, benchmark adaptations, and memory prompts.",
+    "Full reproduction requires access to the evaluated models through Amazon Bedrock and Titan Text Embeddings v2."
+  ],
+  "concepts": ["Lifelong Multi-Agent Learning", "Episodic Memory", "Procedural Memory", "Transactive Memory", "Non-Monotonic Team Scaling"],
+  "methods": ["LLMA-Mem", "Hierarchical Memory Retrieval", "Periodic Memory Consolidation", "Local Shared Hybrid Memory Topologies"],
+  "datasets": ["MultiAgentBench Coding", "MultiAgentBench Research", "MultiAgentBench Database"],
+  "topics": ["LLM Multi-Agent Systems", "Agent Memory", "Multi-Agent Scaling"],
+  "open_questions": [
+    "Does the local-memory advantage persist for heterogeneous teams with dozens of agents?",
+    "How robust is procedural consolidation when stored experiences are noisy, adversarial, or obsolete?",
+    "Can team size and consolidation frequency be selected online under a fixed cost budget?"
+  ],
+  "evidence": [
+    "Pages 2-3 define RQ1/RQ2 and summarize the joint scaling perspective and contributions.",
+    "Section 3.2 defines episodic, procedural, and transactive memory; Sections 3.3-3.4 define topology and lifecycle.",
+    "Section 4.1 describes MultiAgentBench, models, baselines, and evaluation settings.",
+    "Figure 1 and Sections 4.2-4.4 report performance/cost and team-size behavior; Table 3 and Section 4.5 report topology and consolidation ablations.",
+    "Section 6 lists scale, environment, and memory-quality limitations."
+  ],
+  "mermaid": "flowchart LR\n  Q[New task] --> R{Procedural memory match?}\n  R -->|Yes| P[Reuse procedure]\n  R -->|No| E[Retrieve episodes]\n  P --> X[Multi-agent execution]\n  E --> X\n  X --> U[Update episodic + transactive memory]\n  U --> C[Periodic consolidation]\n  C --> P"
+}

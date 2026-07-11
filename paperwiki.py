@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """PaperWiki v1 CLI: discover, acquire, and deposit papers using stdlib only."""
 
-import argparse, datetime as dt, hashlib, html, json, math, re, subprocess, sys, urllib.parse, urllib.request
+import argparse, concurrent.futures, datetime as dt, hashlib, html, json, math, re, subprocess, sys, urllib.error, urllib.parse, urllib.request
 from pathlib import Path
 from xml.etree import ElementTree as ET
 
@@ -26,7 +26,7 @@ def paper_id(p):
 
 def arxiv_search(query,limit):
     search='all:"'+query.replace('"','')+'"' if query else "all:*"
-    url="https://export.arxiv.org/api/query?"+urllib.parse.urlencode({"search_query":search,"start":0,"max_results":limit,"sortBy":"submittedDate","sortOrder":"descending"})
+    url="https://export.arxiv.org/api/query?"+urllib.parse.urlencode({"search_query":search,"start":0,"max_results":limit,"sortBy":"relevance","sortOrder":"descending"})
     root=ET.fromstring(fetch(url)); ns={"a":"http://www.w3.org/2005/Atom"}; out=[]
     for e in root.findall("a:entry",ns):
         aid=norm_arxiv(e.findtext("a:id",default="",namespaces=ns)); links={x.get("type"):x.get("href") for x in e.findall("a:link",ns)}
@@ -50,37 +50,72 @@ def crossref_search(query,limit):
         out.append({"title":next(iter(x.get("title") or []),""),"authors":[" ".join(filter(None,[a.get("given"),a.get("family")])) for a in x.get("author",[])],"abstract":re.sub(r"<[^>]+>"," ",x.get("abstract") or ""),"year":year,"venue":next(iter(x.get("container-title") or []),None),"doi":x.get("DOI"),"source_url":x.get("URL"),"citation_count":x.get("is-referenced-by-count"),"provenance":[{"provider":"crossref","retrieved_at":dt.datetime.now(dt.timezone.utc).isoformat()}]})
     return out
 
+def openalex_search(query,limit):
+    url="https://api.openalex.org/works?"+urllib.parse.urlencode({"search":query,"per-page":limit,"select":"id,doi,title,publication_year,cited_by_count,authorships,primary_location,open_access,ids,abstract_inverted_index,relevance_score"})
+    out=[]
+    for x in json.loads(fetch(url)).get("results",[]):
+        ids=x.get("ids") or {}; location=x.get("primary_location") or {}; source=location.get("source") or {}; inv=x.get("abstract_inverted_index") or {}; words=sorted(((pos,w) for w,poses in inv.items() for pos in poses),key=lambda z:z[0]); abstract=" ".join(w for _,w in words)
+        arxiv=norm_arxiv(ids.get("arxiv") or ""); doi=(x.get("doi") or "").removeprefix("https://doi.org/") or None
+        out.append({"title":x.get("title") or "","authors":[(a.get("author") or {}).get("display_name","") for a in x.get("authorships",[])],"abstract":abstract,"year":x.get("publication_year"),"venue":source.get("display_name"),"doi":doi,"arxiv_id":arxiv,"source_url":x.get("doi") or x.get("id"),"pdf_url":location.get("pdf_url"),"citation_count":x.get("cited_by_count"),"open_access":x.get("open_access"),"provider_relevance":x.get("relevance_score"),"provenance":[{"provider":"openalex","retrieved_at":dt.datetime.now(dt.timezone.utc).isoformat()}]})
+    return out
+
+def huggingface_enrich(records):
+    """Add Daily Papers engagement and linked-code evidence by arXiv ID."""
+    def one(p):
+        aid=p.get("arxiv_id")
+        if not aid: return None
+        try:
+            x=json.loads(fetch("https://huggingface.co/api/papers/"+urllib.parse.quote(re.sub(r"v\d+$","",aid))))
+            p["hf_upvotes"]=x.get("upvotes",0); p["hf_url"]="https://huggingface.co/papers/"+aid; p["github_url"]=x.get("githubRepo") or p.get("github_url"); p["project_url"]=x.get("projectPage") or p.get("project_url"); p["hf_ai_summary"]=x.get("ai_summary")
+            p.setdefault("provenance",[]).append({"provider":"huggingface-papers","retrieved_at":dt.datetime.now(dt.timezone.utc).isoformat()})
+            return None
+        except urllib.error.HTTPError as e:
+            return None if e.code==404 else {"provider":"huggingface-papers","paper_id":aid,"error":str(e),"recoverable":True}
+        except Exception as e: return {"provider":"huggingface-papers","paper_id":aid,"error":str(e),"recoverable":True}
+    with concurrent.futures.ThreadPoolExecutor(max_workers=8) as pool: results=list(pool.map(one,records))
+    return [x for x in results if x]
+
 def merge(records):
-    seen={}
+    seen={}; aliases={}
     for p in records:
-        p["paper_id"]=paper_id(p); old=seen.get(p["paper_id"])
+        keys=[]
+        if p.get("doi"): keys.append("doi:"+p["doi"].lower().removeprefix("https://doi.org/"))
+        if p.get("arxiv_id"): keys.append("arxiv:"+re.sub(r"v\d+$","",p["arxiv_id"],flags=re.I))
+        keys.append("title:"+hashlib.sha256(re.sub(r"\W+"," ",p["title"].lower()).strip().encode()).hexdigest()[:16])
+        canonical=next((aliases[k] for k in keys if k in aliases),None); old=seen.get(canonical) if canonical else None
         if old:
             old["provenance"]+=p.get("provenance",[])
             for k,v in p.items():
                 if v not in (None,"",[]) and old.get(k) in (None,"",[]): old[k]=v
-        else: seen[p["paper_id"]]=p
+            preferred=paper_id(old); old["paper_id"]=preferred
+            if preferred!=canonical: seen[preferred]=seen.pop(canonical); canonical=preferred
+        else:
+            canonical=paper_id(p); p["paper_id"]=canonical; seen[canonical]=p
+        for k in keys: aliases[k]=canonical
     return list(seen.values())
 
 def score(p,query):
-    text=((p.get("title") or "")+" "+(p.get("abstract") or "")).lower(); terms=re.findall(r"\w+",query.lower())
-    rel=sum(t in text for t in terms)/max(1,len(terms)); age=max(0,dt.date.today().year-(p.get("year") or 0)); rec=max(0,1-age/5)
-    cites=p.get("citation_count"); venue=(p.get("venue") or "").lower(); code=bool(re.search(r"github\.com|code (?:is|at|available)|paperswithcode",text)); data=bool(re.search(r"dataset (?:is|at|available)|data (?:is|at|available)",text))
-    signals={"relevance":rel,"venue":.95 if any(v in venue for v in TOP_VENUES) else (.65 if venue else None),"citations":min(1,math.log1p(cites)/math.log(1001)) if cites is not None else None,"recency":rec,"reproducibility":min(1,.7*code+.3*data) if code or data else None,"author_continuity":None,"novelty":min(1,.5+.5*rec) if p.get("abstract") else None}
-    available={k:v for k,v in signals.items() if v is not None}; coverage=sum(WEIGHTS[k] for k in available); total=sum(WEIGHTS[k]*v for k,v in available.items())/coverage
+    title=(p.get("title") or "").lower(); abstract=(p.get("abstract") or "").lower(); text=title+" "+abstract; terms=list(dict.fromkeys(re.findall(r"\w+",query.lower())))
+    title_overlap=sum(t in title for t in terms)/max(1,len(terms)); abstract_overlap=sum(t in abstract for t in terms)/max(1,len(terms)); phrase=query.lower() in title
+    rel=min(1,.55*title_overlap+.35*abstract_overlap+.10*phrase); age=max(0,dt.date.today().year-(p.get("year") or 0)); rec=max(0,1-age/4)
+    cites=p.get("citation_count"); venue=(p.get("venue") or "").lower(); code=bool(p.get("github_url") or re.search(r"github\.com|code (?:is|at|available)|paperswithcode",text)); data=bool(re.search(r"dataset (?:is|at|available)|data (?:is|at|available)",text)); upvotes=p.get("hf_upvotes")
+    signals={"relevance":rel,"venue":.95 if any(v in venue for v in TOP_VENUES) else (.65 if venue else None),"citations":min(1,math.log1p(cites)/math.log(1001)) if cites is not None else None,"recency":rec,"reproducibility":min(1,.7*code+.3*data) if code or data else None,"author_continuity":None,"novelty":min(1,math.log1p(upvotes)/math.log(101)) if upvotes is not None else None}
+    available={k:v for k,v in signals.items() if v is not None}; coverage=sum(WEIGHTS[k] for k in available); raw=sum(WEIGHTS[k]*v for k,v in available.items())/coverage; total=raw*(.5+.5*coverage)
     band="must-read" if total>=.8 and coverage>=.7 else "recommended" if total>=.65 else "candidate" if total>=.5 else "watch"
     flags=[]; low_title=(p.get("title") or "").lower()
     if "retracted" in low_title or "withdrawn" in low_title: flags.append("possible-retraction-or-withdrawal")
-    evidence={"relevance":"query terms in title/abstract","venue":p.get("venue"),"citations":cites,"recency":p.get("year"),"reproducibility":"code/data availability language" if code or data else None,"author_continuity":None,"novelty":"recency proxy; requires human review" if p.get("abstract") else None}
-    p.update({"status":"discovered","quality_flags":flags,"discovery":{"signals":signals,"signal_evidence":evidence,"missing_evidence":[k for k,v in signals.items() if v is None],"score":round(total,4),"coverage":round(coverage,4),"band":band,"reasons":[f"topic relevance {rel:.0%}",f"published {p.get('year') or 'unknown'}",f"evidence coverage {coverage:.0%}"]}}); return p
+    evidence={"relevance":{"title_overlap":round(title_overlap,3),"abstract_overlap":round(abstract_overlap,3),"exact_title_phrase":phrase},"venue":p.get("venue"),"citations":cites,"recency":p.get("year"),"reproducibility":{"github":p.get("github_url"),"data_mentioned":data} if code or data else None,"author_continuity":None,"novelty":{"source":"Hugging Face Daily Papers upvotes","upvotes":upvotes,"url":p.get("hf_url")} if upvotes is not None else None}
+    p.update({"status":"discovered","quality_flags":flags,"discovery":{"signals":signals,"signal_evidence":evidence,"missing_evidence":[k for k,v in signals.items() if v is None],"raw_score":round(raw,4),"score":round(total,4),"coverage":round(coverage,4),"band":band,"reasons":[f"topic relevance {rel:.0%}",f"published {p.get('year') or 'unknown'}",f"evidence coverage {coverage:.0%}","final score is confidence-adjusted by evidence coverage"]}}); return p
 
 def cmd_discover(a):
     records=[]; errors=[]
-    for name,fn in [("arxiv",arxiv_search),("semantic-scholar",semantic_search),("crossref",crossref_search)]:
-        try: records+=fn(a.query,a.limit)
+    for name,fn in [("arxiv",arxiv_search),("semantic-scholar",semantic_search),("crossref",crossref_search),("openalex",openalex_search)]:
+        try: records+=fn(a.query,min(50,max(a.limit*5,a.limit)))
         except Exception as e: errors.append({"provider":name,"error":str(e),"recoverable":True})
     if not records: raise RuntimeError(json.dumps(errors,ensure_ascii=False))
     cutoff=dt.date.today().year-a.since_years+1 if a.since_years else None
     normalized=[p for p in merge(records) if not cutoff or not p.get("year") or p["year"]>=cutoff]
+    if not a.no_huggingface: errors+=huggingface_enrich(normalized[:min(len(normalized),max(20,a.limit*3))])
     result=sorted((score(p,a.query) for p in normalized),key=lambda x:x["discovery"]["score"],reverse=True)[:a.limit]
     payload={"query":a.query,"papers":result,"errors":errors}; Path(a.output).parent.mkdir(parents=True,exist_ok=True); Path(a.output).write_text(json.dumps(payload,ensure_ascii=False,indent=2),encoding="utf-8"); print(a.output)
 
@@ -231,7 +266,7 @@ def cmd_recommend(a):
 
 def main():
     ap=argparse.ArgumentParser(); sub=ap.add_subparsers(required=True)
-    d=sub.add_parser("discover"); d.add_argument("query"); d.add_argument("--limit",type=int,default=10); d.add_argument("--since-years",type=int,default=2,help="Recent-year window; use 0 to disable"); d.add_argument("--output",default="reading-lists/latest.json"); d.set_defaults(func=cmd_discover)
+    d=sub.add_parser("discover"); d.add_argument("query"); d.add_argument("--limit",type=int,default=10); d.add_argument("--since-years",type=int,default=2,help="Recent-year window; use 0 to disable"); d.add_argument("--no-huggingface",action="store_true",help="Skip Hugging Face Papers engagement enrichment"); d.add_argument("--output",default="reading-lists/latest.json"); d.set_defaults(func=cmd_discover)
     r=sub.add_parser("read"); r.add_argument("paper"); r.add_argument("--root",default="."); r.set_defaults(func=cmd_read)
     f=sub.add_parser("finalize"); f.add_argument("report"); f.add_argument("analysis"); f.set_defaults(func=cmd_finalize)
     k=sub.add_parser("deposit"); k.add_argument("input"); k.add_argument("--root",default="."); k.set_defaults(func=cmd_deposit)

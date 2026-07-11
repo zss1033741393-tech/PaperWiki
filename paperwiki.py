@@ -7,6 +7,7 @@ from xml.etree import ElementTree as ET
 
 UA = "PaperWiki/0.1 (+https://github.com/zss1033741393-tech/PaperWiki)"
 WEIGHTS = {"relevance":.30,"venue":.20,"citations":.15,"recency":.15,"reproducibility":.10,"author_continuity":.05,"novelty":.05}
+TOP_VENUES=("neurips","icml","iclr","acl","emnlp","cvpr","iccv","eccv","aaai","nature","science","jmlr")
 
 def fetch(url, binary=False):
     req=urllib.request.Request(url,headers={"User-Agent":UA,"Accept":"application/json, application/atom+xml;q=.9, */*;q=.8"})
@@ -63,12 +64,14 @@ def merge(records):
 def score(p,query):
     text=((p.get("title") or "")+" "+(p.get("abstract") or "")).lower(); terms=re.findall(r"\w+",query.lower())
     rel=sum(t in text for t in terms)/max(1,len(terms)); age=max(0,dt.date.today().year-(p.get("year") or 0)); rec=max(0,1-age/5)
-    cites=p.get("citation_count"); signals={"relevance":rel,"recency":rec}
-    if p.get("venue"): signals["venue"]=.7
-    if cites is not None: signals["citations"]=min(1,math.log1p(cites)/math.log(1001))
-    coverage=sum(WEIGHTS[k] for k in signals); total=sum(WEIGHTS[k]*v for k,v in signals.items())/coverage
+    cites=p.get("citation_count"); venue=(p.get("venue") or "").lower(); code=bool(re.search(r"github\.com|code (?:is|at|available)|paperswithcode",text)); data=bool(re.search(r"dataset (?:is|at|available)|data (?:is|at|available)",text))
+    signals={"relevance":rel,"venue":.95 if any(v in venue for v in TOP_VENUES) else (.65 if venue else None),"citations":min(1,math.log1p(cites)/math.log(1001)) if cites is not None else None,"recency":rec,"reproducibility":min(1,.7*code+.3*data) if code or data else None,"author_continuity":None,"novelty":min(1,.5+.5*rec) if p.get("abstract") else None}
+    available={k:v for k,v in signals.items() if v is not None}; coverage=sum(WEIGHTS[k] for k in available); total=sum(WEIGHTS[k]*v for k,v in available.items())/coverage
     band="must-read" if total>=.8 and coverage>=.7 else "recommended" if total>=.65 else "candidate" if total>=.5 else "watch"
-    p.update({"status":"discovered","discovery":{"signals":signals,"score":round(total,4),"coverage":round(coverage,4),"band":band,"reasons":[f"topic relevance {rel:.0%}",f"published {p.get('year') or 'unknown'}"]}}); return p
+    flags=[]; low_title=(p.get("title") or "").lower()
+    if "retracted" in low_title or "withdrawn" in low_title: flags.append("possible-retraction-or-withdrawal")
+    evidence={"relevance":"query terms in title/abstract","venue":p.get("venue"),"citations":cites,"recency":p.get("year"),"reproducibility":"code/data availability language" if code or data else None,"author_continuity":None,"novelty":"recency proxy; requires human review" if p.get("abstract") else None}
+    p.update({"status":"discovered","quality_flags":flags,"discovery":{"signals":signals,"signal_evidence":evidence,"missing_evidence":[k for k,v in signals.items() if v is None],"score":round(total,4),"coverage":round(coverage,4),"band":band,"reasons":[f"topic relevance {rel:.0%}",f"published {p.get('year') or 'unknown'}",f"evidence coverage {coverage:.0%}"]}}); return p
 
 def cmd_discover(a):
     records=[]; errors=[]
@@ -76,7 +79,9 @@ def cmd_discover(a):
         try: records+=fn(a.query,a.limit)
         except Exception as e: errors.append({"provider":name,"error":str(e),"recoverable":True})
     if not records: raise RuntimeError(json.dumps(errors,ensure_ascii=False))
-    result=sorted((score(p,a.query) for p in merge(records)),key=lambda x:x["discovery"]["score"],reverse=True)[:a.limit]
+    cutoff=dt.date.today().year-a.since_years+1 if a.since_years else None
+    normalized=[p for p in merge(records) if not cutoff or not p.get("year") or p["year"]>=cutoff]
+    result=sorted((score(p,a.query) for p in normalized),key=lambda x:x["discovery"]["score"],reverse=True)[:a.limit]
     payload={"query":a.query,"papers":result,"errors":errors}; Path(a.output).parent.mkdir(parents=True,exist_ok=True); Path(a.output).write_text(json.dumps(payload,ensure_ascii=False,indent=2),encoding="utf-8"); print(a.output)
 
 def resolve_arxiv(value):
@@ -226,7 +231,7 @@ def cmd_recommend(a):
 
 def main():
     ap=argparse.ArgumentParser(); sub=ap.add_subparsers(required=True)
-    d=sub.add_parser("discover"); d.add_argument("query"); d.add_argument("--limit",type=int,default=10); d.add_argument("--output",default="reading-lists/latest.json"); d.set_defaults(func=cmd_discover)
+    d=sub.add_parser("discover"); d.add_argument("query"); d.add_argument("--limit",type=int,default=10); d.add_argument("--since-years",type=int,default=2,help="Recent-year window; use 0 to disable"); d.add_argument("--output",default="reading-lists/latest.json"); d.set_defaults(func=cmd_discover)
     r=sub.add_parser("read"); r.add_argument("paper"); r.add_argument("--root",default="."); r.set_defaults(func=cmd_read)
     f=sub.add_parser("finalize"); f.add_argument("report"); f.add_argument("analysis"); f.set_defaults(func=cmd_finalize)
     k=sub.add_parser("deposit"); k.add_argument("input"); k.add_argument("--root",default="."); k.set_defaults(func=cmd_deposit)

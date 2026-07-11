@@ -17,6 +17,12 @@ class PaperWikiTests(unittest.TestCase):
         ])
         self.assertEqual(len(rows),1); self.assertEqual(rows[0]["venue"],"X"); self.assertEqual(len(rows[0]["provenance"]),2)
 
+    def test_score_exposes_all_dimensions_and_missing_evidence(self):
+        result=paperwiki.score({"title":"A new agent memory method","abstract":"Code is available at github.com/x/y","year":2026,"provenance":[]},"agent memory")
+        self.assertEqual(set(result["discovery"]["signals"]),set(paperwiki.WEIGHTS))
+        self.assertIn("author_continuity",result["discovery"]["missing_evidence"])
+        self.assertGreater(result["discovery"]["signals"]["reproducibility"],0)
+
     def test_deposit_is_idempotent_and_preserves_notes(self):
         with tempfile.TemporaryDirectory() as td:
             root=Path(td); report=root/"report.md"; report.write_text("# Test Paper\n\nSummary",encoding="utf-8")

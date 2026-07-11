@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://paperwiki.dev/schema/paper-record.json",
+  "title": "PaperWiki paper record",
+  "type": "object",
+  "required": ["paper_id", "title", "status", "provenance"],
+  "properties": {
+    "paper_id": {"type": "string", "minLength": 1},
+    "title": {"type": "string", "minLength": 1},
+    "authors": {"type": "array", "items": {"type": "string"}},
+    "year": {"type": ["integer", "null"]},
+    "venue": {"type": ["string", "null"]},
+    "doi": {"type": ["string", "null"]},
+    "arxiv_id": {"type": ["string", "null"]},
+    "source_url": {"type": ["string", "null"], "format": "uri"},
+    "pdf_path": {"type": ["string", "null"]},
+    "status": {"enum": ["discovered", "shortlisted", "queued", "reading", "reviewed", "deposited", "revisited"]},
+    "provenance": {"type": "array", "minItems": 1, "items": {"type": "object"}},
+    "discovery": {"type": "object"},
+    "reading": {"type": "object"},
+    "user_notes": {"type": "object"},
+    "knowledge": {"type": "object"}
+  },
+  "additionalProperties": true
+}
+

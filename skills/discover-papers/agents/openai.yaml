@@ -1,0 +1,4 @@
+interface:
+  display_name: "Discover Papers"
+  short_description: "Find and rank worthwhile research papers"
+  default_prompt: "Use $discover-papers to find and rank recent papers in my research area."

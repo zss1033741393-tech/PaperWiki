@@ -1,0 +1,4 @@
+interface:
+  display_name: "Read Paper"
+  short_description: "Read one paper and create a learning report"
+  default_prompt: "Use $read-paper to deeply explain this paper and create a structured report."

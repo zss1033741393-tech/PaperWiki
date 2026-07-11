@@ -1,0 +1,4 @@
+interface:
+  display_name: "Deposit Paper Knowledge"
+  short_description: "Turn paper notes into a linked knowledge base"
+  default_prompt: "Use $deposit-paper-knowledge to add this paper report to my PaperWiki."

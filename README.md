@@ -18,6 +18,7 @@ python paperwiki.py read https://arxiv.org/abs/1706.03762
 python paperwiki.py finalize reports/arxiv-1706-03762.md analysis.json
 python paperwiki.py deposit reports/arxiv-1706-03762.md
 python paperwiki.py recommend --topic "agent memory"
+python scripts/render_report.py reports/arxiv-1706-03762.md reports/arxiv-1706-03762.html
 ```
 
 Initialize submodules after cloning so the reading skill can invoke Paper Craft:

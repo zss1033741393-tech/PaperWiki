@@ -44,6 +44,44 @@ class PaperWikiTests(unittest.TestCase):
                 report.parent / "record.json",
             )
 
+    def test_read_uses_explicit_report_slug(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            pdf = root / "A Long Local Paper Title.pdf"
+            pdf.write_bytes(b"%PDF-1.4\n")
+            args = type("A", (), {
+                "paper": str(pdf),
+                "root": str(root),
+                "report_slug": "LatentMAS",
+            })
+
+            paperwiki.cmd_read(args)
+
+            report = root / "reports/latentmas/report.md"
+            record = root / "reports/latentmas/record.json"
+            self.assertTrue(report.exists())
+            self.assertTrue(record.exists())
+            self.assertEqual(
+                json.loads(record.read_text(encoding="utf-8"))["reading"]["report_path"],
+                str(report),
+            )
+
+    def test_read_uses_title_slug_fallback(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            pdf = root / "Graph of Agents.pdf"
+            pdf.write_bytes(b"%PDF-1.4\n")
+            args = type("A", (), {
+                "paper": str(pdf),
+                "root": str(root),
+                "report_slug": None,
+            })
+
+            paperwiki.cmd_read(args)
+
+            self.assertTrue((root / "reports/graph-of-agents/report.md").exists())
+            self.assertTrue((root / "reports/graph-of-agents/record.json").exists())
+
     def test_identity_precedence(self):
         self.assertEqual(paperwiki.paper_id({"title":"X","doi":"10.1/ABC","arxiv_id":"1234.5678"}), "doi:10.1/abc")
         self.assertEqual(paperwiki.paper_id({"title":"X","arxiv_id":"1234.5678v2"}), "arxiv:1234.5678")

@@ -185,10 +185,11 @@ def cmd_read(a):
         p={"title":Path(urllib.parse.urlparse(a.paper).path).stem,"authors":[],"source_url":a.paper,"provenance":[{"provider":"direct-pdf","retrieved_at":dt.datetime.now(dt.timezone.utc).isoformat()}]}; pdf_bytes=fetch(a.paper,binary=True)
     else: raise ValueError("Provide an arXiv URL/ID, DOI, direct PDF URL, or local PDF")
     p["paper_id"]=paper_id(p); p["status"]="reading"
-    raw=Path(a.root)/"raw/papers"; reports=Path(a.root)/"reports"; raw.mkdir(parents=True,exist_ok=True); reports.mkdir(parents=True,exist_ok=True)
+    raw=Path(a.root)/"raw/papers"; raw.mkdir(parents=True,exist_ok=True)
     stem=slug(p["paper_id"]); pdf=raw/f"{stem}.pdf"
     if pdf_bytes: pdf.write_bytes(pdf_bytes); p["pdf_path"]=str(pdf)
-    report=reports/f"{stem}.md"; report.write_text(f"---\npaper_id: {p['paper_id']}\nstatus: reading\nsource: {p.get('source_url') or str(local)}\n---\n\n# {p['title']}\n\n## Abstract\n\n{p.get('abstract') or 'Metadata source did not provide an abstract.'}\n\n## Paper Craft analysis\n\n> Run `$paper-analyzer` from `vendor/paper-craft-skills` against `{p.get('pdf_path') or p.get('source_url')}` and replace this block with the reviewed analysis.\n\n## User notes\n\n",encoding="utf-8"); p["reading"]={"report_path":str(report),"paper_craft_skill":"paper-analyzer","analysis_status":"pending-agent-review","full_text_available":bool(pdf_bytes)}; (report.with_suffix(".json")).write_text(json.dumps(p,ensure_ascii=False,indent=2),encoding="utf-8"); print(report)
+    paths=report_paths(a.root,getattr(a,"report_slug",None) or p["title"]); paths["folder"].mkdir(parents=True,exist_ok=True); report=paths["report"]
+    report.write_text(f"---\npaper_id: {p['paper_id']}\nstatus: reading\nsource: {p.get('source_url') or str(local)}\n---\n\n# {p['title']}\n\n## Abstract\n\n{p.get('abstract') or 'Metadata source did not provide an abstract.'}\n\n## Paper Craft analysis\n\n> Run `$paper-analyzer` from `vendor/paper-craft-skills` against `{p.get('pdf_path') or p.get('source_url')}` and replace this block with the reviewed analysis.\n\n## User notes\n\n",encoding="utf-8"); p["reading"]={"report_path":str(report),"paper_craft_skill":"paper-analyzer","analysis_status":"pending-agent-review","full_text_available":bool(pdf_bytes)}; paths["record"].write_text(json.dumps(p,ensure_ascii=False,indent=2),encoding="utf-8"); print(report)
 
 def bullets(values): return "\n".join(f"- {v}" for v in values) if values else "- Not established from the available paper."
 
@@ -321,7 +322,7 @@ def cmd_recommend(a):
 def main():
     ap=argparse.ArgumentParser(); sub=ap.add_subparsers(required=True)
     d=sub.add_parser("discover"); d.add_argument("query"); d.add_argument("--limit",type=int,default=10); d.add_argument("--since-years",type=int,default=2,help="Recent-year window; use 0 to disable"); d.add_argument("--no-huggingface",action="store_true",help="Skip Hugging Face entirely: both the discovery source and engagement enrichment"); d.add_argument("--broader",action="store_true",help="Also query paper-search-mcp legal providers (DBLP, Unpaywall, CORE, ...) if installed"); d.add_argument("--output",default="reading-lists/latest.json"); d.set_defaults(func=cmd_discover)
-    r=sub.add_parser("read"); r.add_argument("paper"); r.add_argument("--root",default="."); r.set_defaults(func=cmd_read)
+    r=sub.add_parser("read"); r.add_argument("paper"); r.add_argument("--root",default="."); r.add_argument("--report-slug",help="Official paper abbreviation; defaults to a title-derived slug"); r.set_defaults(func=cmd_read)
     f=sub.add_parser("finalize"); f.add_argument("report"); f.add_argument("analysis"); f.set_defaults(func=cmd_finalize)
     k=sub.add_parser("deposit"); k.add_argument("input"); k.add_argument("--root",default="."); k.set_defaults(func=cmd_deposit)
     n=sub.add_parser("recommend"); n.add_argument("--topic"); n.add_argument("--limit",type=int,default=5); n.add_argument("--root",default="."); n.add_argument("--output",default="reading-lists/recommended-next.json"); n.set_defaults(func=cmd_recommend)

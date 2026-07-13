@@ -1,7 +1,7 @@
 # Deposit synthesis frontmatter cleanup design
 
 Date: 2026-07-13
-Status: Approved approach; implementation pending specification review
+Status: Approved and implemented on `dev`
 
 ## Objective
 

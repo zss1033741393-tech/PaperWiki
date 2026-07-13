@@ -71,6 +71,25 @@ class FinalizeTests(unittest.TestCase):
                 "Legacy Paper",
             )
 
+    def test_copies_valid_external_analysis_into_canonical_directory(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            report, canonical_analysis = _seed_canonical(root, dict(FULL_ANALYSIS))
+            canonical_analysis.unlink()
+            external_analysis = root / "reviewed-analysis.json"
+            external_analysis.write_text(json.dumps(FULL_ANALYSIS), encoding="utf-8")
+
+            paperwiki.cmd_finalize(type("A", (), {
+                "report": str(report),
+                "analysis": str(external_analysis),
+            }))
+
+            self.assertTrue(canonical_analysis.exists())
+            self.assertEqual(
+                json.loads(canonical_analysis.read_text(encoding="utf-8")),
+                FULL_ANALYSIS,
+            )
+
     def test_rejects_missing_required_fields(self):
         with tempfile.TemporaryDirectory() as td:
             incomplete = dict(FULL_ANALYSIS)

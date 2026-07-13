@@ -188,7 +188,7 @@ def cmd_read(a):
     raw=Path(a.root)/"raw/papers"; raw.mkdir(parents=True,exist_ok=True)
     stem=slug(p["paper_id"]); pdf=raw/f"{stem}.pdf"
     if pdf_bytes: pdf.write_bytes(pdf_bytes); p["pdf_path"]=str(pdf)
-    paths=report_paths(a.root,getattr(a,"report_slug",None) or p["title"]); paths["folder"].mkdir(parents=True,exist_ok=True); report=paths["report"]
+    paths=report_paths(a.root,getattr(a,"report_slug",None) or p["title"]); ensure_report_destination(paths,p["paper_id"]); paths["folder"].mkdir(parents=True,exist_ok=True); report=paths["report"]
     report.write_text(f"---\npaper_id: {p['paper_id']}\nstatus: reading\nsource: {p.get('source_url') or str(local)}\n---\n\n# {p['title']}\n\n## Abstract\n\n{p.get('abstract') or 'Metadata source did not provide an abstract.'}\n\n## Paper Craft analysis\n\n> Run `$paper-analyzer` from `vendor/paper-craft-skills` against `{p.get('pdf_path') or p.get('source_url')}` and replace this block with the reviewed analysis.\n\n## User notes\n\n",encoding="utf-8"); p["reading"]={"report_path":str(report),"paper_craft_skill":"paper-analyzer","analysis_status":"pending-agent-review","full_text_available":bool(pdf_bytes)}; paths["record"].write_text(json.dumps(p,ensure_ascii=False,indent=2),encoding="utf-8"); print(report)
 
 def bullets(values): return "\n".join(f"- {v}" for v in values) if values else "- Not established from the available paper."
@@ -196,10 +196,14 @@ def bullets(values): return "\n".join(f"- {v}" for v in values) if values else "
 def cmd_finalize(a):
     report=Path(a.report); side=resolve_record_path(report,diagnose=True)
     if not side.exists(): raise FileNotFoundError(f"Missing reading record: {side}")
-    p=json.loads(side.read_text(encoding="utf-8")); analysis=json.loads(Path(a.analysis).read_text(encoding="utf-8"))
+    analysis_path=Path(a.analysis); analysis_text=analysis_path.read_text(encoding="utf-8")
+    p=json.loads(side.read_text(encoding="utf-8")); analysis=json.loads(analysis_text)
     required=["research_question","contributions","method","experiments","findings","limitations","reproducibility","concepts","methods","datasets","topics","open_questions"]
     missing=[k for k in required if k not in analysis]
     if missing: raise ValueError("Analysis is missing fields: "+", ".join(missing))
+    if report.name == "report.md":
+        canonical_analysis=report.parent/"analysis.json"
+        if analysis_path.resolve() != canonical_analysis.resolve(): canonical_analysis.write_text(analysis_text,encoding="utf-8")
     src=p.get("source_url") or p.get("pdf_path"); mermaid=analysis.get("mermaid") or "flowchart LR\n  A[Input] --> B[Method] --> C[Output]"; content=f'''---
 paper_id: {p['paper_id']}
 status: reviewed
@@ -284,6 +288,15 @@ def report_paths(root, value):
     folder=Path(root)/"reports"/report_slug(value)
     return {"folder":folder,"report":folder/"report.md","html":folder/"report.html","analysis":folder/"analysis.json","record":folder/"record.json"}
 
+def ensure_report_destination(paths, paper_identity):
+    record=paths["record"]
+    if record.exists():
+        existing=json.loads(record.read_text(encoding="utf-8"))
+        if existing.get("paper_id") != paper_identity:
+            raise FileExistsError(f"Report directory collision at {paths['folder']}; choose a unique --report-slug")
+    elif paths["report"].exists():
+        raise FileExistsError(f"Report directory at {paths['folder']} has no record.json; choose a unique --report-slug")
+
 def resolve_record_path(report, diagnose=False):
     report=Path(report); canonical=report.parent/"record.json"; legacy=report.with_suffix(".json")
     if canonical.exists():
@@ -294,7 +307,7 @@ def resolve_record_path(report, diagnose=False):
 def report_wikilink_target(report, root):
     report=Path(report); root=Path(root)
     try: relative=report.resolve().relative_to(root.resolve())
-    except ValueError: return report.stem
+    except ValueError: return None
     return relative.with_suffix("").as_posix()
 
 def link_entity(root, collection, name, paper_title, paper_target):
@@ -312,7 +325,8 @@ def cmd_deposit(a):
     for key,collection in [("concepts","concepts"),("methods","methods"),("datasets","datasets"),("topics","topics")]:
         for name in reading.get(key,[]) or []: entities.append(link_entity(root,collection,str(name),p["title"],target.stem))
     source_target=report_wikilink_target(src,root)
-    body=f"---\npaper_id: {p['paper_id']}\ntitle: \"{p['title'].replace(chr(34),chr(39))}\"\nstatus: deposited\n---\n\n# {p['title']}\n\n## Source report\n\n[[{source_target}|{p['title']} report]]\n\n## Related knowledge\n\n"+("\n".join(f"- {x}" for x in entities) if entities else "- No structured entities confirmed yet.")+f"\n\n## Generated synthesis (draft)\n\n{text}\n\n## User notes\n\n{human}\n"
+    source_reference=f"[[{source_target}|{p['title']} report]]" if source_target else f"`{src.resolve()}`"
+    body=f"---\npaper_id: {p['paper_id']}\ntitle: \"{p['title'].replace(chr(34),chr(39))}\"\nstatus: deposited\n---\n\n# {p['title']}\n\n## Source report\n\n{source_reference}\n\n## Related knowledge\n\n"+("\n".join(f"- {x}" for x in entities) if entities else "- No structured entities confirmed yet.")+f"\n\n## Generated synthesis (draft)\n\n{text}\n\n## User notes\n\n{human}\n"
     target.write_text(body,encoding="utf-8"); (root/"index.md").parent.mkdir(parents=True,exist_ok=True); idx=root/"index.md"; line=f"- [[{target.stem}|{p['title']}]]\n"; old=idx.read_text(encoding="utf-8") if idx.exists() else "# PaperWiki Index\n\n"; idx.write_text(old if line in old else old+line,encoding="utf-8")
     log=root/"log.md"; old=log.read_text(encoding="utf-8") if log.exists() else "# Operation Log\n\n"; log.write_text(old+f"- {dt.datetime.now(dt.timezone.utc).isoformat()} deposit {p['paper_id']}\n",encoding="utf-8"); print(target)
 

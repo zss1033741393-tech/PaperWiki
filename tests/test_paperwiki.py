@@ -83,6 +83,30 @@ class PaperWikiTests(unittest.TestCase):
             self.assertTrue((root / "reports/graph-of-agents/report.md").exists())
             self.assertTrue((root / "reports/graph-of-agents/record.json").exists())
 
+    def test_read_rejects_slug_collision_with_different_paper(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            pdf = root / "Colliding Title.pdf"
+            pdf.write_bytes(b"%PDF-1.4\n")
+            folder = root / "reports/colliding-title"
+            folder.mkdir(parents=True)
+            report = folder / "report.md"
+            report.write_text("do not overwrite", encoding="utf-8")
+            (folder / "record.json").write_text(
+                json.dumps({"paper_id": "arxiv:9999.99999", "title": "Other Paper"}),
+                encoding="utf-8",
+            )
+            args = type("A", (), {
+                "paper": str(pdf),
+                "root": str(root),
+                "report_slug": None,
+            })
+
+            with self.assertRaisesRegex(FileExistsError, "--report-slug"):
+                paperwiki.cmd_read(args)
+
+            self.assertEqual(report.read_text(encoding="utf-8"), "do not overwrite")
+
     def test_gitignore_tracks_only_canonical_report_artifacts(self):
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)

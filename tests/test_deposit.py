@@ -42,6 +42,18 @@ class DepositTests(unittest.TestCase):
             self.assertIn("# Legacy Paper", paper_page)
             self.assertIn("[[reports/arxiv-1234|Legacy Paper report]]", paper_page)
 
+    def test_external_report_uses_explicit_path_instead_of_ambiguous_wikilink(self):
+        with tempfile.TemporaryDirectory() as source_td, tempfile.TemporaryDirectory() as vault_td:
+            report = Path(source_td) / "report.md"
+            report.write_text("# External Notes\n\nSummary", encoding="utf-8")
+            root = Path(vault_td)
+
+            paperwiki.cmd_deposit(type("A", (), {"input": str(report), "root": str(root)}))
+
+            paper_page = next((root / "wiki/papers").glob("*.md")).read_text(encoding="utf-8")
+            self.assertNotIn("[[report]]", paper_page)
+            self.assertIn(f"`{report.resolve()}`", paper_page)
+
     def test_reciprocal_links_and_index_and_log(self):
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)

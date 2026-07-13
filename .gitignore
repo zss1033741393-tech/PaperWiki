@@ -13,3 +13,5 @@ reading-lists/*
 !reading-lists/.gitkeep
 wiki/papers/*
 !wiki/papers/.gitkeep
+# validation vault: keep deposited markdown fixtures, drop reproducible downloaded PDFs
+validation/fixtures/vault/raw/

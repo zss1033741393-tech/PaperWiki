@@ -29,6 +29,14 @@
 - **根因**：`total = raw*(.5+.5*coverage)`，新论文缺 venue/citation → coverage≤0.55 → 天花板 ~0.73<0.8。must-read 还要求 coverage≥0.7，新论文更难达。
 - **判断**：设计上"证据不足则不敢标 must-read"可辩护，但导致 band 体系对最前沿论文坍缩为 recommended/candidate。可选：放宽 must-read 的 coverage 门槛或增设"新星"档。证据：discovery-quality.md D6/结论。
 
+## F2 🟡 非 ASCII 实体名 → 不可读哈希文件名
+
+- **现象**：deposit 后中文概念/方法页文件名变哈希（`concepts/fb7f97147752e774.md` ← "组合式可执行编排"），本例 7/19 实体如此；英文实体（LEMON/GRPO/GSM8K/MMLU）正常。
+- **根因**：`slug()=re.sub(r"[^a-z0-9]+","-",...)` 只保留 ASCII 字母数字；中文字符全被删→空串→回退 SHA-256 哈希前缀。
+- **影响**：Obsidian 双向链接仍可用（显示名是中文、目标指向哈希文件，链接不断），但**文件系统层不可读、难导航**——对以中文沉淀的知识库尤其明显（本项目 finalize 模板本身是中文）。
+- **可选修复**：`slug` 用 `re.UNICODE` 保留 unicode 词字符（中文文件名），或加拼音转写。属设计选择（是否要中文文件名），故记为发现交用户决定，未擅改。
+- **证据**：`validation/fixtures/vault/wiki/concepts/` 下 5 个哈希文件；[wiki-accuracy.md](rubrics/wiki-accuracy.md) W1 脚注。
+
 ## E1 🟢 provider 从本机 IP 间歇性限流
 
 - arXiv export API、Semantic Scholar：常态 429。

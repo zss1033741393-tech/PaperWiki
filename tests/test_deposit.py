@@ -8,6 +8,40 @@ import paperwiki
 
 
 class DepositTests(unittest.TestCase):
+    def test_nested_report_uses_vault_qualified_source_link(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            folder = root / "reports/latentmas"
+            folder.mkdir(parents=True)
+            report = folder / "report.md"
+            report.write_text("# reviewed", encoding="utf-8")
+            record = {"paper_id": "arxiv:2511.20639", "title": "LatentMAS",
+                      "reading": {"concepts": [], "methods": [],
+                                  "datasets": [], "topics": []}}
+            (folder / "record.json").write_text(json.dumps(record), encoding="utf-8")
+
+            paperwiki.cmd_deposit(type("A", (), {"input": str(report), "root": str(root)}))
+
+            paper_page = next((root / "wiki/papers").glob("*.md")).read_text(encoding="utf-8")
+            self.assertIn("[[reports/latentmas/report|LatentMAS report]]", paper_page)
+
+    def test_legacy_sidecar_still_deposits(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            report = root / "reports/arxiv-1234.md"
+            report.parent.mkdir(parents=True)
+            report.write_text("# reviewed", encoding="utf-8")
+            record = {"paper_id": "arxiv:1234.5678", "title": "Legacy Paper",
+                      "reading": {"concepts": [], "methods": [],
+                                  "datasets": [], "topics": []}}
+            report.with_suffix(".json").write_text(json.dumps(record), encoding="utf-8")
+
+            paperwiki.cmd_deposit(type("A", (), {"input": str(report), "root": str(root)}))
+
+            paper_page = next((root / "wiki/papers").glob("*.md")).read_text(encoding="utf-8")
+            self.assertIn("# Legacy Paper", paper_page)
+            self.assertIn("[[reports/arxiv-1234|Legacy Paper report]]", paper_page)
+
     def test_reciprocal_links_and_index_and_log(self):
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)

@@ -136,7 +136,7 @@ def score(p,query):
     title_overlap=sum(t in title for t in terms)/max(1,len(terms)); abstract_overlap=sum(t in abstract for t in terms)/max(1,len(terms)); phrase=query.lower() in title
     rel=min(1,.55*title_overlap+.35*abstract_overlap+.10*phrase); age=max(0,dt.date.today().year-(p.get("year") or 0)); rec=max(0,1-age/4)
     cites=p.get("citation_count"); venue=(p.get("venue") or "").lower(); code=bool(p.get("github_url") or re.search(r"github\.com|code (?:is|at|available)|paperswithcode",text)); data=bool(re.search(r"dataset (?:is|at|available)|data (?:is|at|available)",text)); upvotes=p.get("hf_upvotes")
-    signals={"relevance":rel,"venue":.95 if any(v in venue for v in TOP_VENUES) else (.65 if venue else None),"citations":min(1,math.log1p(cites)/math.log(1001)) if cites is not None else None,"recency":rec,"reproducibility":min(1,.7*code+.3*data) if code or data else None,"author_continuity":None,"novelty":min(1,math.log1p(upvotes)/math.log(101)) if upvotes is not None else None}
+    signals={"relevance":rel,"venue":.95 if any(v in venue for v in TOP_VENUES) else (.65 if venue else None),"citations":min(1,math.log1p(cites)/math.log(1001))*rel if cites is not None else None,"recency":rec,"reproducibility":min(1,.7*code+.3*data) if code or data else None,"author_continuity":None,"novelty":min(1,math.log1p(upvotes)/math.log(101)) if upvotes is not None else None}
     available={k:v for k,v in signals.items() if v is not None}; coverage=sum(WEIGHTS[k] for k in available); raw=sum(WEIGHTS[k]*v for k,v in available.items())/coverage; total=raw*(.5+.5*coverage)
     band="must-read" if total>=.8 and coverage>=.7 else "recommended" if total>=.65 else "candidate" if total>=.5 else "watch"
     flags=[]; low_title=(p.get("title") or "").lower()

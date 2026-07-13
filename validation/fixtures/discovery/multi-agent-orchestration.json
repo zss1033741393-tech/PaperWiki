@@ -820,5 +820,6 @@
       "error": "<urlopen error [Errno 54] Connection reset by peer>",
       "recoverable": true
     }
-  ]
+  ],
+  "rescored_note": "re-scored+re-sorted with O2 fix (citation*=relevance) on the originally-harvested paper set"
 }

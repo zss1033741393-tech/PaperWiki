@@ -103,7 +103,7 @@
         "signals": {
           "relevance": 0.9,
           "venue": 0.95,
-          "citations": 0.20065763012322416,
+          "citations": 0.18059186711090175,
           "recency": 1.0,
           "reproducibility": null,
           "author_continuity": null,
@@ -127,8 +127,8 @@
           "author_continuity",
           "novelty"
         ],
-        "raw_score": 0.8001,
-        "score": 0.7201,
+        "raw_score": 0.7964,
+        "score": 0.7167,
         "coverage": 0.8,
         "band": "recommended",
         "reasons": [
@@ -332,7 +332,7 @@
         "signals": {
           "relevance": 0.7625,
           "venue": 0.65,
-          "citations": 0.46000385479927935,
+          "citations": 0.3507529392844505,
           "recency": 1.0,
           "reproducibility": null,
           "author_continuity": null,
@@ -356,8 +356,8 @@
           "author_continuity",
           "novelty"
         ],
-        "raw_score": 0.7222,
-        "score": 0.65,
+        "raw_score": 0.7017,
+        "score": 0.6315,
         "coverage": 0.8,
         "band": "candidate",
         "reasons": [
@@ -597,97 +597,6 @@
       }
     },
     {
-      "title": "A Survey of Large Language Models",
-      "authors": [
-        "Wayne Xin Zhao",
-        "Kun Zhou",
-        "Junyi Li",
-        "Tianyi Tang",
-        "Xiaolei Wang",
-        "Yupeng Hou",
-        "Yingqian Min",
-        "Beichen Zhang",
-        "Junjie Zhang",
-        "Zican Dong",
-        "Yifan Du",
-        "Yang Chen",
-        "Yushuo Chen",
-        "Zhipeng Chen",
-        "Jinhao Jiang",
-        "Ruiyang Ren",
-        "Yifan Li",
-        "Xinyu Tang",
-        "Zikang Liu",
-        "Peiyu Liu",
-        "Jian‐Yun Nie",
-        "Ji-Rong Wen",
-        "Ji-Rong Wen"
-      ],
-      "abstract": "Abstract The rapid evolution of large language models (LLMs) has driven a transformative shift in artificial intelligence (AI), reshaping both research paradigms and practical applications. Distinguished from their predecessors by unprecedented scale and advanced capabilities, LLMs necessitate new frameworks for understanding their development, behavior, and societal impact. This survey systematically reviews recent advancements in LLM techniques across four key dimensions: (1) pre-training methodologies, which establish core model capabilities through large-scale self-supervised training, architectural innovations, and data curation strategies; (2) post-training techniques, including supervised fine-tuning and reinforcement learning, which adapt foundational models to downstream tasks and enhance their alignment and safety; (3) utilization strategies, such as in-context learning, prompt engineering, and agentic reasoning, that optimize real-world deployment and enable effective interaction with external environments; and (4) evaluation methods, encompassing benchmarks for key ability dimensions such as core language capabilities, reasoning, and safety, which support comprehensive and reliable assessment of model performance. Additionally, we identify critical research issues, including those concerning theoretical foundations, efficient scaling, alignment, and agentic capability, and highlight the open challenges they present. By synthesizing state-of-the-art insights and emerging trends, this survey aims to provide a systematic and comprehensive framework for understanding the trajectory, current limitations, and future directions of LLM progress.",
-      "year": 2026,
-      "venue": "Frontiers of Computer Science",
-      "doi": "10.1007/s11704-026-60308-3",
-      "arxiv_id": null,
-      "source_url": "https://doi.org/10.1007/s11704-026-60308-3",
-      "pdf_url": "https://link.springer.com/content/pdf/10.1007/s11704-026-60308-3.pdf",
-      "citation_count": 1418,
-      "open_access": {
-        "is_oa": true,
-        "oa_status": "hybrid",
-        "oa_url": "https://link.springer.com/content/pdf/10.1007/s11704-026-60308-3.pdf",
-        "any_repository_has_fulltext": true
-      },
-      "provider_relevance": 224.64262,
-      "provenance": [
-        {
-          "provider": "openalex",
-          "retrieved_at": "2026-07-13T06:28:25.836899+00:00"
-        }
-      ],
-      "paper_id": "doi:10.1007/s11704-026-60308-3",
-      "status": "discovered",
-      "quality_flags": [],
-      "discovery": {
-        "signals": {
-          "relevance": 0.175,
-          "venue": 0.95,
-          "citations": 1,
-          "recency": 1.0,
-          "reproducibility": null,
-          "author_continuity": null,
-          "novelty": null
-        },
-        "signal_evidence": {
-          "relevance": {
-            "title_overlap": 0.0,
-            "abstract_overlap": 0.5,
-            "exact_title_phrase": false
-          },
-          "venue": "Frontiers of Computer Science",
-          "citations": 1418,
-          "recency": 2026,
-          "reproducibility": null,
-          "author_continuity": null,
-          "novelty": null
-        },
-        "missing_evidence": [
-          "reproducibility",
-          "author_continuity",
-          "novelty"
-        ],
-        "raw_score": 0.6781,
-        "score": 0.6103,
-        "coverage": 0.8,
-        "band": "candidate",
-        "reasons": [
-          "topic relevance 18%",
-          "published 2026",
-          "evidence coverage 80%",
-          "final score is confidence-adjusted by evidence coverage"
-        ]
-      }
-    },
-    {
       "title": "Belief-Driven Multi-Agent Collaboration via Approximate Perfect Bayesian Equilibrium for Social Simulation",
       "authors": [
         "Weiwei Fang",
@@ -914,6 +823,97 @@
           "final score is confidence-adjusted by evidence coverage"
         ]
       }
+    },
+    {
+      "title": "A Survey of Large Language Models",
+      "authors": [
+        "Wayne Xin Zhao",
+        "Kun Zhou",
+        "Junyi Li",
+        "Tianyi Tang",
+        "Xiaolei Wang",
+        "Yupeng Hou",
+        "Yingqian Min",
+        "Beichen Zhang",
+        "Junjie Zhang",
+        "Zican Dong",
+        "Yifan Du",
+        "Yang Chen",
+        "Yushuo Chen",
+        "Zhipeng Chen",
+        "Jinhao Jiang",
+        "Ruiyang Ren",
+        "Yifan Li",
+        "Xinyu Tang",
+        "Zikang Liu",
+        "Peiyu Liu",
+        "Jian‐Yun Nie",
+        "Ji-Rong Wen",
+        "Ji-Rong Wen"
+      ],
+      "abstract": "Abstract The rapid evolution of large language models (LLMs) has driven a transformative shift in artificial intelligence (AI), reshaping both research paradigms and practical applications. Distinguished from their predecessors by unprecedented scale and advanced capabilities, LLMs necessitate new frameworks for understanding their development, behavior, and societal impact. This survey systematically reviews recent advancements in LLM techniques across four key dimensions: (1) pre-training methodologies, which establish core model capabilities through large-scale self-supervised training, architectural innovations, and data curation strategies; (2) post-training techniques, including supervised fine-tuning and reinforcement learning, which adapt foundational models to downstream tasks and enhance their alignment and safety; (3) utilization strategies, such as in-context learning, prompt engineering, and agentic reasoning, that optimize real-world deployment and enable effective interaction with external environments; and (4) evaluation methods, encompassing benchmarks for key ability dimensions such as core language capabilities, reasoning, and safety, which support comprehensive and reliable assessment of model performance. Additionally, we identify critical research issues, including those concerning theoretical foundations, efficient scaling, alignment, and agentic capability, and highlight the open challenges they present. By synthesizing state-of-the-art insights and emerging trends, this survey aims to provide a systematic and comprehensive framework for understanding the trajectory, current limitations, and future directions of LLM progress.",
+      "year": 2026,
+      "venue": "Frontiers of Computer Science",
+      "doi": "10.1007/s11704-026-60308-3",
+      "arxiv_id": null,
+      "source_url": "https://doi.org/10.1007/s11704-026-60308-3",
+      "pdf_url": "https://link.springer.com/content/pdf/10.1007/s11704-026-60308-3.pdf",
+      "citation_count": 1418,
+      "open_access": {
+        "is_oa": true,
+        "oa_status": "hybrid",
+        "oa_url": "https://link.springer.com/content/pdf/10.1007/s11704-026-60308-3.pdf",
+        "any_repository_has_fulltext": true
+      },
+      "provider_relevance": 224.64262,
+      "provenance": [
+        {
+          "provider": "openalex",
+          "retrieved_at": "2026-07-13T06:28:25.836899+00:00"
+        }
+      ],
+      "paper_id": "doi:10.1007/s11704-026-60308-3",
+      "status": "discovered",
+      "quality_flags": [],
+      "discovery": {
+        "signals": {
+          "relevance": 0.175,
+          "venue": 0.95,
+          "citations": 0.175,
+          "recency": 1.0,
+          "reproducibility": null,
+          "author_continuity": null,
+          "novelty": null
+        },
+        "signal_evidence": {
+          "relevance": {
+            "title_overlap": 0.0,
+            "abstract_overlap": 0.5,
+            "exact_title_phrase": false
+          },
+          "venue": "Frontiers of Computer Science",
+          "citations": 1418,
+          "recency": 2026,
+          "reproducibility": null,
+          "author_continuity": null,
+          "novelty": null
+        },
+        "missing_evidence": [
+          "reproducibility",
+          "author_continuity",
+          "novelty"
+        ],
+        "raw_score": 0.5234,
+        "score": 0.4711,
+        "coverage": 0.8,
+        "band": "watch",
+        "reasons": [
+          "topic relevance 18%",
+          "published 2026",
+          "evidence coverage 80%",
+          "final score is confidence-adjusted by evidence coverage"
+        ]
+      }
     }
   ],
   "errors": [
@@ -922,5 +922,6 @@
       "error": "HTTP Error 429: ",
       "recoverable": true
     }
-  ]
+  ],
+  "rescored_note": "re-scored+re-sorted with O2 fix (citation*=relevance) on the originally-harvested paper set"
 }

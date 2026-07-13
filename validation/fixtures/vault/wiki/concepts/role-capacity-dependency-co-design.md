@@ -1,9 +1,9 @@
 ---
-title: "节点级执行缓存"
-type: method
+title: "Role-Capacity-Dependency Co-Design"
+type: concept
 ---
 
-# 节点级执行缓存
+# Role-Capacity-Dependency Co-Design
 
 ## Related papers
 

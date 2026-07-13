@@ -1,9 +1,9 @@
 ---
-title: "GRPO 组相对策略优化"
-type: method
+title: "Localized Counterfactual Credit Assignment"
+type: concept
 ---
 
-# GRPO 组相对策略优化
+# Localized Counterfactual Credit Assignment
 
 ## Related papers
 

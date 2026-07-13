@@ -25,12 +25,16 @@ class ScoringTests(unittest.TestCase):
         self.assertAlmostEqual(sig({"title": "x", "year": YEAR - 2})["signals"]["recency"], 0.5)
         self.assertEqual(sig({"title": "x", "year": YEAR - 10})["signals"]["recency"], 0.0)
 
-    def test_citation_signal_is_monotonic_and_capped_at_one(self):
-        s = lambda c: sig({"title": "x", "year": YEAR, "citation_count": c})["signals"]["citations"]
+    def test_citation_signal_is_monotonic_and_relevance_scaled(self):
+        # citations stay monotonic in count for a fixed relevant title; post-O2 the signal is
+        # scaled by relevance, so it is capped at the title's relevance rather than at 1.0.
+        rec = lambda c: {"title": "multi agent orchestration", "year": YEAR, "citation_count": c}
+        rel = sig(rec(0))["signals"]["relevance"]
+        s = lambda c: sig(rec(c))["signals"]["citations"]
         self.assertLess(s(0), s(10))
         self.assertLess(s(10), s(100))
-        self.assertLessEqual(s(100000), 1.0)
-        self.assertGreater(s(100000), 0.9)
+        self.assertLessEqual(s(100000), rel + 1e-9)
+        self.assertGreater(s(100000), 0.9 * rel)
 
     def test_citations_absent_is_missing_not_zero(self):
         d = sig({"title": "x", "year": YEAR})
@@ -57,6 +61,14 @@ class ScoringTests(unittest.TestCase):
     def test_unrelated_stale_paper_is_watch_band(self):
         d = sig({"title": "unrelated topic", "year": YEAR - 10}, "quantum photonics")
         self.assertEqual(d["band"], "watch")
+
+    def test_citation_contribution_is_scaled_by_relevance(self):
+        # Finding O2: raw citation count must not let an off-topic paper outrank relevant ones.
+        # For the SAME citation count, an on-topic paper's citation signal must dominate an
+        # off-topic paper's (citations count only in proportion to relevance).
+        on = sig({"title": "multi agent orchestration for reasoning", "year": YEAR, "citation_count": 1000})["signals"]["citations"]
+        off = sig({"title": "a study of unrelated photonics", "year": YEAR, "citation_count": 1000})["signals"]["citations"]
+        self.assertGreater(on, off * 2)
 
 
 if __name__ == "__main__":

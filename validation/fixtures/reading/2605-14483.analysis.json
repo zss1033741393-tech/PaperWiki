@@ -32,8 +32,8 @@
     "基准均为公开数据集（GSM8K/MultiArith/SVAMP/AQuA/MMLU/HumanEval），基线为已发表公开方法。",
     "各算力档位 worker 由 Appendix D.2 Table 3 指明：小/中/大 = Qwen2.5-7B/14B/32B-Instruct；仅 SFT teacher 模型未具名，完整复现另需该 teacher。"
   ],
-  "concepts": ["组合式可执行编排", "局部反事实信用分配", "稀疏信用分配", "可执行编排规范", "角色-算力-依赖联合设计"],
-  "methods": ["LEMON", "GRPO 组相对策略优化", "反事实字段编辑（删依赖/退角色/降算力）", "teacher 规范 SFT 暖启动", "节点级执行缓存"],
+  "concepts": ["Compositional Executable Orchestration", "Localized Counterfactual Credit Assignment", "Sparse Credit Assignment", "Executable Orchestration Specification", "Role-Capacity-Dependency Co-Design"],
+  "methods": ["LEMON", "GRPO (Group-Relative Policy Optimization)", "Counterfactual Field Mutation", "Teacher-Spec SFT Warm-Start", "Node-Level Execution Cache"],
   "datasets": ["GSM8K", "MultiArith", "SVAMP", "AQuA", "MMLU", "HumanEval"],
   "topics": ["LLM Multi-Agent Systems", "Multi-Agent Orchestration", "Reinforcement Learning for Agents"],
   "open_questions": [

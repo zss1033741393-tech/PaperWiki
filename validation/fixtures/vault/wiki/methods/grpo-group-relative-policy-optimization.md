@@ -1,9 +1,9 @@
 ---
-title: "稀疏信用分配"
-type: concept
+title: "GRPO (Group-Relative Policy Optimization)"
+type: method
 ---
 
-# 稀疏信用分配
+# GRPO (Group-Relative Policy Optimization)
 
 ## Related papers
 

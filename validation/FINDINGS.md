@@ -17,11 +17,12 @@
 - **已证实**（真实 fixture）：查询 `"multi-agent orchestration"` 的最终 top-12 全部是标题精确含该短语的 arXiv 论文（rel=1.0），**Orchestra-o1(up=48)、Paper Circle(up=31) 等 HF 精选高赞 2026 论文被完全挤出**。
 - **判断**：权重取舍，非正确性 bug（相关性优先可辩护）。是否调权交用户决定（见 REPORT 待决项）。证据：[rubrics/discovery-quality.md](rubrics/discovery-quality.md) D7。
 
-## O2 🟡 引用数可让离题论文越位
+## O2 🟡 引用数可让离题论文越位（已修复）
 
 - **现象**：查询 `"LLM multi-agent collaboration"`，泛化综述《A Survey of Large Language Models》(relevance=0.17) 因 cite=1418 排到 #9(score 0.610)，**压过 #10–12 真正相关的多智能体论文(rel 0.73–0.81)**。
-- **根因**：citations 权重 0.15 + 对数归一，高被引可抵消低相关。该综述正确未进 recommended（噪声抑制部分生效），但仍在 candidate 内越位。
-- **判断**：取舍问题。可选缓解：低相关(rel<阈值)时抑制 citation 贡献。证据：discovery-quality.md D2。
+- **根因**：citations 权重 0.15 + 对数归一，高被引可抵消低相关。
+- **修复**：`score()` 让 citation 信号乘以 relevance（`citation*=rel`）——引用只按论文相关度折算贡献。**同批论文重打分：该综述 0.610(#9) → 0.471(垫底)**，被正确压到全部相关论文之下；相关论文几乎不变。
+- **证据**：[tests/test_scoring.py](../tests/test_scoring.py) `test_citation_contribution_is_scaled_by_relevance`（RED→GREEN）；fixtures 已按修复重排。
 
 ## O3 🟡 must-read 档对前沿新论文实际不可达
 
@@ -29,7 +30,10 @@
 - **根因**：`total = raw*(.5+.5*coverage)`，新论文缺 venue/citation → coverage≤0.55 → 天花板 ~0.73<0.8。must-read 还要求 coverage≥0.7，新论文更难达。
 - **判断**：设计上"证据不足则不敢标 must-read"可辩护，但导致 band 体系对最前沿论文坍缩为 recommended/candidate。可选：放宽 must-read 的 coverage 门槛或增设"新星"档。证据：discovery-quality.md D6/结论。
 
-## F2 🟡 非 ASCII 实体名 → 不可读哈希文件名
+## F2 🟡 非 ASCII 实体名 → 不可读哈希文件名（已解决）
+
+**解决方式（约定层面，slug 代码未改）**：实体名统一用英文（与仓库 golden 样例约定一致——golden 的 concepts/methods 本就是英文）。把 LEMON 分析的中文概念/方法名改成英文后重沉淀，wiki 文件名全部可读（`compositional-executable-orchestration.md`…），零哈希、双向链接仍 19/19。若将来确需中文文件名，再考虑 `slug` 用 `re.UNICODE`。以下保留原始记录：
+
 
 - **现象**：deposit 后中文概念/方法页文件名变哈希（`concepts/fb7f97147752e774.md` ← "组合式可执行编排"），本例 7/19 实体如此；英文实体（LEMON/GRPO/GSM8K/MMLU）正常。
 - **根因**：`slug()=re.sub(r"[^a-z0-9]+","-",...)` 只保留 ASCII 字母数字；中文字符全被删→空串→回退 SHA-256 哈希前缀。

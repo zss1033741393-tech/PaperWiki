@@ -1,9 +1,9 @@
 ---
-title: "组合式可执行编排"
+title: "Compositional Executable Orchestration"
 type: concept
 ---
 
-# 组合式可执行编排
+# Compositional Executable Orchestration
 
 ## Related papers
 

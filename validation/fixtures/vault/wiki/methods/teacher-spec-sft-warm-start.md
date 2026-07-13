@@ -1,9 +1,9 @@
 ---
-title: "teacher 规范 SFT 暖启动"
+title: "Teacher-Spec SFT Warm-Start"
 type: method
 ---
 
-# teacher 规范 SFT 暖启动
+# Teacher-Spec SFT Warm-Start
 
 ## Related papers
 

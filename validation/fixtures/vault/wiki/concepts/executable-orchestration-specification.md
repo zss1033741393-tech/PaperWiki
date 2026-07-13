@@ -1,9 +1,9 @@
 ---
-title: "角色-算力-依赖联合设计"
+title: "Executable Orchestration Specification"
 type: concept
 ---
 
-# 角色-算力-依赖联合设计
+# Executable Orchestration Specification
 
 ## Related papers
 

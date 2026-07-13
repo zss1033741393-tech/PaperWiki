@@ -1,9 +1,9 @@
 ---
-title: "局部反事实信用分配"
+title: "Sparse Credit Assignment"
 type: concept
 ---
 
-# 局部反事实信用分配
+# Sparse Credit Assignment
 
 ## Related papers
 

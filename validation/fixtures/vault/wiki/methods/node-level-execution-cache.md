@@ -1,9 +1,9 @@
 ---
-title: "反事实字段编辑（删依赖/退角色/降算力）"
+title: "Node-Level Execution Cache"
 type: method
 ---
 
-# 反事实字段编辑（删依赖/退角色/降算力）
+# Node-Level Execution Cache
 
 ## Related papers
 

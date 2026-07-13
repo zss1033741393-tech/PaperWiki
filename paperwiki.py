@@ -315,6 +315,10 @@ def link_entity(root, collection, name, paper_title, paper_target):
     link=f"- [[{paper_target}|{paper_title}]]\n"; old=target.read_text(encoding="utf-8") if target.exists() else f"---\ntitle: \"{name.replace(chr(34),chr(39))}\"\ntype: {collection.rstrip('s')}\n---\n\n# {name}\n\n## Related papers\n\n"
     target.write_text(old if link in old else old+link,encoding="utf-8"); return f"[[{target.stem}|{name}]]"
 
+def strip_leading_frontmatter(text):
+    match=re.match(r"\A---[ \t]*\r?\n.*?\r?\n---[ \t]*(?:\r?\n(?:[ \t]*\r?\n)?)?",text,re.S)
+    return text[match.end():] if match else text
+
 def cmd_deposit(a):
     src=Path(a.input); text=src.read_text(encoding="utf-8"); side=resolve_record_path(src,diagnose=True); p=json.loads(side.read_text(encoding="utf-8")) if side.exists() else {"title":re.search(r"^#\s+(.+)$",text,re.M).group(1),"provenance":[{"provider":"user-notes","path":str(src)}]}
     p["paper_id"]=p.get("paper_id") or paper_id(p); root=Path(a.root); papers=root/"wiki/papers"; papers.mkdir(parents=True,exist_ok=True)

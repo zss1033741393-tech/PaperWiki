@@ -8,6 +8,21 @@ import paperwiki
 
 
 class DepositTests(unittest.TestCase):
+    def test_strip_leading_frontmatter_preserves_body_separator(self):
+        source = "---\r\ntitle: Example\r\nstatus: reviewed\r\n---\r\n\r\n# Body\r\n\r\nA\r\n\r\n---\r\n\r\nB\r\n"
+        result = paperwiki.strip_leading_frontmatter(source)
+        self.assertTrue(result.startswith("# Body\r\n"))
+        self.assertIn("\r\n---\r\n", result)
+        self.assertNotIn("title: Example", result)
+
+    def test_strip_leading_frontmatter_leaves_plain_markdown_unchanged(self):
+        source = "# Notes\n\nSummary\n\n---\n\nEvidence\n"
+        self.assertEqual(paperwiki.strip_leading_frontmatter(source), source)
+
+    def test_strip_leading_frontmatter_leaves_unclosed_block_unchanged(self):
+        source = "---\ntitle: Incomplete\n# Body\n"
+        self.assertEqual(paperwiki.strip_leading_frontmatter(source), source)
+
     def test_nested_report_uses_vault_qualified_source_link(self):
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)

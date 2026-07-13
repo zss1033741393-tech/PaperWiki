@@ -1,6 +1,7 @@
 import tempfile
 import unittest
 import json
+import subprocess
 from pathlib import Path
 import paperwiki
 
@@ -81,6 +82,30 @@ class PaperWikiTests(unittest.TestCase):
 
             self.assertTrue((root / "reports/graph-of-agents/report.md").exists())
             self.assertTrue((root / "reports/graph-of-agents/record.json").exists())
+
+    def test_gitignore_tracks_only_canonical_report_artifacts(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            subprocess.run(["git", "init", "-q", str(root)], check=True)
+            source = Path(paperwiki.__file__).with_name(".gitignore")
+            (root / ".gitignore").write_text(source.read_text(encoding="utf-8"), encoding="utf-8")
+            folder = root / "reports/latentmas"
+            folder.mkdir(parents=True)
+            canonical = ["report.md", "report.html", "analysis.json", "record.json"]
+            for name in canonical + ["notes.tmp"]:
+                (folder / name).write_text("x", encoding="utf-8")
+
+            for name in canonical:
+                result = subprocess.run(
+                    ["git", "check-ignore", "-q", f"reports/latentmas/{name}"],
+                    cwd=root,
+                )
+                self.assertEqual(result.returncode, 1, name)
+            ignored = subprocess.run(
+                ["git", "check-ignore", "-q", "reports/latentmas/notes.tmp"],
+                cwd=root,
+            )
+            self.assertEqual(ignored.returncode, 0)
 
     def test_identity_precedence(self):
         self.assertEqual(paperwiki.paper_id({"title":"X","doi":"10.1/ABC","arxiv_id":"1234.5678"}), "doi:10.1/abc")

@@ -1,6 +1,6 @@
 ---
 name: deposit-paper-knowledge
-description: Convert a paper report or user-authored reading notes into an idempotent, linked Markdown and Obsidian knowledge base. Use when the user asks to archive, deposit, preserve, organize, connect, or add learned paper content to PaperWiki, including reports not produced by read-paper. Do not require discovery or automatic paper reading.
+description: Use when the user asks to archive, deposit, preserve, organize, connect, or add a paper report or reading notes to PaperWiki, including reports not produced by read-paper.
 ---
 
 # Deposit Paper Knowledge
@@ -14,7 +14,7 @@ description: Convert a paper report or user-authored reading notes into an idemp
 5. Extract concepts, methods, datasets, authors, and topics. Add reciprocal Obsidian wikilinks without duplication.
 6. Preserve human-authored sections verbatim. Mark uncertain generated material as draft; never silently replace conflicts.
 7. Update `index.md`, affected topics, and `log.md`. Set `deposited` only after validation.
-8. For a PaperWiki report, run `python paperwiki.py deposit <report.md> --root <vault>`. After deposition, run `python paperwiki.py recommend --topic "<topic>" --root <vault>` when the user asks for the next reading direction.
+8. For a PaperWiki report, use the official-abbreviation directory and run `python paperwiki.py deposit <vault>/reports/<paper-slug>/report.md --root <vault>`. The sibling `record.json` is authoritative; legacy same-stem JSON remains accepted. After deposition, run `python paperwiki.py recommend --topic "<topic>" --root <vault>` when the user asks for the next reading direction.
 
 ## Idempotency
 
@@ -24,7 +24,7 @@ description: Convert a paper report or user-authored reading notes into an idemp
 
 ## Obsidian companion skills (vendored, optional)
 
-The wiki is Obsidian-flavored Markdown: **short-name** `[[wikilinks]]` (Obsidian's default "shortest path" format, resolves by note name across the vault), `[!summary]` callouts, and YAML frontmatter properties. Open the repo (or `wiki/`) as an Obsidian vault to get backlinks and graph view. The pinned `vendor/obsidian-skills` (by kepano) provides optional companions:
+The wiki is Obsidian-flavored Markdown: entity and paper relations use **short-name** `[[wikilinks]]` (Obsidian's default "shortest path" format), while source reports use vault-qualified links such as `[[reports/latentmas/report|LatentMAS report]]` because every paper report is named `report.md`. It also uses `[!summary]` callouts and YAML frontmatter properties. Open the repository root as the Obsidian vault so both `wiki/` notes and `reports/` sources resolve and appear in graph view. The pinned `vendor/obsidian-skills` (by kepano) provides optional companions:
 
 - `obsidian-markdown` — authoritative Obsidian Flavored Markdown (wikilinks, callouts, embeds, properties) when hand-editing wiki pages.
 - `obsidian-cli` — read/search/manage the vault (notes, tasks, properties) and drive Obsidian from the command line.

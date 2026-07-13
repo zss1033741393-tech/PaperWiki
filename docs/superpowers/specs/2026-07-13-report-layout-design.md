@@ -1,7 +1,7 @@
 # Paper report directory layout design
 
 Date: 2026-07-13
-Status: Approved for specification; implementation pending document review
+Status: Approved and implemented on `dev`
 
 ## Objective
 

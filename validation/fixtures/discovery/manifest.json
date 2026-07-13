@@ -1,0 +1,41 @@
+{
+  "harvested_at": "2026-07-13T06:28:12.002562+00:00",
+  "note": "provider errors are expected (IP-level rate limits); fault-tolerance keeps real results flowing",
+  "runs": [
+    {
+      "query": "LLM multi-agent collaboration",
+      "fixture": "llm-multi-agent-collaboration.json",
+      "returned": 12,
+      "contributing_providers": [
+        "arxiv",
+        "crossref",
+        "huggingface-papers",
+        "huggingface-search",
+        "openalex"
+      ],
+      "provider_errors": {
+        "semantic-scholar": "HTTP Error 429: "
+      },
+      "bands": {
+        "recommended": 4,
+        "candidate": 8
+      }
+    },
+    {
+      "query": "multi-agent orchestration",
+      "fixture": "multi-agent-orchestration.json",
+      "returned": 12,
+      "contributing_providers": [
+        "arxiv",
+        "crossref"
+      ],
+      "provider_errors": {
+        "semantic-scholar": "HTTP Error 429: ",
+        "huggingface-papers": "<urlopen error [Errno 54] Connection reset by peer>"
+      },
+      "bands": {
+        "recommended": 12
+      }
+    }
+  ]
+}

@@ -194,7 +194,7 @@ def cmd_read(a):
 def bullets(values): return "\n".join(f"- {v}" for v in values) if values else "- Not established from the available paper."
 
 def cmd_finalize(a):
-    report=Path(a.report); side=report.with_suffix(".json")
+    report=Path(a.report); side=resolve_record_path(report,diagnose=True)
     if not side.exists(): raise FileNotFoundError(f"Missing reading record: {side}")
     p=json.loads(side.read_text(encoding="utf-8")); analysis=json.loads(Path(a.analysis).read_text(encoding="utf-8"))
     required=["research_question","contributions","method","experiments","findings","limitations","reproducibility","concepts","methods","datasets","topics","open_questions"]

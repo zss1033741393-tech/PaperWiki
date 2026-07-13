@@ -1,0 +1,38 @@
+"""L1 verification of `deposit`: reciprocal wikilinks + index/log bookkeeping (wiki 准确)."""
+import json
+import tempfile
+import unittest
+from pathlib import Path
+
+import paperwiki
+
+
+class DepositTests(unittest.TestCase):
+    def test_reciprocal_links_and_index_and_log(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            reports = root / "reports"
+            reports.mkdir()
+            report = reports / "x.md"
+            report.write_text("# draft", encoding="utf-8")
+            record = {"paper_id": "doi:10.1/x", "title": "Linked Paper",
+                      "reading": {"concepts": ["Agent Memory"], "methods": [],
+                                  "datasets": [], "topics": ["Multi Agent"]}}
+            report.with_suffix(".json").write_text(json.dumps(record), encoding="utf-8")
+
+            paperwiki.cmd_deposit(type("A", (), {"input": str(report), "root": str(root)}))
+
+            paper_page = next((root / "wiki/papers").glob("*.md")).read_text(encoding="utf-8")
+            self.assertIn("Agent Memory", paper_page)                 # paper -> concept
+            self.assertIn("Multi Agent", paper_page)                  # paper -> topic
+
+            concept = (root / "wiki/concepts/agent-memory.md").read_text(encoding="utf-8")
+            self.assertIn("Linked Paper", concept)                    # reciprocal concept -> paper
+            self.assertIn("../papers/", concept)
+
+            self.assertIn("Linked Paper", (root / "index.md").read_text(encoding="utf-8"))
+            self.assertIn("deposit", (root / "log.md").read_text(encoding="utf-8"))
+
+
+if __name__ == "__main__":
+    unittest.main()

@@ -300,7 +300,7 @@ def cmd_recommend(a):
     for path in (root/"wiki/concepts").glob("*.md"): concepts.append(path.stem.replace("-"," "))
     query=a.topic or (topics[0] if topics else None)
     if not query: raise ValueError("Provide --topic or deposit topic pages first")
-    known=set((topics+concepts)); candidates=merge(arxiv_search(query,a.limit*2)+crossref_search(query,a.limit*2))
+    known={slug(name) for name in topics+concepts}; candidates=merge(arxiv_search(query,a.limit*2)+crossref_search(query,a.limit*2))
     candidates=[score(p,query) for p in candidates if slug(p["title"]) not in known][:a.limit]
     out=Path(a.output); out.parent.mkdir(parents=True,exist_ok=True); out.write_text(json.dumps({"topic":query,"basis":{"known_topics":topics,"known_concepts":concepts},"recommendations":candidates},ensure_ascii=False,indent=2),encoding="utf-8"); print(out)
 

@@ -1,0 +1,26 @@
+{
+  "judge": "independent Claude subagent (fresh context, fetched arxiv.org/html/2605.14483)",
+  "target": "validation/fixtures/reading/2605-14483.analysis.json (LEMON deep-read)",
+  "calibration_reference": "examples/scaling-teams-or-scaling-time.analysis.json (golden)",
+  "fetched_paper": true,
+  "scores": {
+    "faithfulness": {"score": 4, "rationale": "Every core quantitative claim is verbatim-correct against the paper (90.72 avg, all four comparison deltas, the 0.98 MMLU gap, 1,531/124 splits, the full Table 2 ablation numbers, and all Fig 5 training-dynamics figures), but three peripheral factual slips exist: baseline miscount, a false 'no limitations section' claim, and an understatement of model specification."},
+    "insight": {"score": 5, "rationale": "The tldr and method crisply capture the two-part thesis (compositional executable spec + localizing sparse reward to the edited field) and even the algorithmic subtlety (adaptive mutation sampling with a probability floor, node-cache preventing cost doubling); the open_questions are specific and probing rather than generic filler."},
+    "completeness": {"score": 5, "rationale": "All fields are substantively filled with paper-specific content — no placeholders — including a detailed method paragraph, 4 findings with numbers, an evidence array mapping claims to sections/equations, and an accurate mermaid pipeline."},
+    "taste_vs_golden": {"score": 5, "rationale": "Depth, clarity, and evidence-anchoring match or exceed the golden reference: it cites specific equations (10-13), tables, figures, and appendices and threads exact numbers throughout, though the couple of accuracy slips keep it from being flawless."}
+  },
+  "violations": [
+    "Baseline count: analysis said '14 个基线' but the paper lists only 13 (3 single-agent + 4 fixed MAS + 5 topology + 1 adaptive).",
+    "Limitations framing: analysis asserted the paper has no standalone limitations section, but Appendix B is titled 'Limitations' (non-trivial RL training cost; evaluation limited to text reasoning/coding).",
+    "Reproducibility understatement: analysis said worker model types are not fully specified, but Appendix D.2 Table 3 names them (Qwen2.5-7B/14B/32B-Instruct); only the SFT teacher model is genuinely unnamed."
+  ],
+  "verified_numbers": [
+    "Avg 90.72 and Ours row 84.32/94.32/86.22/99.17/95.60/84.68 (Table 1)",
+    "+3.96 SC-CoT, +2.19 Tree-MAS, +5.35 AFlow, +2.59 AgentPrune; MMLU 2nd, -0.98 vs ARG-Designer (85.30)",
+    "MMLU val 1,531; HumanEval 124 held-out",
+    "Table 2: Global RL Only 83.08/2543 vs Ours 84.32/2148; w/o SFT 48.53/75.82/64.96",
+    "Fig 5: reward 2.0->2.25; tokens 1.30K->1.15K; training 7.4M->8.3M (~+12%)"
+  ],
+  "overall": "A high-fidelity, deeply evidence-anchored analysis whose entire core of quantitative claims checks out verbatim, with insight and completeness on par with the golden reference; docked only for three peripheral non-quantitative slips (all traceable to unread appendices B/D), which were corrected after this review.",
+  "resolution": "All three violations corrected in the analysis on 2026-07-13; this record preserves what the independent judge originally caught."
+}

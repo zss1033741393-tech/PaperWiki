@@ -21,3 +21,14 @@ description: Convert a paper report or user-authored reading notes into an idemp
 - Re-running the same input updates one paper page.
 - Normalize DOI case and URL variants; ignore arXiv version suffix for identity but retain source version.
 - Retain conflicting sourced values and add a resolution task.
+
+## Obsidian companion skills (vendored, optional)
+
+The wiki is Obsidian-flavored Markdown: **short-name** `[[wikilinks]]` (Obsidian's default "shortest path" format, resolves by note name across the vault), `[!summary]` callouts, and YAML frontmatter properties. Open the repo (or `wiki/`) as an Obsidian vault to get backlinks and graph view. The pinned `vendor/obsidian-skills` (by kepano) provides optional companions:
+
+- `obsidian-markdown` — authoritative Obsidian Flavored Markdown (wikilinks, callouts, embeds, properties) when hand-editing wiki pages.
+- `obsidian-cli` — read/search/manage the vault (notes, tasks, properties) and drive Obsidian from the command line.
+- `json-canvas` — render the paper ↔ concept ↔ method graph as an Obsidian `.canvas`.
+- `obsidian-bases` — build `.base` database views over the wiki (e.g., all `must-read` papers grouped by topic).
+
+Install as a Claude Code plugin (`/plugin marketplace add kepano/obsidian-skills` → `/plugin install obsidian@obsidian-skills`) or `git submodule update --init vendor/obsidian-skills`. These are optional — core deposit emits plain Obsidian-compatible Markdown without them.

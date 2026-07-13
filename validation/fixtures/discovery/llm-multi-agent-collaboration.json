@@ -1,0 +1,927 @@
+{
+  "query": "LLM multi-agent collaboration",
+  "papers": [
+    {
+      "title": "PatchBoard: Schema-Grounded State Mutation for Reliable and Auditable LLM Multi-Agent Collaboration",
+      "authors": [
+        "Shuyu Zhang",
+        "Yaqi Shi",
+        "Lu Wang"
+      ],
+      "abstract": "LLM multi-agent systems often coordinate through natural-language dialogue or loosely structured shared memory, making intermediate state difficult to validate, attribute, and audit. We introduce PatchBoard, a schema-grounded collaboration architecture that replaces inter-agent dialogue with validated JSON Patch mutations over a shared structured state. An Architect agent constructs a task-specific schema and workflow rules, while a deterministic kernel validates each proposed state mutation against schema constraints, role-specific write contracts, and runtime invariants before committing it transactionally. On 630 matched ALFWorld episodes, PatchBoard achieves an 84.6% success rate, compared with 30.8% for LangGraph and 61.6% for Flock, while reducing tokens per successful task to 45.5k, compared with 368.3k and 64.2k, respectively.",
+      "year": 2026,
+      "arxiv_id": "2605.29313",
+      "source_url": "https://arxiv.org/abs/2605.29313",
+      "pdf_url": "https://arxiv.org/pdf/2605.29313v1",
+      "provenance": [
+        {
+          "provider": "arxiv",
+          "retrieved_at": "2026-07-13T06:28:14.962553+00:00"
+        }
+      ],
+      "paper_id": "arxiv:2605.29313",
+      "status": "discovered",
+      "quality_flags": [],
+      "discovery": {
+        "signals": {
+          "relevance": 1,
+          "venue": null,
+          "citations": null,
+          "recency": 1.0,
+          "reproducibility": null,
+          "author_continuity": null,
+          "novelty": null
+        },
+        "signal_evidence": {
+          "relevance": {
+            "title_overlap": 1.0,
+            "abstract_overlap": 1.0,
+            "exact_title_phrase": true
+          },
+          "venue": null,
+          "citations": null,
+          "recency": 2026,
+          "reproducibility": null,
+          "author_continuity": null,
+          "novelty": null
+        },
+        "missing_evidence": [
+          "venue",
+          "citations",
+          "reproducibility",
+          "author_continuity",
+          "novelty"
+        ],
+        "raw_score": 1.0,
+        "score": 0.725,
+        "coverage": 0.45,
+        "band": "recommended",
+        "reasons": [
+          "topic relevance 100%",
+          "published 2026",
+          "evidence coverage 45%",
+          "final score is confidence-adjusted by evidence coverage"
+        ]
+      }
+    },
+    {
+      "title": "LLM Collaboration with Multi-Agent Reinforcement Learning",
+      "authors": [
+        "Shuo Liu",
+        "Zeyu Liang",
+        "Xueguang Lyu",
+        "Christopher Amato"
+      ],
+      "abstract": " A large amount of work has been done in Multi-Agent Systems (MAS) for modeling and solving problems with multiple interacting agents. However, most LLMs are pretrained independently and not specifically optimized for coordination. Existing LLM fine-tuning frameworks rely on individual rewards, which require complex reward designs for each agent to encourage collaboration. To address these challenges, we model LLM collaboration as a cooperative Multi-Agent Reinforcement Learning (MARL) problem. We develop a multi-agent, multi-turn algorithm, Multi-Agent Group Relative Policy Optimization (MAGRPO), to solve it, building on current RL approaches for LLMs as well as MARL techniques. Our experiments on LLM writing and coding collaboration demonstrate that fine-tuning MAS with MAGRPO enables agents to generate high-quality responses efficiently through effective cooperation. Our approach opens the door to using MARL methods for LLM collaboration and highlights the associated challenges. ",
+      "year": 2026,
+      "venue": "Proceedings of the AAAI Conference on Artificial Intelligence",
+      "doi": "10.1609/aaai.v40i38.40487",
+      "source_url": "https://doi.org/10.1609/aaai.v40i38.40487",
+      "citation_count": 3,
+      "provenance": [
+        {
+          "provider": "crossref",
+          "retrieved_at": "2026-07-13T06:28:21.339028+00:00"
+        },
+        {
+          "provider": "openalex",
+          "retrieved_at": "2026-07-13T06:28:25.836247+00:00"
+        }
+      ],
+      "paper_id": "doi:10.1609/aaai.v40i38.40487",
+      "pdf_url": "https://ojs.aaai.org/index.php/AAAI/article/download/40487/44448",
+      "open_access": {
+        "is_oa": true,
+        "oa_status": "diamond",
+        "oa_url": "https://ojs.aaai.org/index.php/AAAI/article/download/40487/44448",
+        "any_repository_has_fulltext": false
+      },
+      "provider_relevance": 261.0289,
+      "status": "discovered",
+      "quality_flags": [],
+      "discovery": {
+        "signals": {
+          "relevance": 0.9,
+          "venue": 0.95,
+          "citations": 0.18059186711090175,
+          "recency": 1.0,
+          "reproducibility": null,
+          "author_continuity": null,
+          "novelty": null
+        },
+        "signal_evidence": {
+          "relevance": {
+            "title_overlap": 1.0,
+            "abstract_overlap": 1.0,
+            "exact_title_phrase": false
+          },
+          "venue": "Proceedings of the AAAI Conference on Artificial Intelligence",
+          "citations": 3,
+          "recency": 2026,
+          "reproducibility": null,
+          "author_continuity": null,
+          "novelty": null
+        },
+        "missing_evidence": [
+          "reproducibility",
+          "author_continuity",
+          "novelty"
+        ],
+        "raw_score": 0.7964,
+        "score": 0.7167,
+        "coverage": 0.8,
+        "band": "recommended",
+        "reasons": [
+          "topic relevance 90%",
+          "published 2026",
+          "evidence coverage 80%",
+          "final score is confidence-adjusted by evidence coverage"
+        ]
+      }
+    },
+    {
+      "title": "Beyond Individual Intelligence: Surveying Collaboration, Failure Attribution, and Self-Evolution in LLM-based Multi-Agent Systems",
+      "authors": [
+        "Shihao Qi",
+        "Jie Ma",
+        "Rui Xing",
+        "Wei Guo",
+        "Xiao Huang",
+        "Zhitao Gao",
+        "Jianhao Deng",
+        "Jun Liu",
+        "Lingling Zhang",
+        "Bifan Wei",
+        "Boqian Yang",
+        "Pinghui Wang",
+        "Jianwen Sun",
+        "Jing Tao",
+        "Yaqiang Wu",
+        "Hui Liu",
+        "Yu Yao",
+        "Tongliang Liu"
+      ],
+      "abstract": "LLM-based autonomous agents have demonstrated strong capabilities in reasoning, planning, and tool use, yet remain limited when tasks require sustained coordination across roles, tools, and environments. Multi-agent systems address this through structured collaboration among specialized agents, but tighter coordination also amplifies a less explored risk: errors can propagate across agents and interaction rounds, producing failures that are difficult to diagnose and rarely translate into structural self-improvement. Existing surveys cover individual agent capabilities, multi-agent collaboration, or agent self-evolution separately, leaving the causal dependencies among them unexamined. This survey provides a unified review organized around four causally linked stages, which we term the LIFE progression: Lay the capability foundation, Integrate agents through collaboration, Find faults through attribution, and Evolve through autonomous self-improvement. For each stage, we provide systematic taxonomies and formally characterize the dependencies between adjacent stages, revealing how each stage both depends on and constrains the next. Beyond synthesizing existing work, we identify open challenges at stage boundaries and propose a cross-stage research agenda for closed-loop multi-agent systems capable of continuously diagnosing failures, reorganizing structures, and refining agent behaviors, extending current coordination frameworks toward more self-organizing forms of collective intelligence. By bridging these previously fragmented research threads, this survey aims to offer both a systematic reference and a conceptual roadmap toward autonomous, self-improving multi-agent intelligence.",
+      "year": 2026,
+      "arxiv_id": "2605.14892",
+      "source_url": "https://huggingface.co/papers/2605.14892",
+      "pdf_url": "https://arxiv.org/pdf/2605.14892",
+      "hf_upvotes": 51,
+      "hf_url": "https://huggingface.co/papers/2605.14892",
+      "hf_ai_summary": "Multi-agent systems face challenges in sustained coordination and error propagation, requiring integrated approaches that enable continuous diagnosis, reorganization, and behavioral refinement across structured collaboration stages.",
+      "provenance": [
+        {
+          "provider": "huggingface-search",
+          "retrieved_at": "2026-07-13T06:28:30.279316+00:00"
+        },
+        {
+          "provider": "huggingface-papers",
+          "retrieved_at": "2026-07-13T06:28:32.703324+00:00"
+        }
+      ],
+      "paper_id": "arxiv:2605.14892",
+      "github_url": "https://github.com/mira-ai-lab/awesome-mas-life",
+      "project_url": null,
+      "status": "discovered",
+      "quality_flags": [],
+      "discovery": {
+        "signals": {
+          "relevance": 0.9,
+          "venue": null,
+          "citations": null,
+          "recency": 1.0,
+          "reproducibility": 0.7,
+          "author_continuity": null,
+          "novelty": 0.8561517958551143
+        },
+        "signal_evidence": {
+          "relevance": {
+            "title_overlap": 1.0,
+            "abstract_overlap": 1.0,
+            "exact_title_phrase": false
+          },
+          "venue": null,
+          "citations": null,
+          "recency": 2026,
+          "reproducibility": {
+            "github": "https://github.com/mira-ai-lab/awesome-mas-life",
+            "data_mentioned": false
+          },
+          "author_continuity": null,
+          "novelty": {
+            "source": "Hugging Face Daily Papers upvotes",
+            "upvotes": 51,
+            "url": "https://huggingface.co/papers/2605.14892"
+          }
+        },
+        "missing_evidence": [
+          "venue",
+          "citations",
+          "author_continuity"
+        ],
+        "raw_score": 0.888,
+        "score": 0.7104,
+        "coverage": 0.6,
+        "band": "recommended",
+        "reasons": [
+          "topic relevance 90%",
+          "published 2026",
+          "evidence coverage 60%",
+          "final score is confidence-adjusted by evidence coverage"
+        ]
+      }
+    },
+    {
+      "title": "COLLAB-LLM: A Communication-Centric Role-Based Framework  for Scalable Multi-Agent LLM Collaboration",
+      "authors": [
+        "Elham Albaroudi",
+        "Mohammad Hatamleh",
+        "Sirin Mohammed Hejazi",
+        "Ahmad Yasser Alshalabi",
+        "Taha Mansouri",
+        "Ali Alameer"
+      ],
+      "abstract": " Large Language Models (LLMs) are increasingly deployed in multi-agent systems; however, existing frameworks continue to suffer from communication ambiguity, coordination failures, and poor scalability as task complexity increases. This paper introduces COLLAB-LLM, a communication-centric, role-based framework designed to enable reliable and scalable collaboration among LLM agents. The framework combines a structured communication protocol, a hierarchical role architecture, and a dynamic distributed task-graph engine to support coordinated planning, efficient negotiation, and adaptive task execution. COLLAB-LLM is evaluated on over 120 complex, multi-step tasks spanning software engineering, business process automation, and scientific research synthesis. Task success is defined using task-specific completion criteria, with a task considered successful when the aggregate completion score exceeds 0.8. Under identical underlying LLM configurations, COLLAB-LLM achieves an 89% overall success rate, representing a 13–19% improvement over strong single-agent and multi-agent state-of-the-art baselines, with statistically significant gains in performance, communication efficiency, and robustness. Experimental results demonstrate that structured communication and role specialization substantially reduce ambiguity, improve collaboration quality, and enable scalable coordination for teams of up to eight agents. This work establishes foundational design principles for high-performing collaborative AI systems and provides a practical, reproducible pathway toward scalable, human-aligned multi-agent LLM architectures. All experimental artifacts, task definitions, prompts, and evaluation scripts will be released to support reproducibility. ",
+      "year": 2026,
+      "venue": "Asian Journal of Research in Computer Science",
+      "doi": "10.9734/ajrcos/2026/v19i1811",
+      "source_url": "https://doi.org/10.9734/ajrcos/2026/v19i1811",
+      "citation_count": 0,
+      "provenance": [
+        {
+          "provider": "crossref",
+          "retrieved_at": "2026-07-13T06:28:21.339086+00:00"
+        }
+      ],
+      "paper_id": "doi:10.9734/ajrcos/2026/v19i1811",
+      "status": "discovered",
+      "quality_flags": [],
+      "discovery": {
+        "signals": {
+          "relevance": 0.9,
+          "venue": 0.95,
+          "citations": 0.0,
+          "recency": 1.0,
+          "reproducibility": null,
+          "author_continuity": null,
+          "novelty": null
+        },
+        "signal_evidence": {
+          "relevance": {
+            "title_overlap": 1.0,
+            "abstract_overlap": 1.0,
+            "exact_title_phrase": false
+          },
+          "venue": "Asian Journal of Research in Computer Science",
+          "citations": 0,
+          "recency": 2026,
+          "reproducibility": null,
+          "author_continuity": null,
+          "novelty": null
+        },
+        "missing_evidence": [
+          "reproducibility",
+          "author_continuity",
+          "novelty"
+        ],
+        "raw_score": 0.7625,
+        "score": 0.6863,
+        "coverage": 0.8,
+        "band": "recommended",
+        "reasons": [
+          "topic relevance 90%",
+          "published 2026",
+          "evidence coverage 80%",
+          "final score is confidence-adjusted by evidence coverage"
+        ]
+      }
+    },
+    {
+      "title": "TRiSM for Agentic AI: A review of Trust, Risk, and Security Management in LLM-based Agentic Multi-Agent Systems",
+      "authors": [
+        "Shaina Raza",
+        "Ranjan Sapkota",
+        "Manoj Karkee",
+        "Christos Emmanouilidis"
+      ],
+      "abstract": "Agentic AI systems, built upon large language models (LLMs) and deployed in multi-agent configurations, are redefining intelligence, autonomy, collaboration, and decision-making across enterprise and societal domains. This review presents a structured analysis of Trust, Risk, and Security Management (TRiSM) in the context of LLM-based Agentic Multi-Agent Systems (AMAS). We begin by examining the conceptual foundations of Agentic AI and highlight its architectural distinctions from traditional AI agents. We then adapt and extend the AI TRiSM framework for Agentic AI, structured around key pillars: Explainability, ModelOps, Security, Privacy and their Lifecycle Governance , each contextualized to the challenges of AMAS. A risk taxonomy is proposed to capture the unique threats and vulnerabilities of Agentic AI, ranging from coordination failures to prompt-based adversarial manipulation. To make coordination and tool use measurable in practice, we propose two metrics: the Component Synergy Score (CSS), which captures inter-agent enablement, and the Tool Utilization Efficacy (TUE), which evaluates whether tools are invoked correctly and efficiently. We further discuss strategies for improving explainability in Agentic AI, as well as approaches to enhancing security and privacy through encryption, adversarial robustness, and regulatory compliance. The review concludes with a research roadmap for the responsible development and deployment of Agentic AI, highlighting key directions to align emerging systems with TRiSM principles-ensuring safety, transparency, and accountability in their operation.",
+      "year": 2026,
+      "venue": "AI Open",
+      "doi": "10.1016/j.aiopen.2026.02.006",
+      "arxiv_id": null,
+      "source_url": "https://doi.org/10.1016/j.aiopen.2026.02.006",
+      "pdf_url": null,
+      "citation_count": 23,
+      "open_access": {
+        "is_oa": true,
+        "oa_status": "gold",
+        "oa_url": "https://doi.org/10.1016/j.aiopen.2026.02.006",
+        "any_repository_has_fulltext": true
+      },
+      "provider_relevance": 181.19193,
+      "provenance": [
+        {
+          "provider": "openalex",
+          "retrieved_at": "2026-07-13T06:28:25.837504+00:00"
+        }
+      ],
+      "paper_id": "doi:10.1016/j.aiopen.2026.02.006",
+      "status": "discovered",
+      "quality_flags": [],
+      "discovery": {
+        "signals": {
+          "relevance": 0.7625,
+          "venue": 0.65,
+          "citations": 0.3507529392844505,
+          "recency": 1.0,
+          "reproducibility": null,
+          "author_continuity": null,
+          "novelty": null
+        },
+        "signal_evidence": {
+          "relevance": {
+            "title_overlap": 0.75,
+            "abstract_overlap": 1.0,
+            "exact_title_phrase": false
+          },
+          "venue": "AI Open",
+          "citations": 23,
+          "recency": 2026,
+          "reproducibility": null,
+          "author_continuity": null,
+          "novelty": null
+        },
+        "missing_evidence": [
+          "reproducibility",
+          "author_continuity",
+          "novelty"
+        ],
+        "raw_score": 0.7017,
+        "score": 0.6315,
+        "coverage": 0.8,
+        "band": "candidate",
+        "reasons": [
+          "topic relevance 76%",
+          "published 2026",
+          "evidence coverage 80%",
+          "final score is confidence-adjusted by evidence coverage"
+        ]
+      }
+    },
+    {
+      "title": "From Spark to Fire: Modeling and Mitigating Error Cascades in LLM-Based Multi-Agent Collaboration",
+      "authors": [
+        "Yizhe Xie",
+        "Congcong Zhu",
+        "Xinyue Zhang",
+        "Tianqing Zhu",
+        "Dayong Ye",
+        "Minfeng Qi",
+        "Huajie Chen",
+        "Wanlei Zhou"
+      ],
+      "abstract": "Large Language Model-based Multi-Agent Systems (LLM-MAS) are increasingly applied to complex collaborative scenarios. However, their collaborative mechanisms may cause minor inaccuracies to gradually solidify into system-level false consensus through iteration. Such risks are difficult to trace since errors can propagate and amplify through message dependencies. Existing protections often rely on single-agent validation or require modifications to the collaboration architecture, which can weaken effective information flow and may not align with natural collaboration processes in real tasks. To address this, we propose a propagation dynamics model tailored for LLM-MAS that abstracts collaboration as a directed dependency graph and provides an early-stage risk criterion to characterize amplification risk. Through experiments on six mainstream frameworks, we identify three vulnerability classes: cascade amplification, topological sensitivity, and consensus inertia. We further instantiate an attack where injecting just a single atomic error seed leads to widespread failure. In response, we introduce a genealogy-graph-based governance layer, implemented as a message-layer plugin, that suppresses both endogenous and exogenous error amplification without altering the collaboration architecture. Experiments show that this approach raises the defense success rate from a baseline of 0.32 to over 0.89 and significantly mitigates the cascading spread of minor errors.",
+      "year": 2026,
+      "arxiv_id": "2603.04474",
+      "source_url": "https://huggingface.co/papers/2603.04474",
+      "pdf_url": "https://arxiv.org/pdf/2603.04474",
+      "hf_upvotes": 0,
+      "hf_url": "https://huggingface.co/papers/2603.04474",
+      "hf_ai_summary": "Large Language Model-based Multi-Agent Systems face risks of false consensus formation through iterative collaboration, which can be detected and mitigated using a propagation dynamics model and genealogy-graph-based governance layer.",
+      "provenance": [
+        {
+          "provider": "huggingface-search",
+          "retrieved_at": "2026-07-13T06:28:30.279307+00:00"
+        },
+        {
+          "provider": "huggingface-papers",
+          "retrieved_at": "2026-07-13T06:28:32.770424+00:00"
+        }
+      ],
+      "paper_id": "arxiv:2603.04474",
+      "github_url": null,
+      "project_url": null,
+      "status": "discovered",
+      "quality_flags": [],
+      "discovery": {
+        "signals": {
+          "relevance": 0.9,
+          "venue": null,
+          "citations": null,
+          "recency": 1.0,
+          "reproducibility": null,
+          "author_continuity": null,
+          "novelty": 0.0
+        },
+        "signal_evidence": {
+          "relevance": {
+            "title_overlap": 1.0,
+            "abstract_overlap": 1.0,
+            "exact_title_phrase": false
+          },
+          "venue": null,
+          "citations": null,
+          "recency": 2026,
+          "reproducibility": null,
+          "author_continuity": null,
+          "novelty": {
+            "source": "Hugging Face Daily Papers upvotes",
+            "upvotes": 0,
+            "url": "https://huggingface.co/papers/2603.04474"
+          }
+        },
+        "missing_evidence": [
+          "venue",
+          "citations",
+          "reproducibility",
+          "author_continuity"
+        ],
+        "raw_score": 0.84,
+        "score": 0.63,
+        "coverage": 0.5,
+        "band": "candidate",
+        "reasons": [
+          "topic relevance 90%",
+          "published 2026",
+          "evidence coverage 50%",
+          "final score is confidence-adjusted by evidence coverage"
+        ]
+      }
+    },
+    {
+      "title": "Human–robot collaboration in building disassembly: a multi-agent LLM architecture",
+      "authors": [
+        "Samuel Slezák",
+        "Shirin Shevidi",
+        "Zahra Shakeri",
+        "Gili Ron",
+        "Felix Amtsberg",
+        "Thomas Wortmann",
+        "Achim Menges"
+      ],
+      "abstract": " Abstract \n                   Building disassembly is critical for circular economy material reuse, yet remains rare due to cost and safety constraints, leading to demolition and material downcycling. Automation could improve both efficiency and safety, but currently available technology does not yet enable full automation. We propose a human–robot collaboration system architecture that uses agentic large language models. We test this approach in building disassembly—an unstructured, safety–critical domain where conventional pre-programmed robotics are inadequate. The agentic architecture combines curated domain knowledge, physics simulation for stability validation, and natural language interfaces, enabling the robot to participate through proactive reasoning rather than follow control commands. We evaluated the architecture through three progressively complex scenarios: collaborative spatial adaptation, collaborative decision-making, and learning. The main contribution is a modular, data-grounded HRC methodology in which specialized LLM agents perform agentic reasoning: the robot assesses situations, retrieves relevant procedural knowledge, validates decisions through simulation, and negotiates solutions with human operators. This proof of concept demonstrates that agentic multi-agent LLM systems can enable adaptive human–robot collaboration under uncertainty, beyond natural language interfaces through integrated domain knowledge, physics validation, and agentic reasoning. ",
+      "year": 2026,
+      "venue": "Construction Robotics",
+      "doi": "10.1007/s41693-026-00189-x",
+      "source_url": "https://doi.org/10.1007/s41693-026-00189-x",
+      "citation_count": 0,
+      "provenance": [
+        {
+          "provider": "crossref",
+          "retrieved_at": "2026-07-13T06:28:21.339503+00:00"
+        }
+      ],
+      "paper_id": "doi:10.1007/s41693-026-00189-x",
+      "status": "discovered",
+      "quality_flags": [],
+      "discovery": {
+        "signals": {
+          "relevance": 0.9,
+          "venue": 0.65,
+          "citations": 0.0,
+          "recency": 1.0,
+          "reproducibility": null,
+          "author_continuity": null,
+          "novelty": null
+        },
+        "signal_evidence": {
+          "relevance": {
+            "title_overlap": 1.0,
+            "abstract_overlap": 1.0,
+            "exact_title_phrase": false
+          },
+          "venue": "Construction Robotics",
+          "citations": 0,
+          "recency": 2026,
+          "reproducibility": null,
+          "author_continuity": null,
+          "novelty": null
+        },
+        "missing_evidence": [
+          "reproducibility",
+          "author_continuity",
+          "novelty"
+        ],
+        "raw_score": 0.6875,
+        "score": 0.6188,
+        "coverage": 0.8,
+        "band": "candidate",
+        "reasons": [
+          "topic relevance 90%",
+          "published 2026",
+          "evidence coverage 80%",
+          "final score is confidence-adjusted by evidence coverage"
+        ]
+      }
+    },
+    {
+      "title": "Graph-of-Agents: A Graph-based Framework for Multi-Agent LLM Collaboration",
+      "authors": [
+        "Sukwon Yun",
+        "Jie Peng",
+        "Pingzhi Li",
+        "Wendong Fan",
+        "Jie Chen",
+        "James Zou",
+        "Guohao Li",
+        "Tianlong Chen"
+      ],
+      "abstract": "With an ever-growing zoo of LLMs and benchmarks, the need to orchestrate multiple models for improved task performance has never been more pressing. While frameworks like Mixture-of-Agents (MoA) attempt to coordinate LLMs, they often fall short in terms of (1) selecting relevant agents, (2) facilitating effective intra-agent communication, and (3) integrating responses efficiently. In this work, we propose Graph-of-Agents (GoA), a new graph-based framework for modeling multi-agent LLM communication. Our approach begins with node sampling, selecting only the most relevant agents by leveraging model cards that summarize each model's domain, task specialization, and other characteristics. Next, we construct edges between the selected agents by evaluating their responses against one another to determine relevance ordering. Directed message passing is then performed from highly relevant agents to less relevant ones to enhance their responses, followed by reverse message passing to refine the original responses of the more relevant agents. Finally, the updated responses are aggregated via graph-based pooling (e.g., max or mean pooling) to produce a single, unified answer. We evaluate GoA on diverse multi-domain benchmarks (MMLU, MMLU-Pro, GPQA) and domain-specific benchmarks (MATH, HumanEval, MedMCQA), with an agent pool of 6 LLMs spanning multiple domains. Surprisingly, GoA achieves superior performance using only 3 selected agents, outperforming recent multi-agent LLM baselines that utilize all 6 agents simultaneously. By adopting a graph structure, GoA offers both scalability and effectiveness through structured message passing-positioning it as a strong candidate for navigating the challenges of the ever-growing LLM zoo. Code is available at: https://github.com/UNITES-Lab/GoA.",
+      "year": 2026,
+      "arxiv_id": "2604.17148",
+      "source_url": "https://huggingface.co/papers/2604.17148",
+      "pdf_url": "https://arxiv.org/pdf/2604.17148",
+      "hf_upvotes": 0,
+      "hf_url": "https://huggingface.co/papers/2604.17148",
+      "hf_ai_summary": "A graph-based framework for multi-agent LLM coordination that selects relevant agents and enables structured communication to improve task performance.",
+      "provenance": [
+        {
+          "provider": "huggingface-search",
+          "retrieved_at": "2026-07-13T06:28:30.279424+00:00"
+        },
+        {
+          "provider": "huggingface-papers",
+          "retrieved_at": "2026-07-13T06:28:32.701234+00:00"
+        }
+      ],
+      "paper_id": "arxiv:2604.17148",
+      "github_url": null,
+      "project_url": null,
+      "status": "discovered",
+      "quality_flags": [],
+      "discovery": {
+        "signals": {
+          "relevance": 0.8125,
+          "venue": null,
+          "citations": null,
+          "recency": 1.0,
+          "reproducibility": 0.7,
+          "author_continuity": null,
+          "novelty": 0.0
+        },
+        "signal_evidence": {
+          "relevance": {
+            "title_overlap": 1.0,
+            "abstract_overlap": 0.75,
+            "exact_title_phrase": false
+          },
+          "venue": null,
+          "citations": null,
+          "recency": 2026,
+          "reproducibility": {
+            "github": null,
+            "data_mentioned": false
+          },
+          "author_continuity": null,
+          "novelty": {
+            "source": "Hugging Face Daily Papers upvotes",
+            "upvotes": 0,
+            "url": "https://huggingface.co/papers/2604.17148"
+          }
+        },
+        "missing_evidence": [
+          "venue",
+          "citations",
+          "author_continuity"
+        ],
+        "raw_score": 0.7729,
+        "score": 0.6183,
+        "coverage": 0.6,
+        "band": "candidate",
+        "reasons": [
+          "topic relevance 81%",
+          "published 2026",
+          "evidence coverage 60%",
+          "final score is confidence-adjusted by evidence coverage"
+        ]
+      }
+    },
+    {
+      "title": "Belief-Driven Multi-Agent Collaboration via Approximate Perfect Bayesian Equilibrium for Social Simulation",
+      "authors": [
+        "Weiwei Fang",
+        "Lin Li",
+        "Kaize Shi",
+        "Yu Yang",
+        "Jianwei Zhang"
+      ],
+      "abstract": "High-fidelity social simulation is pivotal for addressing complex Web societal challenges, yet it demands agents capable of authentically replicating the dynamic spectrum of human interaction. Current LLM-based multi-agent frameworks, however, predominantly adhere to static interaction topologies, failing to capture the fluid oscillation between cooperative knowledge synthesis and competitive critical reasoning seen in real-world scenarios. This rigidity often leads to unrealistic ``groupthink'' or unproductive deadlocks, undermining the credibility of simulations for decision support. To bridge this gap, we propose BEACOF, a belief-driven adaptive collaboration framework inspired by Perfect Bayesian Equilibrium (PBE). By modeling social interaction as a dynamic game of incomplete information, BEACOF rigorously addresses the circular dependency between collaboration type selection and capability estimation. Agents iteratively refine probabilistic beliefs about peer capabilities and autonomously modulate their collaboration strategy, thereby ensuring sequentially rational decisions under uncertainty. Validated across adversarial (judicial), open-ended (social) and mixed (medical) scenarios, BEACOF prevents coordination failures and fosters robust convergence toward high-quality solutions, demonstrating superior potential for reliable social simulation. Source codes and datasets are publicly released at: https://github.com/WUT-IDEA/BEACOF.",
+      "year": 2026,
+      "arxiv_id": "2603.24973",
+      "source_url": "https://huggingface.co/papers/2603.24973",
+      "pdf_url": "https://arxiv.org/pdf/2603.24973",
+      "hf_upvotes": 1,
+      "hf_url": "https://huggingface.co/papers/2603.24973",
+      "hf_ai_summary": "BEACOF is a belief-driven adaptive collaboration framework that enables agents to dynamically adjust their interaction strategies based on probabilistic beliefs about peer capabilities, improving social simulation fidelity in complex societal scenarios.",
+      "provenance": [
+        {
+          "provider": "huggingface-search",
+          "retrieved_at": "2026-07-13T06:28:30.279326+00:00"
+        },
+        {
+          "provider": "huggingface-papers",
+          "retrieved_at": "2026-07-13T06:28:32.742925+00:00"
+        }
+      ],
+      "paper_id": "arxiv:2603.24973",
+      "github_url": null,
+      "project_url": null,
+      "status": "discovered",
+      "quality_flags": [],
+      "discovery": {
+        "signals": {
+          "relevance": 0.7625,
+          "venue": null,
+          "citations": null,
+          "recency": 1.0,
+          "reproducibility": 0.7,
+          "author_continuity": null,
+          "novelty": 0.15019048322368794
+        },
+        "signal_evidence": {
+          "relevance": {
+            "title_overlap": 0.75,
+            "abstract_overlap": 1.0,
+            "exact_title_phrase": false
+          },
+          "venue": null,
+          "citations": null,
+          "recency": 2026,
+          "reproducibility": {
+            "github": null,
+            "data_mentioned": false
+          },
+          "author_continuity": null,
+          "novelty": {
+            "source": "Hugging Face Daily Papers upvotes",
+            "upvotes": 1,
+            "url": "https://huggingface.co/papers/2603.24973"
+          }
+        },
+        "missing_evidence": [
+          "venue",
+          "citations",
+          "author_continuity"
+        ],
+        "raw_score": 0.7604,
+        "score": 0.6083,
+        "coverage": 0.6,
+        "band": "candidate",
+        "reasons": [
+          "topic relevance 76%",
+          "published 2026",
+          "evidence coverage 60%",
+          "final score is confidence-adjusted by evidence coverage"
+        ]
+      }
+    },
+    {
+      "title": "Privacy-R1: Privacy-Aware Multi-LLM Agent Collaboration via Reinforcement Learning",
+      "authors": [
+        "Zheng Hui",
+        "Yijiang River Dong",
+        "Sanhanat Sivapiromrat",
+        "Ehsan Shareghi",
+        "Nigel Collier"
+      ],
+      "abstract": "When users submit queries to Large Language Models (LLMs), their prompts can often contain sensitive data, forcing a difficult choice: Send the query to a powerful proprietary LLM providers to achieving state-of-the-art performance and risk data exposure, or relying on smaller, local models guarantees data privacy but often results in a degradation of task performance. Prior approaches have relied on static pipelines that use LLM rewriting, which shatters linguistic coherence and indiscriminately removes privacy-sensitive information, including task-critical content. We reformulate this challenge (Privacy-Conscious Delegation) as a sequential decision-making problem and introduce a novel reinforcement learning (RL) framework called Privacy-R1 to solve it. Our framework trains an agent to dynamically route text chunks, learning a policy that optimally balances the trade-off between privacy leakage and task performance. It implicitly distinguishes between replaceable Personally Identifiable Information (PII) (which it shields locally) and task-critical PII (which it strategically sends to the remote model for maximal utility). To validate our approach in complex scenarios, we also introduce a new medical dataset with high PII density. Our framework achieves a new state-of-the-art on the privacy-utility frontier, demonstrating the necessity of learned, adaptive policies for deploying LLMs in sensitive environments. Dataset can be found at: https://github.com/zackhuiiiii/Privacy-R1.",
+      "year": 2026,
+      "venue": "Proceedings of the 64th Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers)",
+      "doi": "10.18653/v1/2026.acl-long.2130",
+      "source_url": "https://doi.org/10.18653/v1/2026.acl-long.2130",
+      "citation_count": 0,
+      "provenance": [
+        {
+          "provider": "crossref",
+          "retrieved_at": "2026-07-13T06:28:21.339476+00:00"
+        },
+        {
+          "provider": "huggingface-search",
+          "retrieved_at": "2026-07-13T06:28:30.279387+00:00"
+        },
+        {
+          "provider": "huggingface-papers",
+          "retrieved_at": "2026-07-13T06:28:32.816462+00:00"
+        }
+      ],
+      "paper_id": "doi:10.18653/v1/2026.acl-long.2130",
+      "arxiv_id": "2510.16054",
+      "pdf_url": "https://arxiv.org/pdf/2510.16054",
+      "hf_upvotes": 1,
+      "hf_url": "https://huggingface.co/papers/2510.16054",
+      "hf_ai_summary": "A reinforcement learning framework named Privacy-R1 is introduced to dynamically balance privacy protection and task performance when delegating queries to large language models, distinguishing between replaceable and critical personally identifiable information.",
+      "github_url": null,
+      "project_url": null,
+      "status": "discovered",
+      "quality_flags": [],
+      "discovery": {
+        "signals": {
+          "relevance": 0.7250000000000001,
+          "venue": 0.65,
+          "citations": 0.0,
+          "recency": 1.0,
+          "reproducibility": 0.7,
+          "author_continuity": null,
+          "novelty": 0.15019048322368794
+        },
+        "signal_evidence": {
+          "relevance": {
+            "title_overlap": 1.0,
+            "abstract_overlap": 0.5,
+            "exact_title_phrase": false
+          },
+          "venue": "Proceedings of the 64th Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers)",
+          "citations": 0,
+          "recency": 2026,
+          "reproducibility": {
+            "github": null,
+            "data_mentioned": false
+          },
+          "author_continuity": null,
+          "novelty": {
+            "source": "Hugging Face Daily Papers upvotes",
+            "upvotes": 1,
+            "url": "https://huggingface.co/papers/2510.16054"
+          }
+        },
+        "missing_evidence": [
+          "author_continuity"
+        ],
+        "raw_score": 0.6053,
+        "score": 0.5901,
+        "coverage": 0.95,
+        "band": "candidate",
+        "reasons": [
+          "topic relevance 73%",
+          "published 2026",
+          "evidence coverage 95%",
+          "final score is confidence-adjusted by evidence coverage"
+        ]
+      }
+    },
+    {
+      "title": "Toward Scalable LLM-Based Multi-Agent Collaboration: A Dynamic Task Graph Approach with Asynchronous Parallel Execution",
+      "authors": [
+        "Junwei Yu",
+        "Yepeng Ding",
+        "Jiani Dai",
+        "Junjun Zheng",
+        "Jingchi Wu",
+        "Hiroyuki Sato"
+      ],
+      "abstract": " Deploying Large Language Models (LLMs) in collaborative multi-agent settings represents a promising frontier for complex AI problem-solving, yet the field lacks systematic mechanisms to manage the inherent coordination overhead and resource contention that arise at scale. Existing LLM-based Multi-Agent System (MAS) frameworks predominantly adopt sequential or loosely coupled execution models, which fail to exploit the parallelism potential of modern computing environments and limit overall system throughput. To bridge this gap, this paper presents DynTaskMAS, a framework that redefines task orchestration in LLM-based MASs through a dynamic task graph abstraction. Rather than treating tasks as static pipelines, DynTaskMAS continuously models task interdependencies at runtime, enabling opportunistic parallel execution while preserving logical correctness. The architecture integrates four synergistic components: a runtime task decomposition module that captures evolving dependencies among subtasks; a scheduling engine that dispatches ready tasks to available agents without centralized bottlenecks; a context propagation layer that maintains shared semantic state across concurrently executing agents; and a self-tuning workflow controller that adapts execution priorities based on observed system load. Together, these components address a core tension in LLM-based MAS design, balancing agent autonomy with coordinated efficiency. Evaluations across tasks of varying complexity confirm that DynTaskMAS delivers substantial gains in execution efficiency (21.3–33.0% reduction), resource utilization (from 65% to 88%), and agent scalability (3.47× throughput with 16 concurrent agents) compared to sequential baselines. This work offers a generalizable architectural blueprint for next-generation LLM-based Multi-Agent Systems operating under real-world dynamic and resource-constrained conditions. ",
+      "year": 2026,
+      "venue": "Electronics",
+      "doi": "10.3390/electronics15112475",
+      "source_url": "https://doi.org/10.3390/electronics15112475",
+      "citation_count": 0,
+      "provenance": [
+        {
+          "provider": "crossref",
+          "retrieved_at": "2026-07-13T06:28:21.339438+00:00"
+        }
+      ],
+      "paper_id": "doi:10.3390/electronics15112475",
+      "status": "discovered",
+      "quality_flags": [],
+      "discovery": {
+        "signals": {
+          "relevance": 0.8125,
+          "venue": 0.65,
+          "citations": 0.0,
+          "recency": 1.0,
+          "reproducibility": null,
+          "author_continuity": null,
+          "novelty": null
+        },
+        "signal_evidence": {
+          "relevance": {
+            "title_overlap": 1.0,
+            "abstract_overlap": 0.75,
+            "exact_title_phrase": false
+          },
+          "venue": "Electronics",
+          "citations": 0,
+          "recency": 2026,
+          "reproducibility": null,
+          "author_continuity": null,
+          "novelty": null
+        },
+        "missing_evidence": [
+          "reproducibility",
+          "author_continuity",
+          "novelty"
+        ],
+        "raw_score": 0.6547,
+        "score": 0.5892,
+        "coverage": 0.8,
+        "band": "candidate",
+        "reasons": [
+          "topic relevance 81%",
+          "published 2026",
+          "evidence coverage 80%",
+          "final score is confidence-adjusted by evidence coverage"
+        ]
+      }
+    },
+    {
+      "title": "A Survey of Large Language Models",
+      "authors": [
+        "Wayne Xin Zhao",
+        "Kun Zhou",
+        "Junyi Li",
+        "Tianyi Tang",
+        "Xiaolei Wang",
+        "Yupeng Hou",
+        "Yingqian Min",
+        "Beichen Zhang",
+        "Junjie Zhang",
+        "Zican Dong",
+        "Yifan Du",
+        "Yang Chen",
+        "Yushuo Chen",
+        "Zhipeng Chen",
+        "Jinhao Jiang",
+        "Ruiyang Ren",
+        "Yifan Li",
+        "Xinyu Tang",
+        "Zikang Liu",
+        "Peiyu Liu",
+        "Jian‐Yun Nie",
+        "Ji-Rong Wen",
+        "Ji-Rong Wen"
+      ],
+      "abstract": "Abstract The rapid evolution of large language models (LLMs) has driven a transformative shift in artificial intelligence (AI), reshaping both research paradigms and practical applications. Distinguished from their predecessors by unprecedented scale and advanced capabilities, LLMs necessitate new frameworks for understanding their development, behavior, and societal impact. This survey systematically reviews recent advancements in LLM techniques across four key dimensions: (1) pre-training methodologies, which establish core model capabilities through large-scale self-supervised training, architectural innovations, and data curation strategies; (2) post-training techniques, including supervised fine-tuning and reinforcement learning, which adapt foundational models to downstream tasks and enhance their alignment and safety; (3) utilization strategies, such as in-context learning, prompt engineering, and agentic reasoning, that optimize real-world deployment and enable effective interaction with external environments; and (4) evaluation methods, encompassing benchmarks for key ability dimensions such as core language capabilities, reasoning, and safety, which support comprehensive and reliable assessment of model performance. Additionally, we identify critical research issues, including those concerning theoretical foundations, efficient scaling, alignment, and agentic capability, and highlight the open challenges they present. By synthesizing state-of-the-art insights and emerging trends, this survey aims to provide a systematic and comprehensive framework for understanding the trajectory, current limitations, and future directions of LLM progress.",
+      "year": 2026,
+      "venue": "Frontiers of Computer Science",
+      "doi": "10.1007/s11704-026-60308-3",
+      "arxiv_id": null,
+      "source_url": "https://doi.org/10.1007/s11704-026-60308-3",
+      "pdf_url": "https://link.springer.com/content/pdf/10.1007/s11704-026-60308-3.pdf",
+      "citation_count": 1418,
+      "open_access": {
+        "is_oa": true,
+        "oa_status": "hybrid",
+        "oa_url": "https://link.springer.com/content/pdf/10.1007/s11704-026-60308-3.pdf",
+        "any_repository_has_fulltext": true
+      },
+      "provider_relevance": 224.64262,
+      "provenance": [
+        {
+          "provider": "openalex",
+          "retrieved_at": "2026-07-13T06:28:25.836899+00:00"
+        }
+      ],
+      "paper_id": "doi:10.1007/s11704-026-60308-3",
+      "status": "discovered",
+      "quality_flags": [],
+      "discovery": {
+        "signals": {
+          "relevance": 0.175,
+          "venue": 0.95,
+          "citations": 0.175,
+          "recency": 1.0,
+          "reproducibility": null,
+          "author_continuity": null,
+          "novelty": null
+        },
+        "signal_evidence": {
+          "relevance": {
+            "title_overlap": 0.0,
+            "abstract_overlap": 0.5,
+            "exact_title_phrase": false
+          },
+          "venue": "Frontiers of Computer Science",
+          "citations": 1418,
+          "recency": 2026,
+          "reproducibility": null,
+          "author_continuity": null,
+          "novelty": null
+        },
+        "missing_evidence": [
+          "reproducibility",
+          "author_continuity",
+          "novelty"
+        ],
+        "raw_score": 0.5234,
+        "score": 0.4711,
+        "coverage": 0.8,
+        "band": "watch",
+        "reasons": [
+          "topic relevance 18%",
+          "published 2026",
+          "evidence coverage 80%",
+          "final score is confidence-adjusted by evidence coverage"
+        ]
+      }
+    }
+  ],
+  "errors": [
+    {
+      "provider": "semantic-scholar",
+      "error": "HTTP Error 429: ",
+      "recoverable": true
+    }
+  ],
+  "rescored_note": "re-scored+re-sorted with O2 fix (citation*=relevance) on the originally-harvested paper set"
+}

@@ -34,3 +34,7 @@ Vendored integrations are pinned as Git submodules: Paper Craft, paper-search-mc
 - `discover-papers`: search, normalize, deduplicate, and transparently rank candidates.
 - `read-paper`: create a structured learning report from a URL, DOI, arXiv ID, or PDF.
 - `deposit-paper-knowledge`: ingest a report or notes into an idempotent linked knowledge base.
+
+## Obsidian
+
+The `wiki/` is an Obsidian vault: pages use short-name `[[wikilinks]]`, `[!summary]` callouts, and YAML properties, so opening the repo in Obsidian gives backlinks and graph view. The pinned `vendor/obsidian-skills` (kepano) adds optional companions — `obsidian-markdown`, `obsidian-cli`, `json-canvas`, `obsidian-bases`; see `skills/deposit-paper-knowledge/SKILL.md`.

@@ -11,5 +11,8 @@ reports/*
 !reports/.gitkeep
 reading-lists/*
 !reading-lists/.gitkeep
-wiki/papers/*
-!wiki/papers/.gitkeep
+# NOTE: wiki/papers/ is intentionally NOT ignored — the deposited paper pages
+# (generated synthesis + human-authored user notes + reciprocal wikilinks) are the
+# durable knowledge base this tool exists to produce, so they must be version-controlled.
+# validation vault: keep deposited markdown fixtures, drop reproducible downloaded PDFs
+validation/fixtures/vault/raw/

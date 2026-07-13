@@ -35,7 +35,7 @@
     "method": "编排策略 π_θ 把输入任务映射为一份 step 结构 YAML：每个 agent 条目声明角色（身份 + 继承基role + 定制职责）、算力档位（用哪个 worker 模型）与对更早 agent 的依赖引用；规范经校验后编译为 DAG G=(V,E)，按依赖序执行，每个 agent 接收任务与父节点输出产出 o_v（式6）。训练分两段：先在 teacher 生成的合法规范上做 SFT 学格式（无此暖启动则早期 RL 多为非法 rollout），再用 GRPO 优化，编排奖励 = 任务成功 + token 效率奖励 − 图结构代价（式8），用组相对优势（式9）。核心是局部反事实信用：对一份合法规范只编辑一个字段（m_E 删依赖 / m_R 把职责退回基role / m_L 降算力），重执行得奖励对比 Δc（式10），并把偏好只施加到被编辑 token 段（式12，按 |Δc| 加权），其余部分作为冻结上下文——从而把信用定位到真正改变结果的那个决策。节点级执行缓存复用未变的 agent 输出，使反事实重执行不至于成本翻倍。",
     "experiments": [
       "六基准：GSM8K、MultiArith、SVAMP、AQuA（数学）、MMLU（多选）、HumanEval（代码）；MMLU 用 1,531 条验证集、HumanEval 用 124 条 held-out 划分（§4.1，Table 1 脚注）。",
-      "14 个基线，覆盖单智能体（Vanilla、CoT、SC-CoT）、固定结构 MAS（Chain/Tree/Complete/Random）、拓扑设计（AgentPrune、AgentDropout、G-Designer、ARG-Designer、OFA-MAS）、自适应工作流（AFlow）（§4.1）。",
+      "13 个基线（3 单智能体 Vanilla/CoT/SC-CoT + 4 固定 MAS Chain/Tree/Complete/Random + 5 拓扑设计 AgentPrune/AgentDropout/G-Designer/ARG-Designer/OFA-MAS + 1 自适应 AFlow）（§4.1）。",
       "在 MMLU/GSM8K/AQuA 上消融：去 SFT、去全局 RL、去角色/算力/结构生成、去每个反事实编辑族；另有 token 效率帕累托、案例研究、训练动态分析（§4.2，Table 1–2、Fig 3–5）。"
     ],
     "findings": [
@@ -45,7 +45,7 @@
       "训练动态：加反事实目标使最终奖励约 2.0→2.25、每次执行 worker token 约 1.30K→1.15K，训练成本约 +12%（7.4M→8.3M tokens，靠节点级缓存未翻倍）；删依赖给出最强的早期奖励对比（Fig 5）。"
     ],
     "limitations": [
-      "【原文无独立局限章节，以下为审读判断】",
+      "原文 Appendix B「Limitations」自陈两点：RL 训练时间成本不小；评测限于文本推理/代码，未涉长程工具使用、多模态或交互环境。以下在此基础上补充审读判断：",
       "评测局限于数学/多选/代码等短程推理任务，未涉工具使用、开放式、长程、具身或多轮交互场景。",
       "反事实训练带来约 12% token 开销并依赖节点级缓存；未报告墙钟/延迟，也未测大规模 agent 数下的扩展性。",
       "依赖更强 teacher 模型做 SFT 暖启动，去 SFT 即崩——无强 teacher 时的鲁棒性未验证。",
@@ -55,7 +55,7 @@
       "代码：https://anonymous.4open.science/r/LEMON-B23C（匿名）。",
       "Appendix A 给出 YAML 规范格式与具体示例；Appendix D.7 完整评测协议；Appendix C 节点级执行缓存细节。",
       "基准均为公开数据集（GSM8K/MultiArith/SVAMP/AQuA/MMLU/HumanEval），基线为已发表公开方法。",
-      "完整复现需 teacher 模型（SFT）与各算力档位的 worker LLM——所读正文未完全指明具体型号。"
+      "各算力档位 worker 由 Appendix D.2 Table 3 指明：小/中/大 = Qwen2.5-7B/14B/32B-Instruct；仅 SFT teacher 模型未具名，完整复现另需该 teacher。"
     ],
     "concepts": [
       "组合式可执行编排",

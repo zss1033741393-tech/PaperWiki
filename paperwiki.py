@@ -306,7 +306,7 @@ def cmd_recommend(a):
 
 def main():
     ap=argparse.ArgumentParser(); sub=ap.add_subparsers(required=True)
-    d=sub.add_parser("discover"); d.add_argument("query"); d.add_argument("--limit",type=int,default=10); d.add_argument("--since-years",type=int,default=2,help="Recent-year window; use 0 to disable"); d.add_argument("--no-huggingface",action="store_true",help="Skip Hugging Face Papers engagement enrichment"); d.add_argument("--broader",action="store_true",help="Also query paper-search-mcp legal providers (DBLP, Unpaywall, CORE, ...) if installed"); d.add_argument("--output",default="reading-lists/latest.json"); d.set_defaults(func=cmd_discover)
+    d=sub.add_parser("discover"); d.add_argument("query"); d.add_argument("--limit",type=int,default=10); d.add_argument("--since-years",type=int,default=2,help="Recent-year window; use 0 to disable"); d.add_argument("--no-huggingface",action="store_true",help="Skip Hugging Face entirely: both the discovery source and engagement enrichment"); d.add_argument("--broader",action="store_true",help="Also query paper-search-mcp legal providers (DBLP, Unpaywall, CORE, ...) if installed"); d.add_argument("--output",default="reading-lists/latest.json"); d.set_defaults(func=cmd_discover)
     r=sub.add_parser("read"); r.add_argument("paper"); r.add_argument("--root",default="."); r.set_defaults(func=cmd_read)
     f=sub.add_parser("finalize"); f.add_argument("report"); f.add_argument("analysis"); f.set_defaults(func=cmd_finalize)
     k=sub.add_parser("deposit"); k.add_argument("input"); k.add_argument("--root",default="."); k.set_defaults(func=cmd_deposit)

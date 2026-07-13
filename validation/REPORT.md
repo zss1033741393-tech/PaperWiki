@@ -3,7 +3,7 @@
 - 日期：2026-07-13　分支：`worktree-validation+multi-agent-2026`
 - 目标：用真实 2026 多智能体论文，端到端验证三大能力——**发现质量、精读品味、wiki 准确**
 - 查询：`"LLM multi-agent collaboration"`、`"multi-agent orchestration"`
-- 方法：L1 确定性 pytest（30 绿）· L2 证据 rubric（对真实样本逐条判定）· L3 独立 LLM 评审
+- 方法：L1 确定性 pytest（32 绿）· L2 证据 rubric（对真实样本逐条判定）· L3 独立 LLM 评审
 
 ## 执行摘要
 
@@ -22,7 +22,7 @@
 - **全文获取**：arXiv export API 被封时，改经**浏览器读 `arxiv.org/html/<id>`** 取全文深读（本机实测可行，无需传 PDF）。
 - **深度分析引擎**：vendored `paper-craft/paper-analyzer`（零 API key）；深读产物由智能体按其工作流产出，`paperwiki.py` 负责脚手架 + schema 校验 + 渲染。
 
-## L1 确定性引擎测试：30 绿
+## L1 确定性引擎测试：32 绿
 
 `python -m unittest discover -s tests` → **Ran 32 tests, OK**（基线 9 → 32）。覆盖：评分(8)、身份合并、discover 429 容错、finalize schema/渲染(4)、deposit 幂等+双向链接、recommend 去重(2)、错误落盘。
 
@@ -80,7 +80,7 @@
 ```bash
 uv venv --python 3.12 && uv pip install -e vendor/paper-search-mcp pytest
 git submodule update --init vendor/paper-craft-skills vendor/paper-search-mcp
-.venv/bin/python -m unittest discover -s tests -v          # L1: 30 绿
+.venv/bin/python -m unittest discover -s tests -v          # L1: 32 绿
 .venv/bin/python validation/harvest.py                     # 冻结发现 fixture
 .venv/bin/python paperwiki.py read https://arxiv.org/abs/2605.14483 --root validation/fixtures/vault
 .venv/bin/python paperwiki.py finalize validation/fixtures/vault/reports/arxiv-2605-14483.md validation/fixtures/reading/2605-14483.analysis.json

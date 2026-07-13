@@ -10,6 +10,14 @@
 - **修复**：`known={slug(name) for name in topics+concepts}`，两侧统一走 `slug()`。
 - **证据**：[tests/test_recommend.py](../tests/test_recommend.py) `test_excludes_papers_matching_known_wiki_pages`（先 RED 复现，修复后 GREEN）。
 
+## F3 🔴 wiki 论文页被 gitignore → 沉淀的知识+笔记不进版本库（已修复）
+
+- **现象**：`.gitignore` 屏蔽 `wiki/papers/*`（论文知识页），但 `wiki/concepts|methods|datasets|topics/`、`index.md`、`log.md` 都进 git。
+- **后果**（按默认 `--root .` 沉淀时）：(1) 论文页——含"Generated synthesis"与**用户手写 User notes**——不进 git，clone/换机即丢；(2) 进了 git 的 `index.md` 与概念/主题页链接指向被忽略的论文页 → **提交后全是断链**（Obsidian 里显示为未解析红链）。**直接违背项目口号"durable Markdown wiki"**——最该 durable 的核心恰恰没 durable。
+- **根因**：`wiki/papers/*` 被与 `reports/`、`reading-lists/`、`raw/` 一起当"运行时输出"忽略；但它是含人工笔记、人工确认知识的**核心交付物**，非可随手重生成的中间产物。
+- **修复**：`.gitignore` 删除 `wiki/papers/*` 与 `!wiki/papers/.gitkeep`（并加注释说明原因）。验证：`git check-ignore wiki/papers/x.md` 不再命中；根 `wiki/papers/` 新建页显示为可入库(`??`)。`reports/`、`reading-lists/` 继续忽略（其内容已嵌入 wiki 页的 synthesis 段）。
+- **证据**：`.gitignore` diff；check-ignore 前后对比。
+
 ## O1 🟡 发现排序被"相关性"主导，或压低高质量论文
 
 - **现象**：对 `"multi-agent orchestration"`，HF 返回的 40 篇中 29 篇为 2026，含 Orchestra-o1（upvotes=48）、"Beyond Individual Intelligence" 综述（upvotes=51）等高关注论文；但最终 top-8 全是标题精确含查询词的 arXiv 论文，高赞 HF 论文落到 9 名开外。

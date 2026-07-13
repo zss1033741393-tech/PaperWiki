@@ -7,4 +7,4 @@ type: method
 
 ## Related papers
 
-- [[../papers/arxiv-2605-14483|LEMON: Learning Executable Multi-Agent Orchestration via Counterfactual Reinforcement Learning]]
+- [[arxiv-2605-14483|LEMON: Learning Executable Multi-Agent Orchestration via Counterfactual Reinforcement Learning]]

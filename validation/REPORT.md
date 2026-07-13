@@ -13,7 +13,7 @@
 | ② 精读产出有没有品味 | ✅ **PASS（强）** | 独立评审：洞见/完整/对标 golden 均 **5/5**、核心数字全 verbatim 正确；忠实 **4/5**（3 处外围疏漏被评审抓到并已修正）|
 | ③ 沉淀 wiki 准不准确 | ✅ **PASS** | 双向链接 19/19、实体一致、幂等、台账、无静默覆盖全通过；唯一瑕疵 F2（中文实体名→哈希文件名）|
 
-**顺带产出**：把 HuggingFace 从"纯富集"升级为一等发现源；集成 paper-search-mcp 9 个合法源（Sci-Hub 排除）；**修复 3 项（F3 wiki 论文页持久化、F1 recommend 去重、O2 引用越位）**、解决 F2（英文实体名约定）；确定性测试 9→31。
+**顺带产出**：把 HuggingFace 从"纯富集"升级为一等发现源；集成 paper-search-mcp 9 个合法源（Sci-Hub 排除）；**修复 3 项（F3 wiki 论文页持久化、F1 recommend 去重、O2 引用越位）**、解决 F2（英文实体名约定）；确定性测试 9→32；wiki 改用 **Obsidian 短名双链**、接入 vendored **obsidian-skills**（obsidian-markdown/cli/canvas/bases）为可选配套。
 
 ## 环境与方法
 
@@ -24,7 +24,7 @@
 
 ## L1 确定性引擎测试：30 绿
 
-`python -m unittest discover -s tests` → **Ran 31 tests, OK**（基线 9 → 31）。覆盖：评分(8)、身份合并、discover 429 容错、finalize schema/渲染(4)、deposit 幂等+双向链接、recommend 去重(2)、错误落盘。
+`python -m unittest discover -s tests` → **Ran 32 tests, OK**（基线 9 → 32）。覆盖：评分(8)、身份合并、discover 429 容错、finalize schema/渲染(4)、deposit 幂等+双向链接、recommend 去重(2)、错误落盘。
 
 ## 能力① 发现质量：🟡 PARTIAL
 

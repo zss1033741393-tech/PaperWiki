@@ -59,6 +59,14 @@ def openalex_search(query,limit):
         out.append({"title":x.get("title") or "","authors":[(a.get("author") or {}).get("display_name","") for a in x.get("authorships",[])],"abstract":abstract,"year":x.get("publication_year"),"venue":source.get("display_name"),"doi":doi,"arxiv_id":arxiv,"source_url":x.get("doi") or x.get("id"),"pdf_url":location.get("pdf_url"),"citation_count":x.get("cited_by_count"),"open_access":x.get("open_access"),"provider_relevance":x.get("relevance_score"),"provenance":[{"provider":"openalex","retrieved_at":dt.datetime.now(dt.timezone.utc).isoformat()}]})
     return out
 
+def huggingface_search(query,limit):
+    """Discovery via Hugging Face Papers search: curated, arXiv-linked papers with community upvotes."""
+    data=json.loads(fetch("https://huggingface.co/api/papers/search?"+urllib.parse.urlencode({"q":query}))); out=[]
+    for item in data[:limit]:
+        p=item.get("paper") or item; aid=p.get("id"); pub=p.get("publishedAt") or ""
+        out.append({"title":p.get("title") or item.get("title") or "","authors":[a.get("name","") for a in p.get("authors",[])],"abstract":p.get("summary"),"year":int(pub[:4]) if pub[:4].isdigit() else None,"arxiv_id":aid,"source_url":f"https://huggingface.co/papers/{aid}","pdf_url":f"https://arxiv.org/pdf/{aid}" if aid else None,"hf_upvotes":p.get("upvotes",0),"hf_url":f"https://huggingface.co/papers/{aid}","hf_ai_summary":p.get("ai_summary"),"provenance":[{"provider":"huggingface-search","retrieved_at":dt.datetime.now(dt.timezone.utc).isoformat()}]})
+    return out
+
 def huggingface_enrich(records):
     """Add Daily Papers engagement and linked-code evidence by arXiv ID."""
     def one(p):
@@ -74,6 +82,35 @@ def huggingface_enrich(records):
         except Exception as e: return {"provider":"huggingface-papers","paper_id":aid,"error":str(e),"recoverable":True}
     with concurrent.futures.ThreadPoolExecutor(max_workers=8) as pool: results=list(pool.map(one,records))
     return [x for x in results if x]
+
+# Legal paper-search-mcp platforms usable as broader / open-access discovery providers.
+# Sci-Hub ("sci_hub") is deliberately excluded: it is a copyright-circumvention source and is never queried.
+LEGAL_PSM_PLATFORMS=("dblp","openalex","crossref","unpaywall","core","openaire","europepmc","doaj","zenodo")
+
+def _psm_searchers():
+    """Instantiate available paper-search-mcp legal searchers; return {} if the package is absent (stdlib-only env)."""
+    import importlib,inspect; out={}
+    for name in LEGAL_PSM_PLATFORMS:
+        try:
+            mod=importlib.import_module(f"paper_search_mcp.academic_platforms.{name}")
+            cls=next((c for _,c in inspect.getmembers(mod,inspect.isclass) if c.__module__==mod.__name__ and hasattr(c,"search")),None)
+            if cls: out[name]=cls()
+        except Exception: pass
+    return out
+
+def _psm_to_record(p,name):
+    extra=getattr(p,"extra",None) or {}; yr=str(extra.get("year") or ""); pub=getattr(p,"published_date",None)
+    year=int(yr) if yr.isdigit() else (pub.year if pub else None)
+    return {"title":getattr(p,"title","") or "","authors":list(getattr(p,"authors",None) or []),"abstract":getattr(p,"abstract",None) or None,"year":year,"doi":getattr(p,"doi",None) or None,"venue":extra.get("venue") or None,"pdf_url":getattr(p,"pdf_url",None) or None,"source_url":getattr(p,"url",None),"provenance":[{"provider":"psm-"+name,"retrieved_at":dt.datetime.now(dt.timezone.utc).isoformat()}]}
+
+def broader_search(query,limit,searchers=None):
+    """Optional broader / open-access providers via paper-search-mcp (if installed). Per-source failure is tolerated. Sci-Hub is never used."""
+    if searchers is None: searchers=_psm_searchers()
+    out=[]
+    for name,s in searchers.items():
+        try: out+=[_psm_to_record(p,name) for p in s.search(query,limit)]
+        except Exception: pass
+    return out
 
 def merge(records):
     seen={}; aliases={}
@@ -109,7 +146,10 @@ def score(p,query):
 
 def cmd_discover(a):
     records=[]; errors=[]
-    for name,fn in [("arxiv",arxiv_search),("semantic-scholar",semantic_search),("crossref",crossref_search),("openalex",openalex_search)]:
+    providers=[("arxiv",arxiv_search),("semantic-scholar",semantic_search),("crossref",crossref_search),("openalex",openalex_search)]
+    if not a.no_huggingface: providers.append(("huggingface",huggingface_search))
+    if getattr(a,"broader",False): providers.append(("broader",broader_search))
+    for name,fn in providers:
         try: records+=fn(a.query,min(50,max(a.limit*5,a.limit)))
         except Exception as e: errors.append({"provider":name,"error":str(e),"recoverable":True})
     if not records: raise RuntimeError(json.dumps(errors,ensure_ascii=False))
@@ -266,7 +306,7 @@ def cmd_recommend(a):
 
 def main():
     ap=argparse.ArgumentParser(); sub=ap.add_subparsers(required=True)
-    d=sub.add_parser("discover"); d.add_argument("query"); d.add_argument("--limit",type=int,default=10); d.add_argument("--since-years",type=int,default=2,help="Recent-year window; use 0 to disable"); d.add_argument("--no-huggingface",action="store_true",help="Skip Hugging Face Papers engagement enrichment"); d.add_argument("--output",default="reading-lists/latest.json"); d.set_defaults(func=cmd_discover)
+    d=sub.add_parser("discover"); d.add_argument("query"); d.add_argument("--limit",type=int,default=10); d.add_argument("--since-years",type=int,default=2,help="Recent-year window; use 0 to disable"); d.add_argument("--no-huggingface",action="store_true",help="Skip Hugging Face Papers engagement enrichment"); d.add_argument("--broader",action="store_true",help="Also query paper-search-mcp legal providers (DBLP, Unpaywall, CORE, ...) if installed"); d.add_argument("--output",default="reading-lists/latest.json"); d.set_defaults(func=cmd_discover)
     r=sub.add_parser("read"); r.add_argument("paper"); r.add_argument("--root",default="."); r.set_defaults(func=cmd_read)
     f=sub.add_parser("finalize"); f.add_argument("report"); f.add_argument("analysis"); f.set_defaults(func=cmd_finalize)
     k=sub.add_parser("deposit"); k.add_argument("input"); k.add_argument("--root",default="."); k.set_defaults(func=cmd_deposit)

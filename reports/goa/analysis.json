@@ -1,0 +1,90 @@
+{
+  "tldr": "Graph-of-Agents 将异构 LLM 编排为一个查询自适应的有向图：meta-LLM 根据 model cards 选择节点，agent 互评产生相关性排序和边，先强到弱、再弱到强进行两阶段文本消息传递，最后用最高相关节点或 meta-LLM 聚合答案。它无需训练且兼容黑盒 API，但所谓图池化实际仍是提示词驱动的文本选择/综合，成本主要来自多次 LLM judge 与 refinement 调用。",
+  "research_question": "面对不断增长的异构 LLM 池，如何在测试时为每个查询选择少量相关 agent，建立有效而非全连接的通信关系，并以低于 Mixture-of-Agents 的调用、token 与延迟成本聚合最终答案？",
+  "contributions": [
+    "提出查询自适应的 Graph-of-Agents，将 agent selection、pairwise response scoring、双向定向消息传递和最终聚合统一为图式测试时编排流程。",
+    "利用 Hugging Face model cards 和通用 meta-LLM 选择 top-k 节点，使一个由通用、代码、数学、生物医学、金融与法律模型组成的异构模型池可以按任务激活子图。",
+    "通过 Source-to-Target 与 Target-to-Source 两阶段 refinement，先让高相关回答改进较弱节点，再让强节点吸收已改进的反馈。",
+    "在 6 个 benchmark 上展示 top-k=3 的 GoA 可以超过使用全部 6 个 agent 的多种基线，并在 MMLU-Pro 上减少调用、token 与延迟。"
+  ],
+  "method": "给定查询 Q 和 N 个模型的 model cards，meta-LLM 选择 top-k 模型构成节点集合 Vs。各节点独立生成带答案与置信度的初始响应。每个 agent 排除自己后，对其他响应按正确性、连贯性与相关性分配总和为 1 的评分；接收评分求和并归一化得到节点相关性 Sj，低于阈值 tau 的节点被剪枝，其余节点按 Sj 从高到低排列并构造从高相关节点到低相关节点的有向边。第一阶段目标节点读取源节点响应并改写自己；第二阶段源节点读取已经改写的目标响应并再次完善。GoA-Max 直接选择最高相关源节点的最终响应，GoA-Mean 则由 meta-LLM 综合所有保留节点的响应。整个过程仅使用文本 prompt 和 OpenAI-compatible completion API，不更新模型参数。",
+  "experiments": [
+    "6 个 benchmark：MMLU、MMLU-Pro、GPQA、MATH、HumanEval、MedMCQA；MMLU 与 MMLU-Pro 使用分层抽样。",
+    "主要 agent pool 包含 6 个 7B–8B 模型，覆盖 general、code、math、biomedical、finance、legal；meta-LLM 为 Qwen2.5-7B-Instruct。",
+    "对比单模型和 Debate、Self-Consistency、Refine、ReConcile、MoA、Self-MoA；主要结果使用 zero-shot CoT。",
+    "MMLU-Pro 效率表比较 accuracy、LLM calls、总输入输出 token 和 latency；另用 gpt-4o 在 GPQA、MedMCQA 子集与 HumanEval 上扩展。",
+    "Table 5 消融消息方向、Source-to-Target、Target-to-Source、edge scoring、top-k 和阈值 tau。"
+  ],
+  "findings": [
+    "GoA-Max 在 MMLU、MMLU-Pro、MedMCQA 最优，GoA-Mean 在 GPQA、MATH、HumanEval 最优；三 agent 结果总体超过多数六 agent 基线。",
+    "MMLU-Pro 上 GoA-Max 从 MoA 的 19 次调用、56.05k token、240.26 秒降至 11 次、19.18k、100.43 秒，同时准确率从 53.33 升到 54.78。",
+    "反转消息方向造成最大下降：MMLU-Pro 从 54.78 降到 52.18，GPQA 从 39.98 降到 34.93，支持先强到弱、再弱到强的排序设计。",
+    "去掉 Source-to-Target 比去掉 Target-to-Source 损失更大；去掉 edge scoring 也稳定下降，说明节点相关性和有向 refinement 均有贡献。",
+    "top-k=3 优于 k=2，并略优于 k=5；tau=0.05 优于更激进的 0.1/0.2 剪枝，但只在两个任务上验证。"
+  ],
+  "limitations": [
+    "GoA 的图结构由 LLM 自身打分决定，没有独立校准器或 ground-truth routing signal；多个 agent 共享的系统性错误可能被互评放大。",
+    "论文把 mean/max pooling 类比为图池化，但代码中 mean 是 meta-LLM 文本综合，max 是选择最高分节点的响应，并非对数值节点表征做传统 GNN pooling。",
+    "edge scoring 需要每个已选 agent 对其余回答执行一次 judge 调用，节点增大时仍产生近二次的响应比较与长上下文成本。",
+    "主要结论来自 6 个固定的 7B–8B 模型、6 个静态 benchmark、一次消息传递与 tau/top-k 调参；没有长期工具交互、动态模型池、对抗 agent 或路由漂移实验。",
+    "当前仓库没有自动化测试和论文完整输出；主程序虽然累计 token 与时间，却未把这些字段写入结果，edge_sampling 返回的 token 计数也只对应最后一次 judge 调用，难以由当前代码直接复核 Table 2。"
+  ],
+  "reproducibility": [
+    "官方代码仓库 https://github.com/UNITES-Lab/GoA，MIT License，提供核心 pipeline、prompts、模型 endpoints、dev/test 数据与运行命令。",
+    "README 建议每个模型使用独立 vLLM 服务；论文规模的六模型池使用 6×A6000 GPU。",
+    "关键默认值：top_k=3、threshold=0.05、rounds=1、temperature=0.7、max_tokens=800、seed=0。",
+    "最小复现仍需同时启动 Qwen2.5-7B、Qwen2.5-Coder-7B、Mathstral-7B、Biomedical-Llama3-8B、Finance-Llama3-8B、Saul-7B 六个 endpoint；完整成本较高。",
+    "仓库无 tests/ 或 pytest 配置，也未提供环境锁文件、原始实验日志或 Table 1–5 的一键生成脚本。"
+  ],
+  "concepts": [
+    "query-adaptive agent graph",
+    "model card routing",
+    "peer response scoring",
+    "directed message passing",
+    "source-to-target refinement",
+    "target-to-source feedback",
+    "graph pooling",
+    "test-time orchestration"
+  ],
+  "methods": [
+    "Graph-of-Agents",
+    "Mixture-of-Agents",
+    "LLM-as-a-judge",
+    "top-k routing",
+    "threshold pruning",
+    "black-box multi-LLM collaboration"
+  ],
+  "datasets": [
+    "MMLU",
+    "MMLU-Pro",
+    "GPQA",
+    "MATH",
+    "HumanEval",
+    "MedMCQA"
+  ],
+  "topics": [
+    "multi-agent LLM systems",
+    "heterogeneous model collaboration",
+    "graph-based orchestration",
+    "training-free inference",
+    "agent routing",
+    "efficient test-time scaling"
+  ],
+  "open_questions": [
+    "如何在不让每个 agent 互评所有其他响应的情况下，将 edge construction 扩展到几十或几百个模型？",
+    "模型卡路由是否能适应模型能力随版本、量化和部署设置变化，是否需要在线校准？",
+    "如何检测恶意或高置信错误节点，避免错误通过 Source-to-Target 和反馈阶段扩散？",
+    "能否把成本、延迟和可靠性显式加入节点/边优化，而不是只按回答相关性排序？",
+    "GoA 相对更简单的 router + best-of-k + judge 聚合，增益有多少真正来自双向图消息传递？"
+  ],
+  "evidence": [
+    "Figure 2 / Section 3.2：Node Sampling → Edge Sampling → bidirectional Message Passing → Graph Pooling 的完整流程。",
+    "Equations 1–6：top-k 节点选择、peer relevance、加权邻接、两阶段更新和两种 pooling。",
+    "Table 1：六 benchmark 主结果；GoA 使用 3 个 agent，对比六 agent 基线。",
+    "Table 2：MMLU-Pro 的调用、token 与延迟对比。",
+    "Figure 3 / Table 4：案例与固定 code-agent 场景中的消息传递效果。",
+    "Table 5：方向、边打分、top-k 与 tau 的消融。",
+    "modules.py:100-241、276-422、446-637 与 main.py:264-376：论文各阶段的官方实现。"
+  ],
+  "mermaid": "flowchart LR\n  Q[Query] --> NS[Meta-LLM selects top-k from model cards]\n  NS --> IR[Selected agents generate initial responses]\n  IR --> ES[Agents score peers and build relevance graph]\n  ES --> ST[Source-to-Target refinement]\n  ST --> TS[Target-to-Source feedback]\n  TS --> PM{Pooling}\n  PM -->|Max| MX[Best refined source]\n  PM -->|Mean| MN[Meta-LLM synthesis]\n  MX --> A[Final answer]\n  MN --> A"
+}

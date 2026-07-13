@@ -11,9 +11,9 @@ Run the live workflow with:
 
 ```powershell
 python paperwiki.py discover "agent memory" --limit 5
-python paperwiki.py read https://arxiv.org/abs/1706.03762 --root <vault>
-python paperwiki.py finalize <vault>/reports/arxiv-1706-03762.md examples/attention-is-all-you-need.analysis.json
-python paperwiki.py deposit <vault>/reports/arxiv-1706-03762.md --root <vault>
+python paperwiki.py read https://arxiv.org/abs/1706.03762 --report-slug attention-is-all-you-need --root <vault>
+python paperwiki.py finalize <vault>/reports/attention-is-all-you-need/report.md <vault>/reports/attention-is-all-you-need/analysis.json
+python paperwiki.py deposit <vault>/reports/attention-is-all-you-need/report.md --root <vault>
 python paperwiki.py recommend --topic "transformer architecture" --root <vault>
 ```
 
@@ -24,7 +24,7 @@ python paperwiki.py recommend --topic "transformer architecture" --root <vault>
 | Explainable ranking | Every result includes signals, score, evidence coverage, band, and reasons. Missing signals are renormalized. |
 | Stable identity | Unit tests cover DOI precedence, arXiv version normalization, and cross-provider merging. |
 | Paper acquisition | Live test downloads the arXiv PDF; CLI accepts arXiv, DOI, direct PDF URL, and local PDF. DOI without an accessible PDF still creates a metadata-backed reading record. |
-| Paper Craft report | `read-paper` routes analysis through pinned Paper Craft skills; `finalize` validates the structured analysis and creates Markdown plus styled HTML. |
+| Paper Craft report | `read-paper` routes analysis through pinned Paper Craft skills; `finalize` validates `analysis.json` and creates `report.md`, `report.html`, and updated `record.json` in the paper's report directory. |
 | Human checkpoint | Generated reports are `human_confirmed: false`; deposit is a separate explicit command. |
 | Idempotent knowledge | Tests run deposit twice, assert one paper page, and verify user notes survive. |
 | Linked wiki | Tests verify paper-to-concept links and reciprocal concept-to-paper links; the same implementation handles methods, datasets, and topics. |

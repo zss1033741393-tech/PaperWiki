@@ -14,12 +14,14 @@ Every stage is independently invocable. See [docs/PROJECT_PLAN.md](docs/PROJECT_
 
 ```powershell
 python paperwiki.py discover "agent memory" --limit 10
-python paperwiki.py read https://arxiv.org/abs/1706.03762
-python paperwiki.py finalize reports/arxiv-1706-03762.md analysis.json
-python paperwiki.py deposit reports/arxiv-1706-03762.md
+python paperwiki.py read https://arxiv.org/abs/2511.20639 --report-slug latentmas
+python paperwiki.py finalize reports/latentmas/report.md reports/latentmas/analysis.json
+python paperwiki.py deposit reports/latentmas/report.md
 python paperwiki.py recommend --topic "agent memory"
-python scripts/render_report.py reports/arxiv-1706-03762.md reports/arxiv-1706-03762.html
+python scripts/render_report.py reports/latentmas/report.md reports/latentmas/report.html
 ```
+
+Each paper uses its official lowercase abbreviation under `reports/` (or a title-derived slug when no abbreviation is supplied). The versioned artifact contract is `report.md`, `report.html`, `analysis.json`, and `record.json` inside that directory.
 
 Initialize submodules after cloning so the reading skill can invoke Paper Craft:
 

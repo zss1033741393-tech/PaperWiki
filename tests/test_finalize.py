@@ -1,7 +1,9 @@
 """L1 verification of `finalize`: schema gate, review status, mermaid fallback, HTML render."""
 import json
+import io
 import tempfile
 import unittest
+from contextlib import redirect_stderr
 from pathlib import Path
 
 import paperwiki
@@ -28,7 +30,66 @@ def _seed(root, analysis):
     return report, ap
 
 
+def _seed_canonical(root, analysis):
+    folder = root / "reports/latentmas"
+    folder.mkdir(parents=True, exist_ok=True)
+    report = folder / "report.md"
+    report.write_text("# draft", encoding="utf-8")
+    record = {"paper_id": "arxiv:2511.20639", "title": "Canonical Paper", "authors": ["A"],
+              "year": 2026, "source_url": "https://arxiv.org/abs/2511.20639",
+              "reading": {"report_path": str(report)}}
+    (folder / "record.json").write_text(json.dumps(record), encoding="utf-8")
+    ap = folder / "analysis.json"
+    ap.write_text(json.dumps(analysis), encoding="utf-8")
+    return report, ap
+
+
 class FinalizeTests(unittest.TestCase):
+    def test_uses_sibling_record_json(self):
+        with tempfile.TemporaryDirectory() as td:
+            report, ap = _seed_canonical(Path(td), dict(FULL_ANALYSIS))
+            paperwiki.cmd_finalize(type("A", (), {"report": str(report), "analysis": str(ap)}))
+            record = json.loads((report.parent / "record.json").read_text(encoding="utf-8"))
+            self.assertEqual(record["status"], "reviewed")
+            self.assertTrue((report.parent / "report.html").exists())
+
+    def test_canonical_record_wins_with_diagnostic(self):
+        with tempfile.TemporaryDirectory() as td:
+            report, ap = _seed_canonical(Path(td), dict(FULL_ANALYSIS))
+            legacy = {"paper_id": "doi:10.1/legacy", "title": "Legacy Paper", "authors": [],
+                      "reading": {"report_path": str(report)}}
+            report.with_suffix(".json").write_text(json.dumps(legacy), encoding="utf-8")
+            stderr = io.StringIO()
+
+            with redirect_stderr(stderr):
+                paperwiki.cmd_finalize(type("A", (), {"report": str(report), "analysis": str(ap)}))
+
+            self.assertIn("# Canonical Paper", report.read_text(encoding="utf-8"))
+            self.assertIn("Using canonical reading record", stderr.getvalue())
+            self.assertEqual(
+                json.loads(report.with_suffix(".json").read_text(encoding="utf-8"))["title"],
+                "Legacy Paper",
+            )
+
+    def test_copies_valid_external_analysis_into_canonical_directory(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            report, canonical_analysis = _seed_canonical(root, dict(FULL_ANALYSIS))
+            canonical_analysis.unlink()
+            external_analysis = root / "reviewed-analysis.json"
+            external_analysis.write_text(json.dumps(FULL_ANALYSIS), encoding="utf-8")
+
+            paperwiki.cmd_finalize(type("A", (), {
+                "report": str(report),
+                "analysis": str(external_analysis),
+            }))
+
+            self.assertTrue(canonical_analysis.exists())
+            self.assertEqual(
+                json.loads(canonical_analysis.read_text(encoding="utf-8")),
+                FULL_ANALYSIS,
+            )
+
     def test_rejects_missing_required_fields(self):
         with tempfile.TemporaryDirectory() as td:
             incomplete = dict(FULL_ANALYSIS)

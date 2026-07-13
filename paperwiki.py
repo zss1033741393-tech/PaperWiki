@@ -185,20 +185,25 @@ def cmd_read(a):
         p={"title":Path(urllib.parse.urlparse(a.paper).path).stem,"authors":[],"source_url":a.paper,"provenance":[{"provider":"direct-pdf","retrieved_at":dt.datetime.now(dt.timezone.utc).isoformat()}]}; pdf_bytes=fetch(a.paper,binary=True)
     else: raise ValueError("Provide an arXiv URL/ID, DOI, direct PDF URL, or local PDF")
     p["paper_id"]=paper_id(p); p["status"]="reading"
-    raw=Path(a.root)/"raw/papers"; reports=Path(a.root)/"reports"; raw.mkdir(parents=True,exist_ok=True); reports.mkdir(parents=True,exist_ok=True)
+    raw=Path(a.root)/"raw/papers"; raw.mkdir(parents=True,exist_ok=True)
     stem=slug(p["paper_id"]); pdf=raw/f"{stem}.pdf"
     if pdf_bytes: pdf.write_bytes(pdf_bytes); p["pdf_path"]=str(pdf)
-    report=reports/f"{stem}.md"; report.write_text(f"---\npaper_id: {p['paper_id']}\nstatus: reading\nsource: {p.get('source_url') or str(local)}\n---\n\n# {p['title']}\n\n## Abstract\n\n{p.get('abstract') or 'Metadata source did not provide an abstract.'}\n\n## Paper Craft analysis\n\n> Run `$paper-analyzer` from `vendor/paper-craft-skills` against `{p.get('pdf_path') or p.get('source_url')}` and replace this block with the reviewed analysis.\n\n## User notes\n\n",encoding="utf-8"); p["reading"]={"report_path":str(report),"paper_craft_skill":"paper-analyzer","analysis_status":"pending-agent-review","full_text_available":bool(pdf_bytes)}; (report.with_suffix(".json")).write_text(json.dumps(p,ensure_ascii=False,indent=2),encoding="utf-8"); print(report)
+    paths=report_paths(a.root,getattr(a,"report_slug",None) or p["title"]); ensure_report_destination(paths,p["paper_id"]); paths["folder"].mkdir(parents=True,exist_ok=True); report=paths["report"]
+    report.write_text(f"---\npaper_id: {p['paper_id']}\nstatus: reading\nsource: {p.get('source_url') or str(local)}\n---\n\n# {p['title']}\n\n## Abstract\n\n{p.get('abstract') or 'Metadata source did not provide an abstract.'}\n\n## Paper Craft analysis\n\n> Run `$paper-analyzer` from `vendor/paper-craft-skills` against `{p.get('pdf_path') or p.get('source_url')}` and replace this block with the reviewed analysis.\n\n## User notes\n\n",encoding="utf-8"); p["reading"]={"report_path":str(report),"paper_craft_skill":"paper-analyzer","analysis_status":"pending-agent-review","full_text_available":bool(pdf_bytes)}; paths["record"].write_text(json.dumps(p,ensure_ascii=False,indent=2),encoding="utf-8"); print(report)
 
 def bullets(values): return "\n".join(f"- {v}" for v in values) if values else "- Not established from the available paper."
 
 def cmd_finalize(a):
-    report=Path(a.report); side=report.with_suffix(".json")
+    report=Path(a.report); side=resolve_record_path(report,diagnose=True)
     if not side.exists(): raise FileNotFoundError(f"Missing reading record: {side}")
-    p=json.loads(side.read_text(encoding="utf-8")); analysis=json.loads(Path(a.analysis).read_text(encoding="utf-8"))
+    analysis_path=Path(a.analysis); analysis_text=analysis_path.read_text(encoding="utf-8")
+    p=json.loads(side.read_text(encoding="utf-8")); analysis=json.loads(analysis_text)
     required=["research_question","contributions","method","experiments","findings","limitations","reproducibility","concepts","methods","datasets","topics","open_questions"]
     missing=[k for k in required if k not in analysis]
     if missing: raise ValueError("Analysis is missing fields: "+", ".join(missing))
+    if report.name == "report.md":
+        canonical_analysis=report.parent/"analysis.json"
+        if analysis_path.resolve() != canonical_analysis.resolve(): canonical_analysis.write_text(analysis_text,encoding="utf-8")
     src=p.get("source_url") or p.get("pdf_path"); mermaid=analysis.get("mermaid") or "flowchart LR\n  A[Input] --> B[Method] --> C[Output]"; content=f'''---
 paper_id: {p['paper_id']}
 status: reviewed
@@ -276,13 +281,46 @@ human_confirmed: false
 
 def slug(s): return re.sub(r"[^a-z0-9]+","-",s.lower()).strip("-")[:80] or hashlib.sha256(s.encode()).hexdigest()[:16]
 
+def report_slug(value):
+    return slug(value)
+
+def report_paths(root, value):
+    folder=Path(root)/"reports"/report_slug(value)
+    return {"folder":folder,"report":folder/"report.md","html":folder/"report.html","analysis":folder/"analysis.json","record":folder/"record.json"}
+
+def ensure_report_destination(paths, paper_identity):
+    record=paths["record"]
+    if record.exists():
+        existing=json.loads(record.read_text(encoding="utf-8"))
+        if existing.get("paper_id") != paper_identity:
+            raise FileExistsError(f"Report directory collision at {paths['folder']}; choose a unique --report-slug")
+    elif paths["report"].exists():
+        raise FileExistsError(f"Report directory at {paths['folder']} has no record.json; choose a unique --report-slug")
+
+def resolve_record_path(report, diagnose=False):
+    report=Path(report); canonical=report.parent/"record.json"; legacy=report.with_suffix(".json")
+    if canonical.exists():
+        if diagnose and legacy != canonical and legacy.exists(): print(f"Using canonical reading record {canonical}; leaving legacy record {legacy} untouched",file=sys.stderr)
+        return canonical
+    return legacy if legacy.exists() else canonical
+
+def report_wikilink_target(report, root):
+    report=Path(report); root=Path(root)
+    try: relative=report.resolve().relative_to(root.resolve())
+    except ValueError: return None
+    return relative.with_suffix("").as_posix()
+
 def link_entity(root, collection, name, paper_title, paper_target):
     folder=root/"wiki"/collection; folder.mkdir(parents=True,exist_ok=True); target=folder/(slug(name)+".md")
     link=f"- [[{paper_target}|{paper_title}]]\n"; old=target.read_text(encoding="utf-8") if target.exists() else f"---\ntitle: \"{name.replace(chr(34),chr(39))}\"\ntype: {collection.rstrip('s')}\n---\n\n# {name}\n\n## Related papers\n\n"
     target.write_text(old if link in old else old+link,encoding="utf-8"); return f"[[{target.stem}|{name}]]"
 
+def strip_leading_frontmatter(text):
+    match=re.match(r"\A---[ \t]*\r?\n.*?\r?\n---[ \t]*(?:\r?\n(?:[ \t]*\r?\n)?)?",text,re.S)
+    return text[match.end():] if match else text
+
 def cmd_deposit(a):
-    src=Path(a.input); text=src.read_text(encoding="utf-8"); side=src.with_suffix(".json"); p=json.loads(side.read_text(encoding="utf-8")) if side.exists() else {"title":re.search(r"^#\s+(.+)$",text,re.M).group(1),"provenance":[{"provider":"user-notes","path":str(src)}]}
+    src=Path(a.input); text=src.read_text(encoding="utf-8"); side=resolve_record_path(src,diagnose=True); p=json.loads(side.read_text(encoding="utf-8")) if side.exists() else {"title":re.search(r"^#\s+(.+)$",text,re.M).group(1),"provenance":[{"provider":"user-notes","path":str(src)}]}
     p["paper_id"]=p.get("paper_id") or paper_id(p); root=Path(a.root); papers=root/"wiki/papers"; papers.mkdir(parents=True,exist_ok=True)
     target=papers/(slug(p["paper_id"])+".md"); existing=target.read_text(encoding="utf-8") if target.exists() else ""; human=""
     m=re.search(r"## User notes\s*(.*?)(?=\n## |\Z)",existing,re.S)
@@ -290,7 +328,10 @@ def cmd_deposit(a):
     reading=p.get("reading") or {}; entities=[]
     for key,collection in [("concepts","concepts"),("methods","methods"),("datasets","datasets"),("topics","topics")]:
         for name in reading.get(key,[]) or []: entities.append(link_entity(root,collection,str(name),p["title"],target.stem))
-    body=f"---\npaper_id: {p['paper_id']}\ntitle: \"{p['title'].replace(chr(34),chr(39))}\"\nstatus: deposited\n---\n\n# {p['title']}\n\n## Source report\n\n[[{src.stem}]]\n\n## Related knowledge\n\n"+("\n".join(f"- {x}" for x in entities) if entities else "- No structured entities confirmed yet.")+f"\n\n## Generated synthesis (draft)\n\n{text}\n\n## User notes\n\n{human}\n"
+    source_target=report_wikilink_target(src,root)
+    source_reference=f"[[{source_target}|{p['title']} report]]" if source_target else f"`{src.resolve()}`"
+    synthesis_text=strip_leading_frontmatter(text)
+    body=f"---\npaper_id: {p['paper_id']}\ntitle: \"{p['title'].replace(chr(34),chr(39))}\"\nstatus: deposited\n---\n\n# {p['title']}\n\n## Source report\n\n{source_reference}\n\n## Related knowledge\n\n"+("\n".join(f"- {x}" for x in entities) if entities else "- No structured entities confirmed yet.")+f"\n\n## Generated synthesis (draft)\n\n{synthesis_text}\n\n## User notes\n\n{human}\n"
     target.write_text(body,encoding="utf-8"); (root/"index.md").parent.mkdir(parents=True,exist_ok=True); idx=root/"index.md"; line=f"- [[{target.stem}|{p['title']}]]\n"; old=idx.read_text(encoding="utf-8") if idx.exists() else "# PaperWiki Index\n\n"; idx.write_text(old if line in old else old+line,encoding="utf-8")
     log=root/"log.md"; old=log.read_text(encoding="utf-8") if log.exists() else "# Operation Log\n\n"; log.write_text(old+f"- {dt.datetime.now(dt.timezone.utc).isoformat()} deposit {p['paper_id']}\n",encoding="utf-8"); print(target)
 
@@ -307,7 +348,7 @@ def cmd_recommend(a):
 def main():
     ap=argparse.ArgumentParser(); sub=ap.add_subparsers(required=True)
     d=sub.add_parser("discover"); d.add_argument("query"); d.add_argument("--limit",type=int,default=10); d.add_argument("--since-years",type=int,default=2,help="Recent-year window; use 0 to disable"); d.add_argument("--no-huggingface",action="store_true",help="Skip Hugging Face entirely: both the discovery source and engagement enrichment"); d.add_argument("--broader",action="store_true",help="Also query paper-search-mcp legal providers (DBLP, Unpaywall, CORE, ...) if installed"); d.add_argument("--output",default="reading-lists/latest.json"); d.set_defaults(func=cmd_discover)
-    r=sub.add_parser("read"); r.add_argument("paper"); r.add_argument("--root",default="."); r.set_defaults(func=cmd_read)
+    r=sub.add_parser("read"); r.add_argument("paper"); r.add_argument("--root",default="."); r.add_argument("--report-slug",help="Official paper abbreviation; defaults to a title-derived slug"); r.set_defaults(func=cmd_read)
     f=sub.add_parser("finalize"); f.add_argument("report"); f.add_argument("analysis"); f.set_defaults(func=cmd_finalize)
     k=sub.add_parser("deposit"); k.add_argument("input"); k.add_argument("--root",default="."); k.set_defaults(func=cmd_deposit)
     n=sub.add_parser("recommend"); n.add_argument("--topic"); n.add_argument("--limit",type=int,default=5); n.add_argument("--root",default="."); n.add_argument("--output",default="reading-lists/recommended-next.json"); n.set_defaults(func=cmd_recommend)

@@ -9,6 +9,12 @@ raw/papers/*
 !raw/papers/.gitkeep
 reports/*
 !reports/.gitkeep
+!reports/*/
+reports/*/*
+!reports/*/report.md
+!reports/*/report.html
+!reports/*/analysis.json
+!reports/*/record.json
 reading-lists/*
 !reading-lists/.gitkeep
 # NOTE: wiki/papers/ is intentionally NOT ignored — the deposited paper pages

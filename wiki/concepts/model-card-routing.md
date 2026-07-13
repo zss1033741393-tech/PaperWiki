@@ -1,3 +1,10 @@
-# PaperWiki Index
-- [[arxiv-2511-20639|Latent Collaboration in Multi-Agent Systems]]
+---
+title: "model card routing"
+type: concept
+---
+
+# model card routing
+
+## Related papers
+
 - [[arxiv-2604-17148|Graph-of-Agents: A Graph-based Framework for Multi-Agent LLM Collaboration]]

@@ -1,6 +1,6 @@
 ---
 name: read-paper
-description: Acquire and deeply explain one academic paper, producing a structured, visual learning report. Use when the user supplies a paper URL, DOI, arXiv ID, local PDF, title, or discovery record and asks to read, summarize, explain, review, or study it. Run independently of paper discovery and do not deposit the result unless requested.
+description: Use when the user supplies a paper URL, DOI, arXiv ID, local PDF, title, or discovery record and asks to read, summarize, explain, review, or study one academic paper.
 ---
 
 # Read Paper
@@ -10,9 +10,10 @@ description: Acquire and deeply explain one academic paper, producing a structur
 1. Accept a URL, DOI, arXiv ID, local PDF, title, or PaperWiki record. Do not require discovery metadata.
 2. Resolve metadata and accessible full text. Preserve original input, resolved URL, retrieval time, and source path.
 3. Invoke `vendor/paper-craft-skills/skills/paper-analyzer/SKILL.md` for deep analysis. Use paper-summary, paper-mindmap, paper-comic, or paper-deck when the user requests that output. Report a missing dependency rather than pretending it ran.
-4. Write the analysis as JSON matching `references/analysis.schema.json`, including page/section/figure evidence. Run `python paperwiki.py finalize <report.md> <analysis.json>` to generate the readable Markdown and HTML report and update the record.
-5. Separate paper claims, interpretation, and user notes. Cite page, section, figure, or equation locations when available.
-6. Save under `reports/` inside PaperWiki. Set `reviewed` only after user confirmation.
+4. Choose the paper's official abbreviation when one exists and normalize it to a lowercase ASCII slug. Run `python paperwiki.py read <paper> --report-slug <official-abbreviation>`; omit `--report-slug` only when a concise title-derived slug is appropriate.
+5. Write the analysis to `reports/<paper-slug>/analysis.json` matching `references/analysis.schema.json`, including page/section/figure evidence. Run `python paperwiki.py finalize reports/<paper-slug>/report.md reports/<paper-slug>/analysis.json` to generate the readable Markdown and HTML report and update `record.json`.
+6. Separate paper claims, interpretation, and user notes. Cite page, section, figure, or equation locations when available.
+7. Keep the canonical artifact set `report.md`, `report.html`, `analysis.json`, and `record.json` inside `reports/<paper-slug>/`. Set `reviewed` only after user confirmation.
 
 ## Guardrails
 

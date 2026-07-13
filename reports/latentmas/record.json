@@ -1,0 +1,133 @@
+{
+  "title": "Latent Collaboration in Multi-Agent Systems",
+  "authors": [
+    "Jiaru Zou",
+    "Ruizhong Qiu",
+    "Gaotang Li",
+    "Xiyuan Yang",
+    "Katherine Tieu",
+    "Pan Lu",
+    "Ke Shen",
+    "Hanghang Tong",
+    "Yejin Choi",
+    "Jingrui He",
+    "James Zou",
+    "Mengdi Wang",
+    "Ling Yang"
+  ],
+  "abstract": "Multi-agent systems (MAS) extend large language models (LLMs) from independent single-model reasoning to coordinative system-level intelligence. While existing LLM agents depend on text-based mediation for reasoning and communication, we take a step forward by enabling models to collaborate directly within the continuous latent space. We introduce LatentMAS, an end-to-end training-free framework that enables pure latent collaboration among LLM agents. In LatentMAS, each agent first performs auto-regressive latent thoughts generation through last-layer hidden embeddings instead of text. Then, a shared latent working memory preserves and transfers each agent's internal representations and latent thoughts, ensuring lossless information exchange without re-encoding. We provide detailed theoretical analyses showing that LatentMAS achieves higher expressiveness and lossless information preservation with lower overall complexity than standard text-based MAS. In addition, empirical evaluations across 9 comprehensive benchmarks spanning math and science reasoning, commonsense understanding, and code generation show that LatentMAS outperforms advanced single agents and text-based MAS baselines, achieving up to 14.6% higher accuracy, reducing output token usage by 70.8%-83.7%, and providing 4$\\times$-4.3$\\times$ faster end-to-end inference. Code and data are fully open-sourced at https://github.com/Gen-Verse/LatentMAS.",
+  "year": 2025,
+  "arxiv_id": "2511.20639",
+  "source_url": "https://arxiv.org/abs/2511.20639",
+  "provenance": [
+    {
+      "provider": "arxiv",
+      "retrieved_at": "2026-07-13T08:37:04.234724+00:00"
+    }
+  ],
+  "paper_id": "arxiv:2511.20639",
+  "status": "deposited",
+  "pdf_path": "raw/papers/arxiv-2511-20639.pdf",
+  "reading": {
+    "report_path": "reports/latentmas/report.md",
+    "paper_craft_skill": "paper-analyzer",
+    "analysis_status": "generated-awaiting-human-confirmation",
+    "full_text_available": true,
+    "tldr": "LatentMAS 把多智能体协作从自然语言通道搬到模型隐空间：每个 agent 用末层隐藏状态自回归地产生 latent thoughts，并把逐层 KV cache 作为共享工作记忆交给后续 agent。整个过程不训练新参数，在论文实验中同时提升准确率、显著减少输出 token 并加速推理；代价是需要访问模型内部状态、共享兼容的表示空间，并承担较高的本地推理显存成本。",
+    "research_question": "LLM 多智能体系统能否在不生成、压缩和重新编码中间自然语言的情况下，直接在连续隐空间中完成推理与跨 agent 通信，并且在不额外训练的条件下兼顾信息保真度、表达能力、准确率和推理效率？",
+    "contributions": [
+      "提出端到端 training-free 的 LatentMAS，使 agent 的内部推理和 agent 间通信都发生在连续隐空间，而非仅把某一个环节改成 latent 表示。",
+      "提出自回归 latent thought generation：把当前步的末层隐藏状态经输入-输出分布对齐后，作为下一步输入 embedding，避免逐 token 解码。",
+      "提出 latent working memory：把前序 agent 各层的 KV cache 连同新生成 latent thoughts 直接传给后续 agent，从而绕过文本瓶颈和重复编码。",
+      "给出 latent thoughts 表达能力、working-memory 信息保持以及计算复杂度的理论分析，并在 sequential 与 hierarchical 两种 MAS 拓扑、9 个 benchmark、多个 Qwen3/Llama3 规模上验证。",
+      "开放标准 HF 与混合 vLLM 实现、文本 MAS 与单模型基线、数据加载器和示例日志，并提供 debug mode 以文本探针审计中间 latent reasoning。"
+    ],
+    "method": "LatentMAS 的基本单元是同一兼容模型空间中的多个角色 agent。对 agent Ai，输入问题、角色提示和来自前序 agent 的 latent working memory 先进入 Transformer。模型不采样下一个离散 token，而取末层隐藏向量 h_t；为避免将末层输出直接塞回浅层输入造成分布漂移，利用输入 embedding 矩阵 W_in 和输出 embedding 矩阵 W_out 构造一次性线性映射 W_a≈W_out†W_in，并把 e_{t+1}=h_t W_a 归一化到输入 embedding 的典型范数。该向量作为下一 latent step 的 inputs_embeds，自回归重复 m 次。与此同时，每一层产生的 K/V 被保存在 cache 中。agent 完成后，其 KV cache 作为共享 latent working memory 传给下一 agent；下一 agent 在自己的角色提示与问题条件下继续扩展同一 cache。最终 judger/solver agent 才解码自然语言答案。Sequential 设置依次使用 Planner、Critic、Refiner、Solver；Hierarchical 设置让 Code、Math、Science 专家独立/分层协作，再由 Summarizer 聚合。",
+    "experiments": [
+      "主实验覆盖 9 个任务：ARC-Easy、ARC-Challenge、GSM8K、MedQA、MBPP+、HumanEval+、AIME24、AIME25、GPQA-Diamond；同时报告准确率、系统总输出 token 与端到端运行时间。",
+      "比较 Single、TextMAS 与 LatentMAS，在 sequential 和 hierarchical 两种架构下测试 Qwen3-4B/8B/14B，并在附录扩展 Llama3；每个配置运行 3 次取均值。",
+      "论文实验使用 8×NVIDIA A100-80G；温度 0.6、top-p 0.95；latent step 从 0、10、20、40、80 中按任务和模型调节，最长任务的 TextMAS 输出预算可超过 20k token。",
+      "对齐消融比较未对齐 h_t、输入 embedding e_t 和对齐后的 e_{t+1}，并在 ARC-C、ARC-E、GSM8K 上报告加入 W_a 后 2.3–5.3 个百分点的准确率提升。",
+      "混合消融分别替换 latent reasoning 或 latent communication；Qwen3-8B 上完整 LatentMAS 在 GSM8K/MBPP+/MedQA 达到 93.8/74.6/75.3，均高于两个混合变体。",
+      "debug mode 在 Qwen3-14B、GSM8K 的 100 个样本上人工标注中间文本探针：最终正确样本中 96.2% 的中间文本正确，最终错误样本中 90.0% 的中间文本含错。"
+    ],
+    "findings": [
+      "论文报告 LatentMAS 相比强单模型与 TextMAS，最高准确率提升 14.6 个百分点；hierarchical setting 的平均提升为 13.3 个百分点。",
+      "相比 TextMAS，Sequential 与 Hierarchical 设置的系统输出 token 分别平均减少 70.8% 和 83.7%；端到端推理分别平均加速约 4.0× 和 4.3×。",
+      "收益并非单纯来自少输出文本：完整 latent reasoning + latent communication 在三个消融任务上都优于只替换其中一个组件，说明内部连续推理和跨 agent 保真传递存在互补作用。",
+      "输入-输出对齐是必要而非装饰性组件：未经对齐的末层表示偏离输入 embedding 分布，对齐能恢复几何结构并稳定多步 latent rollout。",
+      "latent step 存在甜点区间：Qwen3-14B 的三个任务通常在 40–80 步附近达到最好准确率，继续增加到 160 步会平台或下降。",
+      "方法把可读的中间语言链换成高维连续状态，因此效率更高但可解释性变差；debug mode 只是并行文本探针，不能证明文本完全忠实地还原 latent state。"
+    ],
+    "limitations": [
+      "该方案不是黑盒 API 架构：必须访问 input/output embeddings、末层 hidden states、逐层 KV cache 与 inputs_embeds，因此无法直接用于只暴露文本接口的闭源模型。",
+      "论文的无损传递结论建立在模型/表示兼容和形式化假设之上。官方主实现主要让同一模型的不同角色实例共享 cache；跨架构、跨 tokenizer、跨 hidden size 的异构 agent 并未由该方法直接解决。",
+      "实验用 8×A100-80G，并对 latent_steps、是否 realign 等按任务/模型调节；training-free 不等于低算力或零调参。",
+      "准确率比较容易受到不同推理预算影响：TextMAS 生成完整长 CoT，而 LatentMAS 使用固定 latent step，token 数并不是统一度量内部计算量的充分指标，端到端时间比 token 指标更可信。",
+      "可解释性仍有限。debug mode 生成的是与 latent thought 同上下文的并行文本探针，不是对 latent vector 的可逆解码；96.2%/90.0% 的相关性来自 100 个 GSM8K 样本，不能推出普遍忠实性。",
+      "官方仓库可复现性仍有工程缺口：run.py 的 model choices 重复 Qwen3-4B 且漏列 README 中的 Qwen3-8B；混合 vLLM 路径在 latent embedding 插入位置上显式限制 Qwen；仓库没有自动化测试。",
+      "论文在推理、代码、医学问答上表现良好，但没有验证长时交互、工具调用、动态环境、对抗信息或大量 agent 的扩展行为。"
+    ],
+    "reproducibility": [
+      "论文 PDF 共 35 页，包含主实验、理论证明、额外表格、混合消融、debug mode 与案例分析。",
+      "官方代码：https://github.com/Gen-Verse/LatentMAS，Apache-2.0；README 提供 Single/TextMAS/LatentMAS 的标准 HF 命令及可选 vLLM 路径。",
+      "源码 models.py:158-213 对应 W_a 的构造、缓存与范数对齐；models.py:277-350 对应自回归 latent thought generation；methods/latent_mas.py:91-184 对应跨角色 KV cache 传递与最终解码。",
+      "数据加载器覆盖论文九个任务，仓库自带 MedQA 示例数据和两份完整运行日志；其余模型和数据通过 Hugging Face 下载。",
+      "轻量复现可从 Qwen3-4B、GSM8K 小样本、标准 HF backend 开始；论文级复现需要多卡 A100、重复运行、逐任务 latent_steps 设置与较长的 TextMAS 基线生成。",
+      "vLLM 路径会因 hybrid HF+vLLM、prefix cache 和 decoding 差异产生数值偏差，官方 README 建议使用标准 HF backend 复现论文结果。"
+    ],
+    "concepts": [
+      "Latent Thoughts",
+      "Latent Working Memory",
+      "KV-cache Transfer",
+      "Input-Output Distribution Alignment",
+      "Continuous-space Multi-Agent Collaboration",
+      "Training-free Inference-time Architecture"
+    ],
+    "methods": [
+      "Autoregressive Hidden-state Feedback",
+      "Linear Embedding Realignment",
+      "Layer-wise KV-cache Sharing",
+      "Sequential MAS",
+      "Hierarchical MAS",
+      "Parallel Text Debug Probe"
+    ],
+    "datasets": [
+      "ARC-Easy",
+      "ARC-Challenge",
+      "GSM8K",
+      "MedQA",
+      "MBPP+",
+      "HumanEval+",
+      "AIME 2024",
+      "AIME 2025",
+      "GPQA-Diamond"
+    ],
+    "topics": [
+      "LLM Multi-Agent Systems",
+      "Latent Reasoning",
+      "Agent Communication",
+      "Inference Efficiency",
+      "Test-time Scaling"
+    ],
+    "open_questions": [
+      "怎样在 hidden size、tokenizer、层数不同的异构模型之间学习或免训构造可靠的 latent protocol？",
+      "如何把 latent working memory 与工具调用、环境 observation、长期 memory 和权限边界结合，而不让 cache 成为不可审计的旁路？",
+      "能否设计与 FLOPs、显存带宽和延迟更一致的协作预算，而不是只比较输出 token 数？",
+      "怎样判断每个问题需要多少 latent steps、多少 agent，以及何时停止协作，避免 80 步之后的冗余和性能下降？",
+      "如何验证文本探针对 latent reasoning 的忠实性，并定位 cache 中具体哪一层、哪一步引入错误？",
+      "当某个 agent 的 latent memory 被污染或对抗性操控时，错误是否会比文本通信更隐蔽、更难隔离？"
+    ],
+    "evidence": [
+      "Page 1 / Figure 1 / Abstract：给出 9 benchmark 总览，以及最高 +14.6 accuracy、70.8%–83.7% token reduction、4×–4.3× speedup 的论文主张。",
+      "Page 3 / Figure 2 / Section 3.1：定义 sequential 与 hierarchical MAS，并给出末层隐藏状态反馈和 W_a≈W_out†W_in。",
+      "Page 4 / Figure 3 / Sections 3.1–3.2：完整架构，包括 latent thoughts、input-output alignment、逐层 KV 与 latent working memory。",
+      "Pages 5–7 / Tables 1–2 / Figure 4：主实验准确率、系统 token 与端到端速度；Page 6 明示实验运行于 8×A100-80G。",
+      "Page 8 / Figures 5–7：语义分布、输入输出对齐及 2.3%–5.3% 下游准确率增益。",
+      "Page 9 / Figure 8：latent step 深度消融与 40–80 步甜点区间。",
+      "Pages 25–26 / Tables 6–8：表示多样性、latent reasoning/communication 混合消融和 debug probe 相关性。",
+      "Official code models.py:158-213、277-350 与 methods/latent_mas.py:91-184：分别对应对齐、自回归 latent generation、cache 传递和最终文本解码。"
+    ],
+    "mermaid": "flowchart LR\n  Q[Question + role prompt] --> A1[Agent 1]\n  A1 --> H1[Last-layer hidden state]\n  H1 --> W[Input-output realignment]\n  W --> L[Autoregressive latent steps]\n  L --> KV[Layer-wise KV cache]\n  KV --> A2[Next agent + new role prompt]\n  A2 --> KV2[Expanded latent working memory]\n  KV2 --> J[Final judger or solver]\n  J --> T[Decode final text only once]"
+  }
+}

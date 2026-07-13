@@ -16,7 +16,7 @@ This validation is intentionally reproducible through:
 
 ```powershell
 python paperwiki.py discover "LLM multi-agent systems" --limit 10 --since-years 2
-python paperwiki.py read https://arxiv.org/abs/2604.03295 --root <vault>
-python paperwiki.py finalize <vault>/reports/arxiv-2604-03295.md examples/scaling-teams-or-scaling-time.analysis.json
-python paperwiki.py deposit <vault>/reports/arxiv-2604-03295.md --root <vault>
+python paperwiki.py read https://arxiv.org/abs/2604.03295 --report-slug scaling-teams-or-scaling-time --root <vault>
+python paperwiki.py finalize <vault>/reports/scaling-teams-or-scaling-time/report.md <vault>/reports/scaling-teams-or-scaling-time/analysis.json
+python paperwiki.py deposit <vault>/reports/scaling-teams-or-scaling-time/report.md --root <vault>
 ```

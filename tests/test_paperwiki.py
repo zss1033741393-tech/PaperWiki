@@ -1,11 +1,136 @@
 import tempfile
 import unittest
 import json
+import subprocess
 from pathlib import Path
 import paperwiki
 
 
 class PaperWikiTests(unittest.TestCase):
+    def test_report_slug_and_paths(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            self.assertEqual(paperwiki.report_slug("LatentMAS"), "latentmas")
+            self.assertEqual(
+                paperwiki.report_slug("Graph of Agents: A Survey"),
+                "graph-of-agents-a-survey",
+            )
+            paths = paperwiki.report_paths(root, "LatentMAS")
+            self.assertEqual(paths["report"], root / "reports/latentmas/report.md")
+            self.assertEqual(paths["record"], root / "reports/latentmas/record.json")
+
+    def test_record_path_prefers_canonical(self):
+        with tempfile.TemporaryDirectory() as td:
+            folder = Path(td) / "reports/latentmas"
+            folder.mkdir(parents=True)
+            report = folder / "report.md"
+            canonical = folder / "record.json"
+            legacy = folder / "report.json"
+            canonical.write_text("{}", encoding="utf-8")
+            legacy.write_text("{}", encoding="utf-8")
+            self.assertEqual(paperwiki.resolve_record_path(report), canonical)
+
+    def test_record_path_accepts_legacy(self):
+        with tempfile.TemporaryDirectory() as td:
+            report = Path(td) / "arxiv-1234.md"
+            legacy = report.with_suffix(".json")
+            legacy.write_text("{}", encoding="utf-8")
+            self.assertEqual(paperwiki.resolve_record_path(report), legacy)
+
+    def test_record_path_reports_canonical_when_missing(self):
+        with tempfile.TemporaryDirectory() as td:
+            report = Path(td) / "reports/latentmas/report.md"
+            self.assertEqual(
+                paperwiki.resolve_record_path(report),
+                report.parent / "record.json",
+            )
+
+    def test_read_uses_explicit_report_slug(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            pdf = root / "A Long Local Paper Title.pdf"
+            pdf.write_bytes(b"%PDF-1.4\n")
+            args = type("A", (), {
+                "paper": str(pdf),
+                "root": str(root),
+                "report_slug": "LatentMAS",
+            })
+
+            paperwiki.cmd_read(args)
+
+            report = root / "reports/latentmas/report.md"
+            record = root / "reports/latentmas/record.json"
+            self.assertTrue(report.exists())
+            self.assertTrue(record.exists())
+            self.assertEqual(
+                json.loads(record.read_text(encoding="utf-8"))["reading"]["report_path"],
+                str(report),
+            )
+
+    def test_read_uses_title_slug_fallback(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            pdf = root / "Graph of Agents.pdf"
+            pdf.write_bytes(b"%PDF-1.4\n")
+            args = type("A", (), {
+                "paper": str(pdf),
+                "root": str(root),
+                "report_slug": None,
+            })
+
+            paperwiki.cmd_read(args)
+
+            self.assertTrue((root / "reports/graph-of-agents/report.md").exists())
+            self.assertTrue((root / "reports/graph-of-agents/record.json").exists())
+
+    def test_read_rejects_slug_collision_with_different_paper(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            pdf = root / "Colliding Title.pdf"
+            pdf.write_bytes(b"%PDF-1.4\n")
+            folder = root / "reports/colliding-title"
+            folder.mkdir(parents=True)
+            report = folder / "report.md"
+            report.write_text("do not overwrite", encoding="utf-8")
+            (folder / "record.json").write_text(
+                json.dumps({"paper_id": "arxiv:9999.99999", "title": "Other Paper"}),
+                encoding="utf-8",
+            )
+            args = type("A", (), {
+                "paper": str(pdf),
+                "root": str(root),
+                "report_slug": None,
+            })
+
+            with self.assertRaisesRegex(FileExistsError, "--report-slug"):
+                paperwiki.cmd_read(args)
+
+            self.assertEqual(report.read_text(encoding="utf-8"), "do not overwrite")
+
+    def test_gitignore_tracks_only_canonical_report_artifacts(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            subprocess.run(["git", "init", "-q", str(root)], check=True)
+            source = Path(paperwiki.__file__).with_name(".gitignore")
+            (root / ".gitignore").write_text(source.read_text(encoding="utf-8"), encoding="utf-8")
+            folder = root / "reports/latentmas"
+            folder.mkdir(parents=True)
+            canonical = ["report.md", "report.html", "analysis.json", "record.json"]
+            for name in canonical + ["notes.tmp"]:
+                (folder / name).write_text("x", encoding="utf-8")
+
+            for name in canonical:
+                result = subprocess.run(
+                    ["git", "check-ignore", "-q", f"reports/latentmas/{name}"],
+                    cwd=root,
+                )
+                self.assertEqual(result.returncode, 1, name)
+            ignored = subprocess.run(
+                ["git", "check-ignore", "-q", "reports/latentmas/notes.tmp"],
+                cwd=root,
+            )
+            self.assertEqual(ignored.returncode, 0)
+
     def test_identity_precedence(self):
         self.assertEqual(paperwiki.paper_id({"title":"X","doi":"10.1/ABC","arxiv_id":"1234.5678"}), "doi:10.1/abc")
         self.assertEqual(paperwiki.paper_id({"title":"X","arxiv_id":"1234.5678v2"}), "arxiv:1234.5678")

@@ -1,48 +1,5 @@
 ---
 paper_id: arxiv:2604.17148
-title: "Graph-of-Agents: A Graph-based Framework for Multi-Agent LLM Collaboration"
-status: deposited
----
-
-# Graph-of-Agents: A Graph-based Framework for Multi-Agent LLM Collaboration
-
-## Source report
-
-[[reports/goa/report|Graph-of-Agents report]]
-
-## Related knowledge
-
-- [[query-adaptive-agent-graph|query-adaptive agent graph]]
-- [[model-card-routing|model card routing]]
-- [[peer-response-scoring|peer response scoring]]
-- [[directed-message-passing|directed message passing]]
-- [[source-to-target-refinement|source-to-target refinement]]
-- [[target-to-source-feedback|target-to-source feedback]]
-- [[graph-pooling|graph pooling]]
-- [[test-time-orchestration|test-time orchestration]]
-- [[graph-of-agents|Graph-of-Agents]]
-- [[mixture-of-agents|Mixture-of-Agents]]
-- [[llm-as-a-judge|LLM-as-a-judge]]
-- [[top-k-routing|top-k routing]]
-- [[threshold-pruning|threshold pruning]]
-- [[black-box-multi-llm-collaboration|black-box multi-LLM collaboration]]
-- [[mmlu|MMLU]]
-- [[mmlu-pro|MMLU-Pro]]
-- [[gpqa|GPQA]]
-- [[math|MATH]]
-- [[humaneval|HumanEval]]
-- [[medmcqa|MedMCQA]]
-- [[multi-agent-llm-systems|multi-agent LLM systems]]
-- [[heterogeneous-model-collaboration|heterogeneous model collaboration]]
-- [[graph-based-orchestration|graph-based orchestration]]
-- [[training-free-inference|training-free inference]]
-- [[agent-routing|agent routing]]
-- [[efficient-test-time-scaling|efficient test-time scaling]]
-
-## Generated synthesis (draft)
-
----
-paper_id: arxiv:2604.17148
 status: deposited
 source: https://arxiv.org/abs/2604.17148
 generated: true
@@ -340,6 +297,3 @@ Graph-of-Agents 提供了一种真正免训练、黑盒友好的多模型集成�
 
 > [!quote] 可转述的核心判断
 > GoA 的价值不在于让更多模型开会，而在于先决定谁值得参会，再规定谁应当先听谁的。
-
-
-## User notes

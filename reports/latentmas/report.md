@@ -1,48 +1,5 @@
 ---
 paper_id: arxiv:2511.20639
-title: "Latent Collaboration in Multi-Agent Systems"
-status: deposited
----
-
-# Latent Collaboration in Multi-Agent Systems
-
-## Source report
-
-[[reports/latentmas/report|LatentMAS report]]
-
-## Related knowledge
-
-- [[latent-thoughts|Latent Thoughts]]
-- [[latent-working-memory|Latent Working Memory]]
-- [[kv-cache-transfer|KV-cache Transfer]]
-- [[input-output-distribution-alignment|Input-Output Distribution Alignment]]
-- [[continuous-space-multi-agent-collaboration|Continuous-space Multi-Agent Collaboration]]
-- [[training-free-inference-time-architecture|Training-free Inference-time Architecture]]
-- [[autoregressive-hidden-state-feedback|Autoregressive Hidden-state Feedback]]
-- [[linear-embedding-realignment|Linear Embedding Realignment]]
-- [[layer-wise-kv-cache-sharing|Layer-wise KV-cache Sharing]]
-- [[sequential-mas|Sequential MAS]]
-- [[hierarchical-mas|Hierarchical MAS]]
-- [[parallel-text-debug-probe|Parallel Text Debug Probe]]
-- [[arc-easy|ARC-Easy]]
-- [[arc-challenge|ARC-Challenge]]
-- [[gsm8k|GSM8K]]
-- [[medqa|MedQA]]
-- [[mbpp|MBPP+]]
-- [[humaneval|HumanEval+]]
-- [[aime-2024|AIME 2024]]
-- [[aime-2025|AIME 2025]]
-- [[gpqa-diamond|GPQA-Diamond]]
-- [[llm-multi-agent-systems|LLM Multi-Agent Systems]]
-- [[latent-reasoning|Latent Reasoning]]
-- [[agent-communication|Agent Communication]]
-- [[inference-efficiency|Inference Efficiency]]
-- [[test-time-scaling|Test-time Scaling]]
-
-## Generated synthesis (draft)
-
----
-paper_id: arxiv:2511.20639
 status: deposited
 source: https://arxiv.org/abs/2511.20639
 generated: true
@@ -333,6 +290,3 @@ LatentMAS 最重要的贡献不是“多调用几个角色”，而是提出一�
 
 > [!quote] 可转述的核心判断
 > LatentMAS 不是教多个模型学会一种新语言，而是让同一类模型不再反复把自己已经知道的东西翻译成人话。
-
-
-## User notes

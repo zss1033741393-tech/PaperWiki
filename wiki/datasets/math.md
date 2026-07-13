@@ -1,3 +1,10 @@
-# PaperWiki Index
-- [[arxiv-2511-20639|Latent Collaboration in Multi-Agent Systems]]
+---
+title: "MATH"
+type: dataset
+---
+
+# MATH
+
+## Related papers
+
 - [[arxiv-2604-17148|Graph-of-Agents: A Graph-based Framework for Multi-Agent LLM Collaboration]]

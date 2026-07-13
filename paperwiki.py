@@ -276,6 +276,20 @@ human_confirmed: false
 
 def slug(s): return re.sub(r"[^a-z0-9]+","-",s.lower()).strip("-")[:80] or hashlib.sha256(s.encode()).hexdigest()[:16]
 
+def report_slug(value):
+    return slug(value)
+
+def report_paths(root, value):
+    folder=Path(root)/"reports"/report_slug(value)
+    return {"folder":folder,"report":folder/"report.md","html":folder/"report.html","analysis":folder/"analysis.json","record":folder/"record.json"}
+
+def resolve_record_path(report, diagnose=False):
+    report=Path(report); canonical=report.parent/"record.json"; legacy=report.with_suffix(".json")
+    if canonical.exists():
+        if diagnose and legacy != canonical and legacy.exists(): print(f"Using canonical reading record {canonical}; leaving legacy record {legacy} untouched",file=sys.stderr)
+        return canonical
+    return legacy if legacy.exists() else canonical
+
 def link_entity(root, collection, name, paper_title, paper_target):
     folder=root/"wiki"/collection; folder.mkdir(parents=True,exist_ok=True); target=folder/(slug(name)+".md")
     link=f"- [[{paper_target}|{paper_title}]]\n"; old=target.read_text(encoding="utf-8") if target.exists() else f"---\ntitle: \"{name.replace(chr(34),chr(39))}\"\ntype: {collection.rstrip('s')}\n---\n\n# {name}\n\n## Related papers\n\n"

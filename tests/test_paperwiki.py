@@ -6,6 +6,44 @@ import paperwiki
 
 
 class PaperWikiTests(unittest.TestCase):
+    def test_report_slug_and_paths(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            self.assertEqual(paperwiki.report_slug("LatentMAS"), "latentmas")
+            self.assertEqual(
+                paperwiki.report_slug("Graph of Agents: A Survey"),
+                "graph-of-agents-a-survey",
+            )
+            paths = paperwiki.report_paths(root, "LatentMAS")
+            self.assertEqual(paths["report"], root / "reports/latentmas/report.md")
+            self.assertEqual(paths["record"], root / "reports/latentmas/record.json")
+
+    def test_record_path_prefers_canonical(self):
+        with tempfile.TemporaryDirectory() as td:
+            folder = Path(td) / "reports/latentmas"
+            folder.mkdir(parents=True)
+            report = folder / "report.md"
+            canonical = folder / "record.json"
+            legacy = folder / "report.json"
+            canonical.write_text("{}", encoding="utf-8")
+            legacy.write_text("{}", encoding="utf-8")
+            self.assertEqual(paperwiki.resolve_record_path(report), canonical)
+
+    def test_record_path_accepts_legacy(self):
+        with tempfile.TemporaryDirectory() as td:
+            report = Path(td) / "arxiv-1234.md"
+            legacy = report.with_suffix(".json")
+            legacy.write_text("{}", encoding="utf-8")
+            self.assertEqual(paperwiki.resolve_record_path(report), legacy)
+
+    def test_record_path_reports_canonical_when_missing(self):
+        with tempfile.TemporaryDirectory() as td:
+            report = Path(td) / "reports/latentmas/report.md"
+            self.assertEqual(
+                paperwiki.resolve_record_path(report),
+                report.parent / "record.json",
+            )
+
     def test_identity_precedence(self):
         self.assertEqual(paperwiki.paper_id({"title":"X","doi":"10.1/ABC","arxiv_id":"1234.5678"}), "doi:10.1/abc")
         self.assertEqual(paperwiki.paper_id({"title":"X","arxiv_id":"1234.5678v2"}), "arxiv:1234.5678")

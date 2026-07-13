@@ -330,7 +330,8 @@ def cmd_deposit(a):
         for name in reading.get(key,[]) or []: entities.append(link_entity(root,collection,str(name),p["title"],target.stem))
     source_target=report_wikilink_target(src,root)
     source_reference=f"[[{source_target}|{p['title']} report]]" if source_target else f"`{src.resolve()}`"
-    body=f"---\npaper_id: {p['paper_id']}\ntitle: \"{p['title'].replace(chr(34),chr(39))}\"\nstatus: deposited\n---\n\n# {p['title']}\n\n## Source report\n\n{source_reference}\n\n## Related knowledge\n\n"+("\n".join(f"- {x}" for x in entities) if entities else "- No structured entities confirmed yet.")+f"\n\n## Generated synthesis (draft)\n\n{text}\n\n## User notes\n\n{human}\n"
+    synthesis_text=strip_leading_frontmatter(text)
+    body=f"---\npaper_id: {p['paper_id']}\ntitle: \"{p['title'].replace(chr(34),chr(39))}\"\nstatus: deposited\n---\n\n# {p['title']}\n\n## Source report\n\n{source_reference}\n\n## Related knowledge\n\n"+("\n".join(f"- {x}" for x in entities) if entities else "- No structured entities confirmed yet.")+f"\n\n## Generated synthesis (draft)\n\n{synthesis_text}\n\n## User notes\n\n{human}\n"
     target.write_text(body,encoding="utf-8"); (root/"index.md").parent.mkdir(parents=True,exist_ok=True); idx=root/"index.md"; line=f"- [[{target.stem}|{p['title']}]]\n"; old=idx.read_text(encoding="utf-8") if idx.exists() else "# PaperWiki Index\n\n"; idx.write_text(old if line in old else old+line,encoding="utf-8")
     log=root/"log.md"; old=log.read_text(encoding="utf-8") if log.exists() else "# Operation Log\n\n"; log.write_text(old+f"- {dt.datetime.now(dt.timezone.utc).isoformat()} deposit {p['paper_id']}\n",encoding="utf-8"); print(target)
 

@@ -23,6 +23,28 @@ class DepositTests(unittest.TestCase):
         source = "---\ntitle: Incomplete\n# Body\n"
         self.assertEqual(paperwiki.strip_leading_frontmatter(source), source)
 
+    def test_deposit_omits_report_frontmatter_from_generated_synthesis(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            report = root / "reports/clean/report.md"
+            report.parent.mkdir(parents=True)
+            report.write_text(
+                "---\npaper_id: arxiv:1234.5678\nstatus: reviewed\n---\n\n"
+                "# Clean Paper\n\nBody\n\n---\n\nEvidence\n",
+                encoding="utf-8",
+            )
+            record = {"paper_id": "arxiv:1234.5678", "title": "Clean Paper", "reading": {}}
+            (report.parent / "record.json").write_text(json.dumps(record), encoding="utf-8")
+
+            paperwiki.cmd_deposit(type("A", (), {"input": str(report), "root": str(root)}))
+
+            page = next((root / "wiki/papers").glob("*.md")).read_text(encoding="utf-8")
+            synthesis = page.split("## Generated synthesis (draft)\n\n", 1)[1].split("\n## User notes", 1)[0]
+            self.assertTrue(page.startswith("---\n"))
+            self.assertTrue(synthesis.startswith("# Clean Paper\n"))
+            self.assertNotIn("paper_id: arxiv:1234.5678", synthesis)
+            self.assertIn("\n---\n", synthesis)
+
     def test_nested_report_uses_vault_qualified_source_link(self):
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)

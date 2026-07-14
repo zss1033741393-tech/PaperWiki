@@ -163,7 +163,7 @@ class PaperWikiTests(unittest.TestCase):
             root=Path(td); report=root/"report.md"; report.write_text("# Test Paper\n\nSummary",encoding="utf-8")
             args=type("A",(),{"input":str(report),"root":str(root)})
             paperwiki.cmd_deposit(args); target=next((root/"wiki/papers").glob("*.md"))
-            target.write_text(target.read_text(encoding="utf-8").replace("## User notes\n\n","## User notes\n\nMy insight\n"),encoding="utf-8")
+            target.write_text(target.read_text(encoding="utf-8").replace("## User notes\n","## User notes\n\nMy insight\n",1),encoding="utf-8")
             paperwiki.cmd_deposit(args)
             self.assertEqual(len(list((root/"wiki/papers").glob("*.md"))),1)
             self.assertIn("My insight",target.read_text(encoding="utf-8"))

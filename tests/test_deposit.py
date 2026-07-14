@@ -230,6 +230,36 @@ class DepositTests(unittest.TestCase):
             )
             self.assertNotIn("- [[emergent-language|Emergent Language]]", page)
 
+    def test_redeposit_does_not_accumulate_empty_user_notes_headings(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            report = root / "reports/five-ws.md"
+            report.parent.mkdir(parents=True)
+            report.write_text(
+                "# Five Ws\n\nBody\n\n## User notes\n",
+                encoding="utf-8",
+            )
+            report.with_suffix(".json").write_text(
+                json.dumps(
+                    {
+                        "paper_id": "arxiv:2602.11583",
+                        "title": "Five Ws",
+                        "reading": {},
+                    }
+                ),
+                encoding="utf-8",
+            )
+            args = type("A", (), {"input": str(report), "root": str(root)})
+
+            paperwiki.cmd_deposit(args)
+            paperwiki.cmd_deposit(args)
+
+            page = (root / "wiki/papers/arxiv-2602-11583.md").read_text(
+                encoding="utf-8"
+            )
+            self.assertEqual(page.count("## User notes"), 2)
+            self.assertTrue(page.endswith("## User notes\n"))
+
 
 if __name__ == "__main__":
     unittest.main()

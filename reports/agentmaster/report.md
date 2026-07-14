@@ -1,6 +1,6 @@
 ---
 paper_id: arxiv:2507.21105
-status: reading
+status: deposited
 source: https://arxiv.org/abs/2507.21105
 generated: true
 human_confirmed: false

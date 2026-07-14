@@ -142,6 +142,45 @@ class DepositTests(unittest.TestCase):
             self.assertIn("[[doi-10-1-x|Linked Paper]]", concept)       # concept -> paper, short name
             self.assertIn("[[doi-10-1-x|Linked Paper]]", index)         # index -> paper, short name
 
+    def test_qualifies_same_stem_entities_across_collections(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            report = root / "reports/five-ws/report.md"
+            report.parent.mkdir(parents=True)
+            report.write_text(
+                "---\npaper_id: arxiv:2602.11583\nstatus: reading\n"
+                "human_confirmed: false\n---\n\n# Five Ws",
+                encoding="utf-8",
+            )
+            record = {
+                "paper_id": "arxiv:2602.11583",
+                "title": "Five Ws",
+                "reading": {
+                    "concepts": ["Emergent Language"],
+                    "methods": [],
+                    "datasets": [],
+                    "topics": ["Emergent Language"],
+                },
+            }
+            (report.parent / "record.json").write_text(
+                json.dumps(record), encoding="utf-8"
+            )
+
+            paperwiki.cmd_deposit(
+                type("A", (), {"input": str(report), "root": str(root)})
+            )
+
+            page = (root / "wiki/papers/arxiv-2602-11583.md").read_text(
+                encoding="utf-8"
+            )
+            self.assertIn(
+                "[[wiki/concepts/emergent-language|Emergent Language]]", page
+            )
+            self.assertIn(
+                "[[wiki/topics/emergent-language|Emergent Language]]", page
+            )
+            self.assertNotIn("- [[emergent-language|Emergent Language]]", page)
+
 
 if __name__ == "__main__":
     unittest.main()

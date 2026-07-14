@@ -330,10 +330,26 @@ def report_wikilink_target(report, root):
     except ValueError: return None
     return relative.with_suffix("").as_posix()
 
-def link_entity(root, collection, name, paper_title, paper_target):
-    folder=root/"wiki"/collection; folder.mkdir(parents=True,exist_ok=True); target=folder/(slug(name)+".md")
+def entity_path(root, collection, name):
+    return root/"wiki"/collection/(slug(name)+".md")
+
+def colliding_entity_stems(root, entity_specs):
+    destinations={}
+    for path in (root/"wiki").glob("*/*.md"):
+        target=path.relative_to(root).with_suffix("").as_posix()
+        destinations.setdefault(path.stem,set()).add(target)
+    for collection,name in entity_specs:
+        path=entity_path(root,collection,name); target=path.relative_to(root).with_suffix("").as_posix()
+        destinations.setdefault(path.stem,set()).add(target)
+    return {stem for stem,targets in destinations.items() if len(targets)>1}
+
+def entity_wikilink_target(root, target, colliding_stems):
+    return target.relative_to(root).with_suffix("").as_posix() if target.stem in colliding_stems else target.stem
+
+def link_entity(root, collection, name, paper_title, paper_target, colliding_stems):
+    folder=root/"wiki"/collection; folder.mkdir(parents=True,exist_ok=True); target=entity_path(root,collection,name)
     link=f"- [[{paper_target}|{paper_title}]]\n"; old=target.read_text(encoding="utf-8") if target.exists() else f"---\ntitle: \"{name.replace(chr(34),chr(39))}\"\ntype: {collection.rstrip('s')}\n---\n\n# {name}\n\n## Related papers\n\n"
-    target.write_text(old if link in old else old+link,encoding="utf-8"); return f"[[{target.stem}|{name}]]"
+    target.write_text(old if link in old else old+link,encoding="utf-8"); link_target=entity_wikilink_target(root,target,colliding_stems); return f"[[{link_target}|{name}]]"
 
 def strip_leading_frontmatter(text):
     match=re.match(r"\A---[ \t]*\r?\n.*?\r?\n---[ \t]*(?:\r?\n(?:[ \t]*\r?\n)?)?",text,re.S)
@@ -345,9 +361,10 @@ def cmd_deposit(a):
     target=papers/(slug(p["paper_id"])+".md"); existing=target.read_text(encoding="utf-8") if target.exists() else ""; human=""
     m=re.search(r"## User notes\s*(.*?)(?=\n## |\Z)",existing,re.S)
     if m: human=m.group(1).strip()
-    reading=p.get("reading") or {}; entities=[]
+    reading=p.get("reading") or {}; entity_specs=[]
     for key,collection in [("concepts","concepts"),("methods","methods"),("datasets","datasets"),("topics","topics")]:
-        for name in reading.get(key,[]) or []: entities.append(link_entity(root,collection,str(name),p["title"],target.stem))
+        for name in reading.get(key,[]) or []: entity_specs.append((collection,str(name)))
+    collisions=colliding_entity_stems(root,entity_specs); entities=[link_entity(root,collection,name,p["title"],target.stem,collisions) for collection,name in entity_specs]
     source_target=report_wikilink_target(src,root)
     source_reference=f"[[{source_target}|{p['title']} report]]" if source_target else f"`{src.resolve()}`"
     synthesis_text=strip_leading_frontmatter(text)

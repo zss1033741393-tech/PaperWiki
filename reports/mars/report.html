@@ -84,11 +84,11 @@ $$</p>
 <h2>3. Reviewer confidence：名字叫校准，证据还不够</h2>
 <p>Reviewer 的自然语言“Confidence: 1–5”容易过度自信。MARS 另外读取 API 返回的 token log probability。若 review 由 $N$ 个 token 构成，平均对数概率为：</p>
 <p>$$
-\mathrm{AvgLogProb}<em>{ij}=\frac{1}{N}\sum</em>{k=1}^{N}\log P(t_k).
+\mathrm{AvgLogProb}_{ij}=\frac{1}{N}\sum_{k=1}^{N}\log P(t_k).
 $$</p>
 <p>再指数化得到 0–1 分数：</p>
 <p>$$
-\mathrm{Conf}<em>{ij}=\exp(\mathrm{AvgLogProb}</em>{ij}).
+\mathrm{Conf}_{ij}=\exp(\mathrm{AvgLogProb}_{ij}).
 $$</p>
 <p>分数越接近 1，表示模型对自己生成的整段 review 序列平均越“顺手”。官方实现确实请求 <code>logprobs=True</code>，并计算均值后指数化：</p>
 <pre><code class="language-python"># custom_agents.py:61-88

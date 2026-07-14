@@ -24,7 +24,101 @@
   "reading": {
     "report_path": "reports/moc/report.md",
     "paper_craft_skill": "paper-analyzer",
-    "analysis_status": "analyzed-awaiting-human-confirmation",
-    "full_text_available": true
+    "analysis_status": "generated-awaiting-human-confirmation",
+    "full_text_available": true,
+    "tldr": "MOC 在不训练模型的前提下，让 DAG 中的目标 Agent 直接读取最多 K 跳上游原始消息，并用 embedding 相似度和小模型蒸馏压缩重复证据；它通常带来小幅准确率提升，但论文没有证明包含蒸馏调用后的端到端总成本更低。",
+    "research_question": "在拓扑固定的 LLM 多智能体 DAG 中，如何不训练模型、不改变拓扑地扩大目标 Agent 的多跳证据感受野，同时控制有序文本上下文的长度和冗余？",
+    "contributions": [
+      "把 LLM 多智能体的单轮通信形式化为 DAG 上有序、可变长的自然语言消息传递，并区分它与 GNN 的无序定长聚合。",
+      "提出 Multi-Order Communication，按最短 hop 收集 K 阶祖先原始回答，并采用 far-to-near、hop 内拓扑序的确定性 prompt 结构。",
+      "提出 Semantic-Topological Merging，以 MiniLM embedding 发现相似消息、用 Gemma-2-9B 生成五个压缩候选，并按源消息语义相似度选择合并结果。",
+      "在六个推理、数学和代码 benchmark、三个模型尺度及随机/G-Designer 拓扑上评估通信方案。"
+    ],
+    "method": "给定 DAG G=(V,E)，MOC 对目标节点逆向追踪最多 K 跳祖先，以最短可达距离将消息划入互不相交的 hop 集合，并按远到近及拓扑序构造多阶证据流。消息数超过 B_msg=ceil(|M|/K)+gamma*K 时，算法计算消息 embedding 余弦相似度，批量选择高相似且不相交的消息对；每对由 9B 蒸馏模型用五类提示生成候选，再选与两条源消息 embedding 相似度之和最大的候选，并把结果锚定在较晚消息位置。合并后的上下文交给原目标 LLM 推理，全流程没有参数更新。",
+    "experiments": [
+      "Section 5 / Table 1（第 7 页）：7 个 Gemma-2-27B Agent 在 MMLU、MMLU-Pro、AQuA、GSM8K、SVAMP、HumanEval 上、四种边密度下比较 Single LLM、Vanilla MAS 和 MOC。",
+      "Table 2（第 7 页）：Qwen2.5-32B 在 MMLU 与 HumanEval 上验证更强开源 backbone；最大报告相对提升分别为 3.84% 和 3.68%。",
+      "Figure 3（第 8 页）：比较 K=1/2/3 及 10/15/20 Agent 的输入 token；K=2 最稳定，K=3 在密图上可能下降。",
+      "Table 3（第 8 页）：单个 MMLU 样本的 STM 约耗时 80–83 秒，几乎全部来自五候选蒸馏。",
+      "Figure 4（第 8 页）：插入 G-Designer 任务自适应图，在三个 benchmark 上提升，但目标 MAS 输入增长 11.1%–40.1%，且不含压缩开销。",
+      "Table 4（第 9 页）：DeepSeek-V3.2-685B API 上 MMLU/MMLU-Pro 小幅提升 0.38%/0.82%。",
+      "Table 6（第 17 页）：单列目标 Agent token 与压缩器 token，显示部分设置压缩 token 高于 Agent token。"
+    ],
+    "findings": [
+      "多跳原始证据在稀疏 DAG 上最有价值；Gemma 平均相对增益从 rho=0.3 的 2.30% 降至 rho=0.7 的 0.89%。",
+      "K=2 是论文实验中的稳健默认值；增加到 K=3 并不单调改善结果，证据冗余和注意力稀释会抵消覆盖收益。",
+      "MOC 与拓扑优化互补，可以插入随机 DAG 或 G-Designer 图，无需训练主模型或通信策略。",
+      "STM 能降低目标强模型的输入消息数，但五次 9B 候选生成引入显著额外 token 和约 80 秒延迟，因此系统总成本优势未获证明。",
+      "多数提升低于 2%，在约 254–300 个样本的子集上只对应少量题目；没有多 seed、误差条或显著性检验。",
+      "论文声称的 hard token cap 在公开代码中仅由自然语言提示实现，没有程序化验证。"
+    ],
+    "limitations": [
+      "作者自述：通信阶数 K 固定，不能根据任务或拓扑自适应；多跳消息还可能引入错误或恶意信息。",
+      "方法只覆盖单轮 DAG 拓扑序通信，不包含环、异步执行、跨轮记忆和环境反馈。",
+      "完整准确率消融没有独立分离多阶暴露与 9B 蒸馏的贡献。",
+      "成本比较主要关注目标 Agent 输入，未统一计算压缩器 token、GPU 时间、能耗和价格加权端到端成本。",
+      "embedding 相似度不能保证数字、逻辑、代码和来源忠实保留，论文缺乏消息保真与攻击实验。",
+      "正文 epsilon=0.1 与公开 CLI 默认 0.01 不一致；代码硬编码本地模型路径与压缩模型。",
+      "官方仓库缺少容器、结果快照、完整复现实验命令矩阵和明确 LICENSE。"
+    ],
+    "reproducibility": [
+      "完整 17 页 PDF 已读取并渲染核对第 4、7、8、17 页的架构、主结果、消融和成本表。",
+      "官方代码仓库已核对 commit 9c67c92507570704a7df73e452552a3f49e83897。",
+      "多跳收集对应 src/graph/graph.py:407-446；far-to-near 组装对应 722-770。",
+      "五候选 Gemma-2-9B 蒸馏对应 src/graph/graph.py:461-585；相似度批量合并对应 587-720。",
+      "实验 runner 和参数对应 experiments/run_experiment.py:110-225；MiniLM 模型路径对应 src/llm/profile_embedding.py:1-14。",
+      "无需训练，但完整复现需要 Ollama、Gemma-2-27B/Qwen2.5-32B、Gemma-2-9B、all-MiniLM-L6-v2、GPU 或 DeepSeek API。"
+    ],
+    "concepts": [
+      "Multi-Order Communication",
+      "Evidence Receptive Field",
+      "Semantic Attenuation",
+      "Topological Message Ordering",
+      "Semantic-Topological Merging",
+      "Structural Message Consolidation",
+      "Training-free Multi-Agent Inference"
+    ],
+    "methods": [
+      "Reverse BFS shortest-hop collection",
+      "Far-to-near prompt linearization",
+      "Sentence embedding cosine similarity",
+      "Batch-wise disjoint pair merging",
+      "Small-LLM candidate distillation",
+      "Random DAG and G-Designer topology"
+    ],
+    "datasets": [
+      "MMLU",
+      "MMLU-Pro",
+      "GSM8K",
+      "SVAMP",
+      "AQuA",
+      "HumanEval"
+    ],
+    "topics": [
+      "LLM multi-agent systems",
+      "multi-agent communication",
+      "inference-time scaling",
+      "message compression",
+      "graph orchestration",
+      "training-free collaboration"
+    ],
+    "open_questions": [
+      "如何根据任务不确定性、图密度和证据一致性动态选择 K？",
+      "在相同总 token、总延迟和美元预算下，MOC 是否仍优于 self-reflection、best-of-N 或 ensemble？",
+      "如何把来源可信度、Agent 历史质量和 prompt-injection 检测加入合并策略？",
+      "能否用抽取式、结构化且保留 provenance 的压缩替代五次生成式蒸馏？",
+      "如何程序化验证数字、引用、逻辑和代码语义在合并后保持？",
+      "如何把多阶通信扩展到有环、异步和跨轮系统？"
+    ],
+    "evidence": [
+      "Figure 1, page 1: restricted first-order evidence case.",
+      "Figure 2 and Equations 6-9, page 4: multi-order construction and ordering.",
+      "Equations 10-16 and Algorithm 1, pages 5-6: STM and budget.",
+      "Tables 1-2, page 7: main benchmark results.",
+      "Figure 3, Table 3, Figure 4, page 8: K ablation, token use, latency and adaptive topology.",
+      "Table 4 and Limitations, page 9: larger model and author limitations.",
+      "Table 6, page 17: agent and compression token accounting."
+    ],
+    "mermaid": "flowchart LR\n  Q[Query and fixed DAG] --> B[Reverse BFS up to K hops]\n  B --> O[Order evidence far-to-near]\n  O --> C{Over message budget?}\n  C -->|No| T[Target agent prompt]\n  C -->|Yes| E[Embed and pair similar messages]\n  E --> D[9B distiller generates candidates]\n  D --> S[Select most source-similar merge]\n  S --> C\n  T --> A[Final response]"
   }
 }

@@ -40,12 +40,12 @@ $$</p>
 <p>人话解释：MOC 不关心模型是否微调过，也不学习 Agent 参数；它把 Agent 当成可接收 prompt、产生自然语言回答的黑盒。边 $e_{i\to j}$ 只表示信息能否从 $i$ 流到 $j$。</p>
 <p>目标节点 $v_j$ 的直接前驱集合为：</p>
 <p>$$
-\mathcal N_j^{\mathrm{in}}={v_i\in V\mid A_{ij}=1}.
+\mathcal N_j^{\mathrm{in}}=\{v_i\in V\mid A_{ij}=1\}.
 $$</p>
 <p>传统方案按拓扑执行顺序把这些直接前驱的回答拼成上下文：</p>
 <p>$$
-C_j=\Psi!\left({R_i}<em>{v_i\in\mathcal N_j^{\mathrm{in}}}\mid\pi_j\right)
-=\bigoplus</em>{k=1}^{n_j}R_{\pi_j(k)}.
+C_j=\Psi\!\left(\{R_i\}_{v_i\in\mathcal N_j^{\mathrm{in}}}\mid\pi_j\right)
+=\bigoplus_{k=1}^{n_j}R_{\pi_j(k)}.
 $$</p>
 <p>人话解释：这里没有 GNN 式求和或平均，$\Psi$ 是有顺序的字符串拼接；消息在 prompt 中出现的位置会影响自回归模型的注意力和答案，因此顺序本身就是协议的一部分。</p>
 <p>最终回答是：</p>
@@ -70,12 +70,12 @@ $$</p>
 <p>假设链为 $v_1\to v_2\to v_3$。Vanilla MAS 执行 $v_3$ 时只看到 $R_2$，而 $R_1$ 是否保留，完全取决于 $v_2$ 是否在自己的回答里复述它。连续摘要会造成 semantic attenuation；一条正确但与中间 Agent 判断冲突的证据尤其容易消失。</p>
 <p>MOC 直接追溯祖先节点。对任意上游 $v_i$，其到 $v_j$ 的最短可达阶数定义为：</p>
 <p>$$
-k_{\min}(i,j)=\min{k\in[1,K]\mid[A^k]_{ij}&gt;0}.
+k_{\min}(i,j)=\min\{k\in[1,K]\mid[A^k]_{ij}&gt;0\}.
 $$</p>
 <p>人话解释：$A^k$ 判断图中是否存在长度为 $k$ 的路径；每条上游消息只按最短路径归入一个 hop，避免同一消息在多个阶重复出现。</p>
 <p>第 $k$ 阶回答集合为：</p>
 <p>$$
-S_j^{(k)}={R_i\mid k_{\min}(i,j)=k}.
+S_j^{(k)}=\{R_i\mid k_{\min}(i,j)=k\}.
 $$</p>
 <p>所有集合互不相交。论文在每个 hop 内按全局拓扑序排列，并采用“远到近”的线性化：</p>
 <p>$$
@@ -100,13 +100,13 @@ for hop in range(1, max_hops + 1):
 </code></pre>
 <p>随后 <code>get_neighbor_summary_with_ism</code> 以 hop 降序遍历，落实式 (9) 的 far-to-near 顺序（<code>src/graph/graph.py:722-770</code>）。这两处证明论文的核心机制确实进入公开代码，而不是只有论文伪代码。</p>
 <h2>3. 第二个创新：Semantic-Topological Merging</h2>
-<p>多阶消息把证据覆盖问题变成上下文膨胀问题。MOC 引入 $\Phi$，将原始消息和次序压缩为 $(\mathcal M_{j,<em>},\Pi_{j,</em>})$：</p>
+<p>多阶消息把证据覆盖问题变成上下文膨胀问题。MOC 引入 $\Phi$，将原始消息和次序压缩为 $(\mathcal M_{j,*},\Pi_{j,*})$：</p>
 <p>$$
-(\mathcal M_{j,<em>},\Pi_{j,</em>})=\Phi(\mathcal M_j,\Pi_j).
+(\mathcal M_{j,*},\Pi_{j,*})=\Phi(\mathcal M_j,\Pi_j).
 $$</p>
 <p>完整 Agent 调用可写成：</p>
 <p>$$
-R_j=f_j!\left(P_{\mathrm{sys},j}\oplus Q\oplus
+R_j=f_j\!\left(P_{\mathrm{sys},j}\oplus Q\oplus
 (\Psi\circ\Phi)(\mathcal M_j\mid\Pi_j)\right).
 $$</p>
 <p>当 $K=1$ 且 $\Phi$ 是恒等映射时，MOC 退化为 Vanilla MAS，因此它是通信层的严格扩展。</p>
@@ -120,7 +120,7 @@ $$</p>
 </ol>
 <p>$$
 R_v^*=\arg\max_{\hat r\in\mathcal C_v}
-\sum_{x\in{u,v}}\cos(T(\hat r),h_x).
+\sum_{x\in\{u,v\}}\cos(T(\hat r),h_x).
 $$</p>
 <ol start="6">
 <li>删除较早消息 $u$，把合并结果放在较晚消息 $v$ 的位置，重复直到消息数满足预算。</li>

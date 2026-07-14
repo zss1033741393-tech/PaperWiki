@@ -2,6 +2,8 @@
 paper_id: arxiv:2507.21105
 status: reading
 source: https://arxiv.org/abs/2507.21105
+generated: true
+human_confirmed: false
 venue: EMNLP 2025 System Demonstrations
 ---
 

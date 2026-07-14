@@ -62,7 +62,7 @@ pre:not(.mermaid){overflow:auto;padding:1rem 1.2rem;background:#0f172a;color:#e2
 <p>$$
 \mathcal D=\langle \mathcal S,\mathcal A,P,\Omega,O,\mathcal I,n,R,\gamma,f\rangle.
 $$</p>
-<p>这里 $\mathcal I={1,\ldots,n}$ 是 agent 集合，$\mathcal S$ 是联合状态，$\mathcal A=\prod_i\mathcal A_i$ 是联合动作空间，$P$ 和 $R$ 分别给出状态转移与回报。人话解释：通信不是模型外部的附属 API，而是部分可观测控制问题内部、会改变联合策略结果的一类动作。</p>
+<p>这里 $\mathcal I=\{1,\ldots,n\}$ 是 agent 集合，$\mathcal S$ 是联合状态，$\mathcal A=\prod_i\mathcal A_i$ 是联合动作空间，$P$ 和 $R$ 分别给出状态转移与回报。人话解释：通信不是模型外部的附属 API，而是部分可观测控制问题内部、会改变联合策略结果的一类动作。</p>
 <p>第 $i$ 个 agent 根据局部观测 $o_i$ 与内部历史 $h_i$ 生成消息：</p>
 <p>$$
 m_i=f_i(o_i,h_i),\qquad f_i:\mathcal O\times\mathcal H\rightarrow\mathcal M.
@@ -70,7 +70,7 @@ $$</p>
 <p>人话解释：what 由 $f_i$ 决定；它可以输出原始观察、隐藏向量、意图、价值估计、离散符号或自然语言。表示空间 $\mathcal M$ 越自由，表达力通常越高，但带宽、可解释性和验证成本也越难控制。</p>
 <p>agent 不必接收所有人的消息。令 $\mathcal N_i$ 为它的动态发送者集合，则通信上下文为：</p>
 <p>$$
-c_i=g_i\big({m_j}_{j\in\mathcal N_i}\big).
+c_i=g_i\big(\{m_j\}_{j\in\mathcal N_i}\big).
 $$</p>
 <p>人话解释：whom 与 how 在这里耦合。$\mathcal N_i$ 是路由，$g_i$ 是聚合；全平均对应 CommNet 式广播，attention 对应 TarMAC 式相关性加权，图结构对应局部或动态邻居，代表 agent 则把群体信息先压缩再转发。</p>
 <p>最终动作由局部观测和通信上下文共同决定：</p>

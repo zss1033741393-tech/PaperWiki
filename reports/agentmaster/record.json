@@ -21,7 +21,96 @@
   "reading": {
     "report_path": "reports/agentmaster/report.md",
     "paper_craft_skill": "paper-analyzer",
-    "analysis_status": "analyzed-awaiting-human-confirmation",
-    "full_text_available": true
+    "analysis_status": "generated-awaiting-human-confirmation",
+    "full_text_available": true,
+    "tldr": "AgentMaster 无需训练，通过中心协调器、A2A 式智能体消息和 MCP 式工具访问，跑通桥梁数据的多智能体问答；协议职责划分值得复用，但 23 个问题、6 个复杂案例和非独立自验证不足以支持可扩展、容错或生产可用主张。",
+    "research_question": "如何用 A2A 管理智能体间协作、用 MCP 管理智能体与异构工具/上下文的访问，并通过统一界面自动完成复杂多模态信息检索与分析？",
+    "contributions": [
+      "提出统一界面、多智能体中心、双协议层、状态管理层的四层架构。",
+      "以 A2A 处理 agent-agent 委派与返回，以 MCP 处理 agent-tool/resource 访问。",
+      "实现 Coordinator 对简单/复杂问题的判断、分解、路由和合成。",
+      "用 FHWA 桥梁数据展示 SQL、IR、General、Image 四类 agent 的组合应用。"
+    ],
+    "method": "Flask 接收用户请求，Coordinator 判断复杂度；简单问题直达单个 agent，复杂问题拆为子问题并按能力路由。专业 agent 经 MCP server 访问 SQL、知识库或 LLM/视觉服务，结果通过 A2A 式 JSON 消息返回 Coordinator 合成。全部是推理期 API 编排，无参数训练。",
+    "experiments": [
+      "全部 agent 使用 GPT-4o-mini，领域数据为 FHWA 桥梁公开数据。",
+      "共 23 个 SQL、IR、General、Image/Complex 问题，其中 6 个复杂问题拆为 2–8 个子问题。",
+      "Table 2, page 6: SQL G-Eval 92.0/BERT F1 98.7；IR 90.2/97.8；General 84.0/96.8；Image/Complex 82.0/91.9；平均 87.1/96.3。",
+      "复杂问题的验证方式是把其子问题再次作为简单请求提交给同一系统，再比较答案片段。",
+      "Table 3, page 7 是功能属性对照，不是 MAS-0、A2A-only、MCP-only 的受控数值消融。"
+    ],
+    "findings": [
+      "A2A 横向协作与 MCP 纵向工具访问的职责分离，是论文最具迁移价值的架构洞见。",
+      "系统原型能在无需训练的条件下完成自动分解、任务分配、路由和合成。",
+      "结构化 SQL/IR 的分数高于开放式或复杂问答。",
+      "实验只足以表明原型可运行，不能证明相对单 agent 更准确或更省成本。",
+      "附录 Q3 对单条 SQL 能否求平均值的判断前后矛盾，暴露路由/能力判断不稳定。",
+      "论文自实现 A2A/MCP，没有第三方互操作和协议一致性证据。"
+    ],
+    "limitations": [
+      "作者自述：准确率受底层 LLM 和检索语料限制，复杂度误判会导致多余分解或不完整响应。",
+      "作者自述：有限协作、受限数据库和复杂结果合成会降低信息深度。",
+      "作者自述：LLM judge 可能有偏差、缺少领域知识和人类对齐。",
+      "作者自述：缺少成熟的信息存储与使用安全防护。",
+      "仅 23 题、6 个复杂案例、单模型单领域，未报告多次运行方差和显著性。",
+      "没有 latency、token、成本、吞吐、故障注入、负载或安全测试。",
+      "没有数值 baseline/ablation；Table 3 的可扩展和容错评级是定性主张。",
+      "复杂答案由同一系统处理子问题进行验证，不是独立 ground truth。",
+      "未找到作者公开代码；人评人数、rubric、盲评和一致性未说明。"
+    ],
+    "reproducibility": [
+      "完整 21 页 PDF 已读取并渲染核对第 1、3、4、6、7、20、21 页。",
+      "论文发表于 EMNLP 2025 System Demonstrations，ACL DOI 10.18653/v1/2025.emnlp-demos.5。",
+      "论文描述 Flask 微服务、本地/AWS 部署、GPT-4o-mini 和 FHWA 公共数据。",
+      "未找到官方代码仓库，因此不能做论文—源码映射或确认自实现协议细节。",
+      "复现不需要训练，但需要 LLM API、桥梁数据库/知识库及 A2A/MCP 服务实现。",
+      "当前 A2A/MCP 标准具有版本协商和明确生命周期等语义，复现应优先采用官方规范/SDK。"
+    ],
+    "concepts": [
+      "Agent-to-Agent Protocol",
+      "Model Context Protocol",
+      "Coordinator Agent",
+      "Dynamic Routing",
+      "Query Decomposition",
+      "Multimodal Retrieval",
+      "State Management"
+    ],
+    "methods": [
+      "LLM complexity classification",
+      "Task decomposition",
+      "Capability-based routing",
+      "SQL generation",
+      "Information retrieval",
+      "LLM synthesis",
+      "LLM-as-a-Judge"
+    ],
+    "datasets": [
+      "FHWA bridge public datasets"
+    ],
+    "topics": [
+      "LLM multi-agent systems",
+      "A2A",
+      "MCP",
+      "tool-use",
+      "protocol interoperability",
+      "training-free orchestration"
+    ],
+    "open_questions": [
+      "采用官方 A2A/MCP SDK 后的跨实现互操作成功率如何？",
+      "复杂度判断怎样基于预算、风险和不确定性校准？",
+      "相同任务成功率下，相对单 agent tool-use 增加多少 token、延迟和故障面？",
+      "怎样用可执行验证器和独立 ground truth 替代同系统循环验证？",
+      "如何对消息权限、工具输出 prompt injection、状态隔离做系统安全评测？"
+    ],
+    "evidence": [
+      "Figure 1, page 1: general MAS framework.",
+      "Figure 2, page 3: case-study system architecture.",
+      "Figure 3, page 4: frontend/backend decomposition example.",
+      "Sections 2.3-2.4, pages 4-5: A2A, MCP and state management.",
+      "Table 1 and Table 2, page 6: decomposition paths and evaluation metrics.",
+      "Table 3 and Limitations, page 7: feature claims and acknowledged limits.",
+      "Tables 5-6, pages 20-21: backend traces and concrete routing failures."
+    ],
+    "mermaid": "flowchart LR\n  U[Unified Interface] --> O[Orchestrator]\n  O <-->|A2A| S[SQL Agent]\n  O <-->|A2A| R[IR Agent]\n  S <-->|MCP| D[(SQL DB)]\n  R <-->|MCP| K[(Knowledge Base)]"
   }
 }

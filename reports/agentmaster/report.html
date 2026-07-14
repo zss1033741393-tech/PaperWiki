@@ -80,8 +80,8 @@ pre:not(.mermaid){overflow:auto;padding:1rem 1.2rem;background:#0f172a;color:#e2
 <p>案例系统采用 Flask 微服务。Figure 2（第 3 页）给出实际链路：前端把文本/图像交给 Flask；Coordinator 先做复杂度判断；简单问题直接路由到一个 agent，复杂问题先拆成子问题，再把每项送给 General、SQL、IR 或 Image agent；各 agent 经 MCP server 访问资源，结果返回 Coordinator 合成。</p>
 <p>可以把这一流程写成一个<strong>本文分析所用的工程形式化</strong>（不是论文提出的训练目标）：</p>
 <p>$$
-q \xrightarrow{g_{complex}} {q_i}<em>{i=1}^{n},\quad
-a_i=f</em>{r(q_i)}(q_i;\mathcal T_{r(q_i)}),\quad
+q \xrightarrow{g_{complex}} \{q_i\}_{i=1}^{n},\quad
+a_i=f_{r(q_i)}(q_i;\mathcal T_{r(q_i)}),\quad
 y=s(q,a_1,\ldots,a_n)
 $$</p>
 <p>其中 $g_{complex}$ 判断是否拆分，$r$ 选择 agent，$\mathcal T$ 是该 agent 通过 MCP 可见的工具集合，$s$ 是最终合成器。这个表示也暴露了四个独立故障点：误判复杂度、错误拆分、错误路由和错误合成。</p>

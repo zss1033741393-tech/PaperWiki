@@ -1,0 +1,30 @@
+{
+  "title": "MOC: Multi-Order Communication in LLM-based Multi-Agent Systems",
+  "authors": [
+    "Yao Guan",
+    "Lin Wang",
+    "Zhihu Lu",
+    "Ziyi Wang",
+    "Wenzhu Yan",
+    "Qiang Duan"
+  ],
+  "abstract": "Despite the remarkable progress of Large Language Model (LLM) based Multi-Agent Systems, most research focuses on optimizing coordination topology while largely underexploring the equally critical problem: how to transmit and optimize messages among agents effectively? Current communication schemes typically rely on the direct concatenation of first-order neighbor responses, which induces a restricted evidence receptive field and leads to the dilution of crucial insights over multi-hop paths. To address these limitations, we propose the Multi-Order Communication (MOC) scheme, which reconstructs the inter-agent communication to capture multi-hop dependencies and incorporates a structural message consolidation strategy to ensure efficiency. Specifically, we formalize the communication mechanism to construct a structured multi-order evidence stream, and subsequently design a Semantic-Topological Merging algorithm to optimize semantic fidelity within token constraints. Extensive experiments across six diverse datasets and LLM backbones of varying parameter scales demonstrate that MOC consistently improves task performance and reduces communication costs. The code is available at https://github.com/yao-guan/MOC.",
+  "year": 2026,
+  "arxiv_id": "2606.02359",
+  "source_url": "https://arxiv.org/abs/2606.02359",
+  "provenance": [
+    {
+      "provider": "arxiv",
+      "retrieved_at": "2026-07-14T03:20:07.849850+00:00"
+    }
+  ],
+  "paper_id": "arxiv:2606.02359",
+  "status": "reading",
+  "pdf_path": "raw/papers/arxiv-2606-02359.pdf",
+  "reading": {
+    "report_path": "reports/moc/report.md",
+    "paper_craft_skill": "paper-analyzer",
+    "analysis_status": "analyzed-awaiting-human-confirmation",
+    "full_text_available": true
+  }
+}

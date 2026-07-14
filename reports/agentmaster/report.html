@@ -1,0 +1,261 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AgentMaster：用 A2A 与 MCP 划清多智能体系统的通信边界</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]})"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script><script>mermaid.initialize({startOnLoad:true,theme:'neutral'})</script>
+<style>
+:root{--ink:#172033;--muted:#64748b;--accent:#2563eb;--line:#dbe4f0;--paper:#fff;--bg:#f4f7fb}
+*{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.85 -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC",sans-serif}
+article{max-width:920px;margin:32px auto;padding:56px 72px;background:var(--paper);box-shadow:0 12px 40px #1e3a5f18;border-radius:18px}
+h1{font-size:2.35rem;line-height:1.3;margin:0 0 2rem} h2{margin-top:3rem;padding-bottom:.5rem;border-bottom:1px solid var(--line);color:#174ea6} h3{margin-top:2rem}
+p{margin:1rem 0} blockquote{margin:1.5rem 0;padding:1rem 1.25rem;background:#eff6ff;border-left:4px solid var(--accent);border-radius:0 10px 10px 0}
+table{width:100%;border-collapse:collapse;margin:1.4rem 0;font-size:.93rem} th,td{padding:.7rem .8rem;border:1px solid var(--line);vertical-align:top} th{background:#f1f5f9}
+pre:not(.mermaid){overflow:auto;padding:1rem 1.2rem;background:#0f172a;color:#e2e8f0;border-radius:10px} code{font-family:"SFMono-Regular",Consolas,monospace}
+.katex-display{overflow-x:auto;overflow-y:hidden;padding:.5rem 0} a{color:var(--accent)}
+@media(max-width:760px){article{margin:0;padding:28px 20px;border-radius:0}h1{font-size:1.75rem}body{font-size:16px}}
+</style></head><body><article><h1>AgentMaster：用 A2A 与 MCP 划清多智能体系统的通信边界</h1>
+<blockquote>
+<p><strong>一句话结论。</strong> AgentMaster 不训练任何模型，而是用中心协调器、A2A 式智能体消息和 MCP 式工具接口，搭出一个面向桥梁数据问答的多智能体原型；它的架构分层值得借鉴，但 23 个问题、6 个复杂案例和非独立的自验证，只能证明“能跑通”，不足以证明可扩展、容错或生产可用。</p>
+</blockquote>
+<h2>1. 论文定位与研究问题</h2>
+<ul>
+<li><strong>论文</strong>：Callie C. Liao, Duoduo Liao, Sai Surya Gadiraju. <em>AgentMaster: A Multi-Agent Conversational Framework Using A2A and MCP Protocols for Multimodal Information Retrieval and Analysis</em>。</li>
+<li><strong>版本</strong>：arXiv:2507.21105；EMNLP 2025 System Demonstrations，DOI 10.18653/v1/2025.emnlp-demos.5。</li>
+<li><strong>模型与数据</strong>：所有智能体使用 GPT-4o-mini；案例数据来自美国 FHWA 桥梁公开数据。</li>
+<li><strong>核心问题</strong>：怎样把异构智能体间的协作与数据库、检索、图像及 LLM 等资源访问模块化，使一个自然语言入口可以自动分解、路由并合成跨模态答案？</li>
+<li><strong>训练需求</strong>：无参数更新、无微调。工作全部发生在推理期，因此符合“应用起来不需要训练模型”的筛选条件。</li>
+</ul>
+<p>这篇工作属于 <strong>system demo / pilot study</strong>，而不是提出新学习算法的 MARL 论文。它的贡献应主要按软件架构与接口设计评价，而不能只看摘要里的 96.3% BERTScore F1。</p>
+<h2>2. 最关键的设计：A2A 与 MCP 各管一条轴</h2>
+<p>论文最有迁移价值的判断，是把两类常被混在 prompt 里的通信拆开：</p>
+<table>
+<thead>
+<tr>
+<th>边界</th>
+<th>论文中的职责</th>
+<th>典型消息</th>
+<th>工程收益</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A2A</td>
+<td>智能体—智能体：委派、协调、状态和结果返回</td>
+<td>Coordinator → SQL Agent；IR Agent → Coordinator</td>
+<td>角色可发现、可替换，协调逻辑不必理解每个工具内部细节</td>
+</tr>
+<tr>
+<td>MCP</td>
+<td>智能体—资源：工具、数据、上下文和长期状态访问</td>
+<td>SQL Agent → SQL DB；IR Agent → knowledge base</td>
+<td>工具接口从具体 agent prompt 中抽离，数据源可独立演化</td>
+</tr>
+</tbody>
+</table>
+<p>论文的概念图（Figure 1，第 1 页）可压缩为：</p>
+<pre class="mermaid">flowchart LR
+  U[统一多模态界面] --&gt; O[Orchestrator]
+  O &lt;--&gt;|A2A: 委派与返回| G[General Agent]
+  O &lt;--&gt;|A2A: 委派与返回| S[SQL Agent]
+  O &lt;--&gt;|A2A: 委派与返回| R[IR Agent]
+  O &lt;--&gt;|A2A: 委派与返回| I[Image Agent]
+  G &lt;--&gt;|MCP| L[LLM API]
+  S &lt;--&gt;|MCP| D[(SQL DB)]
+  R &lt;--&gt;|MCP| K[(Knowledge Base)]
+  I &lt;--&gt;|MCP| V[Vision/LLM API]
+  O --- C[(Cache / Vector DB)]
+</pre>
+<p>这里的关键不是协议名本身，而是<strong>控制面与数据面的解耦</strong>：A2A 传任务语义和执行状态，MCP 暴露受约束的能力与资源。这样新增 agent 时只需声明能力和输入输出；新增数据源时无需重写协调器。</p>
+<h2>3. 四层通用框架与案例实现</h2>
+<h3>3.1 四层结构</h3>
+<ol>
+<li><strong>统一会话界面</strong>：接收文本、图像、图表、音频，输出文本、图像或结构化表。</li>
+<li><strong>多智能体中心</strong>：Orchestrator 位于顶层，下面是通用智能体和 SQL、IR、图像等领域智能体。领域智能体内部还可以继续管理子 agent。</li>
+<li><strong>通信协议层</strong>：A2A 负责结构化 JSON 消息和委派；MCP 负责工具、API、上下文资源与长期记忆。</li>
+<li><strong>状态管理层</strong>：向量数据库和上下文缓存保存本地或共享状态。</li>
+</ol>
+<h3>3.2 端到端执行</h3>
+<p>案例系统采用 Flask 微服务。Figure 2（第 3 页）给出实际链路：前端把文本/图像交给 Flask；Coordinator 先做复杂度判断；简单问题直接路由到一个 agent，复杂问题先拆成子问题，再把每项送给 General、SQL、IR 或 Image agent；各 agent 经 MCP server 访问资源，结果返回 Coordinator 合成。</p>
+<p>可以把这一流程写成一个<strong>本文分析所用的工程形式化</strong>（不是论文提出的训练目标）：</p>
+<p>$$
+q \xrightarrow{g_{complex}} {q_i}<em>{i=1}^{n},\quad
+a_i=f</em>{r(q_i)}(q_i;\mathcal T_{r(q_i)}),\quad
+y=s(q,a_1,\ldots,a_n)
+$$</p>
+<p>其中 $g_{complex}$ 判断是否拆分，$r$ 选择 agent，$\mathcal T$ 是该 agent 通过 MCP 可见的工具集合，$s$ 是最终合成器。这个表示也暴露了四个独立故障点：误判复杂度、错误拆分、错误路由和错误合成。</p>
+<h3>3.3 一个跑通的例子</h3>
+<p>Figure 3（第 4 页）询问：“简要定义 bridge，再给出 Virginia 桥梁总数和 2019 年建造的桥梁。”Coordinator 拆成三个问题，分别路由 General、SQL、SQL，最终把定义、计数 758 和列表合并。该图同时用单独提交子问题的方式检查复杂答案的片段。</p>
+<p>这能说明路由链路可工作，却不是严格的端到端正确性证明：验证问题仍交给同一个 AgentMaster、相同模型和相同数据库，误差高度相关，并非独立 ground truth。</p>
+<h2>4. 实验到底证明了什么</h2>
+<h3>4.1 数据与指标</h3>
+<p>测试集只有 <strong>23 个问题</strong>，涵盖 SQL、IR、通用问答和图像/复杂问答；其中论文展开了 6 个复杂问题。所有 agent 均使用 GPT-4o-mini。指标包括 G-Eval（LLM-as-a-Judge）、BERTScore Precision/F1，以及文中笼统提到的人类评价和 agentic metrics。</p>
+<table>
+<thead>
+<tr>
+<th>Query type</th>
+<th style="text-align: right;">G-Eval</th>
+<th style="text-align: right;">BERT Precision</th>
+<th style="text-align: right;">BERT F1</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>SQL</td>
+<td style="text-align: right;">92.0</td>
+<td style="text-align: right;">98.8</td>
+<td style="text-align: right;">98.7</td>
+</tr>
+<tr>
+<td>IR</td>
+<td style="text-align: right;">90.2</td>
+<td style="text-align: right;">97.6</td>
+<td style="text-align: right;">97.8</td>
+</tr>
+<tr>
+<td>General QA</td>
+<td style="text-align: right;">84.0</td>
+<td style="text-align: right;">95.7</td>
+<td style="text-align: right;">96.8</td>
+</tr>
+<tr>
+<td>Image / Complex QA</td>
+<td style="text-align: right;">82.0</td>
+<td style="text-align: right;">90.1</td>
+<td style="text-align: right;">91.9</td>
+</tr>
+<tr>
+<td>平均</td>
+<td style="text-align: right;"><strong>87.1</strong></td>
+<td style="text-align: right;"><strong>95.6</strong></td>
+<td style="text-align: right;"><strong>96.3</strong></td>
+</tr>
+</tbody>
+</table>
+<p>Table 1（第 6 页）显示 6 个复杂问题被拆成 2–8 个子问题；Q6 全部路由为 8 个 IR 调用。这说明动态拆分会迅速放大调用次数，但论文没有同时报告 token、美元成本或耗时。</p>
+<h3>4.2 可以支持的结论</h3>
+<ul>
+<li>原型能把复合问题自动分解并路由到多类 agent。</li>
+<li>结构化 SQL/IR 的语义相似度高于开放式与复杂问答，这符合任务可约束程度的差异。</li>
+<li>A2A/MCP 双边界是一种可实现的模块化组织方式。</li>
+<li>无需训练即可接入现有 LLM、数据库和检索服务。</li>
+</ul>
+<h3>4.3 不能由实验支持的结论</h3>
+<ul>
+<li><strong>不能证明可扩展</strong>：没有并发量、agent 数、数据规模或负载曲线。</li>
+<li><strong>不能证明容错</strong>：没有 agent 掉线、超时、损坏消息、工具失败或重试实验。</li>
+<li><strong>不能证明更优</strong>：Table 3 是作者填写的功能特性表，不是 MAS-0、A2A-only、MCP-only 的受控消融结果。</li>
+<li><strong>不能证明协议互操作</strong>：没有用第三方 A2A agent/MCP server 做 conformance 或跨实现测试。</li>
+<li><strong>不能证明成本有效</strong>：未报告端到端 token、延迟、吞吐或 API 花费。</li>
+<li><strong>不能证明评价可靠</strong>：23 题过小，未报告多次运行方差；人评缺少人数、rubric、盲评和一致性。</li>
+</ul>
+<p>因此，96.3% BERTScore F1 应读作“与内部参考答案语义相近”，而不是 96.3% 的真实任务成功率。</p>
+<h2>5. 附录暴露出的具体失败</h2>
+<p>附录后台日志比主文的平均分更有诊断价值。</p>
+<ol>
+<li><strong>Q3 SQL 能力判断自相矛盾</strong>：系统先说平均桥龄“无法用单条 SQL，因为需要 aggregate”，随后另一个 SQL 子任务却使用 <code>AVG(bridge_age)</code> 子查询。这表明路由和能力判断并不稳定。</li>
+<li><strong>Q5 语义没有完全落到查询中</strong>：查询用 <code>year_built &lt; 1970 ORDER BY year_built ASC LIMIT 5</code> 找旧桥，但“仍在使用”没有变成状态过滤条件；General agent 提供的意义解释也无法补上数据约束缺失。</li>
+<li><strong>Q6 拆成八次 IR</strong>：对长复合问题直接按片段扇出，可能重复检索、提高成本，也可能让最终合成丢失跨子问题约束。</li>
+</ol>
+<p>这些例子提示：一个完整系统至少要记录 <code>decomposition → routing → tool call → evidence → synthesis</code> 的可追踪链，而不是只展示最终答案。</p>
+<h2>6. 与当前 A2A/MCP 标准的关系</h2>
+<p>论文明确把 AgentMaster 描述为 <strong>self-implemented A2A and MCP</strong>，并说明具体应用也可以采用 Google A2A SDK。应避免把论文中的 JSON-RPC 调用直接等同于今天完整的标准实现。</p>
+<p>当前 A2A 规范已包含 Agent Card、任务生命周期、版本协商等互操作语义；MCP 则明确采用 host–client–server 架构及协议版本协商。论文没有逐项给出消息 schema、能力发现、版本协商、认证授权、任务取消或错误语义测试。因此更准确的判断是：</p>
+<blockquote>
+<p>AgentMaster 验证了“A2A 负责横向协作、MCP 负责纵向工具访问”的架构思想，但没有验证其自实现与外部生态的协议一致性。</p>
+</blockquote>
+<p>若今天落地，应优先用官方 SDK/规范边界实现，并把论文的 Coordinator 与 agent 划分映射进去，而不是复制其私有 JSON 格式。</p>
+<h2>7. 无训练落地：最小可用版本</h2>
+<h3>7.1 推荐步骤</h3>
+<ol>
+<li>只定义 <code>Coordinator + 2 个领域 agent</code>，例如 SQL 与文档检索；不要一开始建立过多角色。</li>
+<li>给每个 agent 发布能力卡：输入 schema、输出 schema、工具权限、超时、价格等级和数据敏感级别。</li>
+<li>工具全部经 MCP 暴露；SQL 只允许只读账号、参数化/白名单查询和行数上限。</li>
+<li>Coordinator 输出结构化计划：<code>subtask_id / depends_on / assigned_agent / success_criteria</code>。</li>
+<li>每个返回值必须携带 evidence 与 provenance；合成器不得把无证据的自由生成覆盖工具结果。</li>
+<li>简单请求绕过多 agent；仅在确需跨源组合时分解，并限制最大子任务数和预算。</li>
+<li>记录任务成功率、p50/p95 延迟、总 token、工具错误、路由错误和人工接管率。</li>
+</ol>
+<h3>7.2 必须补齐的安全控制</h3>
+<ul>
+<li>A2A：agent 身份认证、最小权限、消息签名/审计、超时与取消、幂等键。</li>
+<li>MCP：server allowlist、工具参数校验、secret 隔离、数据库只读、输出内容净化。</li>
+<li>Prompt injection：工具返回与用户指令分区，禁止检索内容提升权限或改变系统策略。</li>
+<li>状态：租户隔离、TTL、敏感信息脱敏、可删除性和访问日志。</li>
+<li>合成：SQL/检索事实优先，冲突证据显式展示，低置信度触发人工确认。</li>
+</ul>
+<h2>8. Five Ws 映射</h2>
+<table>
+<thead>
+<tr>
+<th>W</th>
+<th>AgentMaster 的回答</th>
+<th>证据强度</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Who</td>
+<td>Coordinator、General、SQL、IR、Image agents</td>
+<td>中：系统实现清楚，规模很小</td>
+</tr>
+<tr>
+<td>Whom</td>
+<td>中心化星形通信，领域 agent 经 Coordinator 协作</td>
+<td>中：案例可见，无拓扑消融</td>
+</tr>
+<tr>
+<td>What</td>
+<td>子问题、任务类型、结构化结果、证据与最终合成</td>
+<td>中：日志充分，但 schema 未完整公开</td>
+</tr>
+<tr>
+<td>When</td>
+<td>Coordinator 先判断简单/复杂，再决定直达或分解</td>
+<td>弱：误分类已被作者承认，无阈值/校准</td>
+</tr>
+<tr>
+<td>How</td>
+<td>A2A 管 agent 协作，MCP 管工具/上下文访问</td>
+<td>中偏弱：架构明确，无标准一致性测试</td>
+</tr>
+</tbody>
+</table>
+<h2>9. 局限、复现性与开放问题</h2>
+<h3>9.1 作者承认的局限</h3>
+<ul>
+<li>准确率受底层 LLM 与检索语料限制。</li>
+<li>复杂度误判会产生不必要分解或不完整答案。</li>
+<li>有限的 agent 协作与受限数据库会让回答浅薄，复杂信息合成困难。</li>
+<li>LLM judge 存在偏差、领域知识不足和人类对齐问题。</li>
+<li>系统缺乏成熟的信息存储与使用安全防护。</li>
+</ul>
+<h3>9.2 进一步的审稿式局限</h3>
+<ul>
+<li>未找到作者提供的公开代码仓库，无法核对实现与复现实验；论文只提供演示站点/视频。</li>
+<li>单一 GPT-4o-mini、单一桥梁领域、极小样本，外推性很弱。</li>
+<li>没有无 agent、单 agent、A2A-only、MCP-only 的数值基线。</li>
+<li>BERTScore 容易奖励语义相似而忽略精确数值、SQL 条件和证据正确性。</li>
+<li>“人类评价为 gold standard”与实际人评协议之间缺乏可审计细节。</li>
+<li>无安全、隐私、权限边界和恶意输入评测。</li>
+<li>论文没有数学算法或训练目标；本文未为了满足形式而虚构公式，前述表达仅是对工程管线的分析性形式化。</li>
+</ul>
+<h3>9.3 值得继续追问</h3>
+<ol>
+<li>用官方 A2A/MCP SDK 替换自实现后，第三方 agent/server 的互操作成功率是多少？</li>
+<li>复杂度路由如何基于预算、风险和不确定性校准，而不只是一次 LLM 分类？</li>
+<li>子任务之间有依赖时，怎样表示 DAG、共享证据并避免并行调用破坏约束？</li>
+<li>在相同准确率下，相比单 agent tool-use，AgentMaster 增加多少 token、延迟和故障面？</li>
+<li>能否用可执行验证器替代同系统“把子问题再问一次”的循环验证？</li>
+</ol>
+<h2>10. 最终评价</h2>
+<p>如果目标是快速搭一个无需训练的领域多智能体应用，AgentMaster 值得读，尤其是它对 A2A/MCP 职责边界和 Coordinator 路由链的展示。若目标是选择一个经严格验证的多智能体算法，它不是最强证据：MARS 对 token 节省的实验更扎实，MOC 对通信压缩的机制更明确。</p>
+<p>最适合带走的不是“AgentMaster 已经可扩展、容错”，而是一条工程原则：<strong>先稳定 agent 与工具的协议边界，再讨论增加多少 agent；协议模块化不等于系统有效性，后者仍必须用端到端任务成功率、成本、延迟、故障和安全实验验证。</strong></p>
+<h2>参考入口</h2>
+<ul>
+<li>论文：<a href="https://arxiv.org/abs/2507.21105">https://arxiv.org/abs/2507.21105</a></li>
+<li>ACL Anthology：<a href="https://aclanthology.org/2025.emnlp-demos.5/">https://aclanthology.org/2025.emnlp-demos.5/</a></li>
+<li>A2A 最新规范：<a href="https://a2a-protocol.org/latest/">https://a2a-protocol.org/latest/</a></li>
+<li>MCP 2025-06-18 架构规范：<a href="https://modelcontextprotocol.io/specification/2025-06-18/architecture">https://modelcontextprotocol.io/specification/2025-06-18/architecture</a></li>
+</ul></article></body></html>

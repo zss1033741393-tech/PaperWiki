@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """PaperWiki v1 CLI: discover, acquire, and deposit papers using stdlib only."""
 
-import argparse, concurrent.futures, datetime as dt, hashlib, html, json, math, re, subprocess, sys, urllib.error, urllib.parse, urllib.request
+import argparse, concurrent.futures, datetime as dt, hashlib, json, math, re, sys, urllib.error, urllib.parse, urllib.request
 from pathlib import Path
 from xml.etree import ElementTree as ET
 
@@ -193,26 +193,31 @@ def cmd_read(a):
 
 def bullets(values): return "\n".join(f"- {v}" for v in values) if values else "- Not established from the available paper."
 
-def cmd_finalize(a):
-    report=Path(a.report); side=resolve_record_path(report,diagnose=True)
-    if not side.exists(): raise FileNotFoundError(f"Missing reading record: {side}")
-    analysis_path=Path(a.analysis); analysis_text=analysis_path.read_text(encoding="utf-8")
-    p=json.loads(side.read_text(encoding="utf-8")); analysis=json.loads(analysis_text)
-    required=["research_question","contributions","method","experiments","findings","limitations","reproducibility","concepts","methods","datasets","topics","open_questions"]
-    missing=[k for k in required if k not in analysis]
-    if missing: raise ValueError("Analysis is missing fields: "+", ".join(missing))
-    if report.name == "report.md":
-        canonical_analysis=report.parent/"analysis.json"
-        if analysis_path.resolve() != canonical_analysis.resolve(): canonical_analysis.write_text(analysis_text,encoding="utf-8")
-    src=p.get("source_url") or p.get("pdf_path"); mermaid=analysis.get("mermaid") or "flowchart LR\n  A[Input] --> B[Method] --> C[Output]"; content=f'''---
-paper_id: {p['paper_id']}
-status: reviewed
-source: {src}
-generated: true
-human_confirmed: false
----
+SCAFFOLD_MARKER = "Run `$paper-analyzer`"
+FRONTMATTER_FIELDS = ("paper_id", "status", "source", "generated", "human_confirmed")
 
-# {p['title']}
+def split_report_frontmatter(text):
+    match=re.match(r"^---\r?\n(.*?)\r?\n---(?:\r?\n|$)",text,re.S)
+    if not match: return {},text,False
+    fields={}
+    for line in match.group(1).splitlines():
+        if not line.strip(): continue
+        if ":" not in line: raise ValueError(f"Malformed report frontmatter line: {line}")
+        key,value=line.split(":",1); fields[key.strip()]=value.strip()
+    return fields,text[match.end():],True
+
+def normalize_report_frontmatter(text,paper):
+    fields,body,had_frontmatter=split_report_frontmatter(text)
+    owned={"paper_id":paper["paper_id"],"status":"reading","source":paper.get("source_url") or paper.get("pdf_path"),"generated":"true","human_confirmed":"false"}
+    normalized={key:owned[key] for key in FRONTMATTER_FIELDS}
+    normalized.update({key:value for key,value in fields.items() if key not in owned})
+    frontmatter="---\n"+"\n".join(f"{key}: {value}" for key,value in normalized.items())+"\n---\n"
+    if not had_frontmatter and not body.startswith("\n"): body="\n"+body
+    return frontmatter+body
+
+def generated_report_body(p,analysis):
+    src=p.get("source_url") or p.get("pdf_path"); mermaid=analysis.get("mermaid") or "flowchart LR\n  A[Input] --> B[Method] --> C[Output]"
+    return f'''# {p['title']}
 
 > [!summary] 一句话结论
 > {analysis.get('tldr','')}
@@ -271,12 +276,27 @@ human_confirmed: false
 ## User notes
 
 '''
-    report.write_text(content,encoding="utf-8"); p["status"]="reviewed"; p["reading"].update(analysis); p["reading"]["analysis_status"]="generated-awaiting-human-confirmation"; side.write_text(json.dumps(p,ensure_ascii=False,indent=2),encoding="utf-8")
-    out=report.with_suffix(".html"); generator=Path(__file__).parent/"vendor/paper-craft-skills/skills/paper-analyzer/scripts/generate_html.py"
-    if generator.exists():
-        try: subprocess.run([sys.executable,str(generator),str(report),str(out)],check=True,capture_output=True,text=True)
-        except subprocess.CalledProcessError: out.write_text("<!doctype html><meta charset=utf-8><title>"+html.escape(p["title"])+"</title><style>body{max-width:900px;margin:auto;padding:2rem;font:16px/1.7 system-ui;white-space:pre-wrap}</style><body>"+html.escape(content)+"</body>",encoding="utf-8")
-    else: out.write_text("<!doctype html><meta charset=utf-8><title>"+html.escape(p["title"])+"</title><style>body{max-width:900px;margin:auto;padding:2rem;font:16px/1.7 system-ui;white-space:pre-wrap}</style><body>"+html.escape(content)+"</body>",encoding="utf-8")
+
+def cmd_finalize(a):
+    report=Path(a.report); side=resolve_record_path(report,diagnose=True)
+    if not side.exists(): raise FileNotFoundError(f"Missing reading record: {side}")
+    analysis_path=Path(a.analysis); analysis_text=analysis_path.read_text(encoding="utf-8")
+    p=json.loads(side.read_text(encoding="utf-8")); analysis=json.loads(analysis_text)
+    required=["research_question","contributions","method","experiments","findings","limitations","reproducibility","concepts","methods","datasets","topics","open_questions"]
+    missing=[k for k in required if k not in analysis]
+    if missing: raise ValueError("Analysis is missing fields: "+", ".join(missing))
+    if report.name == "report.md":
+        canonical_analysis=report.parent/"analysis.json"
+        if analysis_path.resolve() != canonical_analysis.resolve(): canonical_analysis.write_text(analysis_text,encoding="utf-8")
+    existing=report.read_text(encoding="utf-8")
+    _,body,_=split_report_frontmatter(existing)
+    is_scaffold=SCAFFOLD_MARKER in existing or body.strip()=="# draft"
+    content=normalize_report_frontmatter(generated_report_body(p,analysis) if is_scaffold else existing,p)
+    report.write_text(content,encoding="utf-8")
+    p["status"]="reading"; p.setdefault("reading",{}).update(analysis); p["reading"]["analysis_status"]="generated-awaiting-human-confirmation"
+    side.write_text(json.dumps(p,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
+    from scripts.render_report import render
+    render(report,report.with_suffix(".html"))
     print(report)
 
 def slug(s): return re.sub(r"[^a-z0-9]+","-",s.lower()).strip("-")[:80] or hashlib.sha256(s.encode()).hexdigest()[:16]

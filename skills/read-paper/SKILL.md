@@ -15,6 +15,17 @@ description: Use when the user supplies a paper URL, DOI, arXiv ID, local PDF, t
 6. Separate paper claims, interpretation, and user notes. Cite page, section, figure, or equation locations when available.
 7. Keep the canonical artifact set `report.md`, `report.html`, `analysis.json`, and `record.json` inside `reports/<paper-slug>/`. Set `reviewed` only after user confirmation.
 
+## Completion Gate
+
+Before claiming a report is complete or committing it:
+
+1. Rebuild `report.html` from the matching `report.md`; never repair rendered formulas by editing HTML directly.
+2. Run `python skills/read-paper/scripts/verify_report.py reports/<paper-slug>/report.md`. Any nonzero exit blocks completion. The command verifies that every Markdown math span survives unchanged in HTML and that no renderer placeholder remains.
+3. Run the relevant regression tests, then the full test suite.
+4. When browser access is available, inspect representative inline and display formulas. Confirm there are no `.katex-error` nodes, visible raw `$$` delimiters, or horizontal page overflow.
+
+If a check fails, fix the Markdown source or shared renderer, regenerate the HTML, and repeat the entire gate. A visual spot check alone does not replace the deterministic verifier.
+
 ## Guardrails
 
 - Flag inaccessible appendices, missing pages, OCR uncertainty, and unsupported claims.

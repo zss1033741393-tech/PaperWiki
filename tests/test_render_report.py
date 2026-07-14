@@ -1,6 +1,8 @@
 """Regression tests for Markdown-to-HTML report rendering."""
 
 import html
+import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -49,6 +51,20 @@ class RenderReportTests(unittest.TestCase):
     def test_rejects_unpaired_display_delimiter(self):
         with self.assertRaisesRegex(ValueError, "Unpaired math delimiter"):
             self._render("# Bad report\n\n$$\nx_i=1\n")
+
+    def test_renderer_remains_directly_executable(self):
+        root = Path(__file__).resolve().parents[1]
+
+        result = subprocess.run(
+            [sys.executable, str(root / "scripts" / "render_report.py"), "--help"],
+            cwd=root,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("usage:", result.stdout)
 
     def test_canonical_reports_preserve_every_math_span(self):
         root = Path(__file__).resolve().parents[1]

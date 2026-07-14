@@ -1,0 +1,101 @@
+{
+  "tldr": "MARS 以作者、独立审稿人和元审稿人的星形层级 review 替代全连接多智能体辩论，无需训练模型；在五种 LLM、三类 benchmark 上通常以相近准确率将 token 降低约一半，但置信度、并行实现和停止条件仍存在证据与代码落差。",
+  "research_question": "能否在不训练模型的情况下，用层级式 propose-review-feedback-update 结构替代多智能体圆桌辩论，保留外部纠错能力，同时减少 reviewer 之间重复通信造成的 token 与延迟？",
+  "contributions": [
+    "提出 Author–Reviewers–Meta-reviewer 的角色化星形协作结构，将 reviewer-to-reviewer 全连接通信改为独立审查与集中汇总。",
+    "用 reviewer 整段输出的平均 token log-probability 构造 0–1 reliability score，辅助 meta-reviewer 权衡冲突意见。",
+    "在 GPQA、MMLU、GSM8K、五种闭源/开源模型上比较 CoT、反思、自洽、MAD、DMAD 与 MARS 的准确率、token 和推理时间。",
+    "分析 Agent 数扩展、异构模型角色分配和 conservative/aggressive reviewer persona 的影响。"
+  ],
+  "method": "Author 先生成显式推理与答案；m 个 Reviewer 各自先独立重做问题，再比较 Author，输出 right/wrong、解释和可靠性；Meta-reviewer 读取所有 review 并自行判断，接受则理论上停止，拒绝则生成一份合并反馈；Author 在同意反馈时修订并进入下一轮。所有组件均为 prompt 与 API 编排，没有参数更新。",
+  "experiments": [
+    "Section 4 / Table 1（第 5–6 页）：GPQA、MMLU、GSM8K 各抽 100 题，每设置平均 3 次，测试 GPT-3.5、GPT-4o-mini、Mixtral-8x7B、Mixtral-8x22B、Llama-3.3-70B。",
+    "Table 1（第 6 页）：MARS 相对 MAD 在 15 个 model-task 设置中稳定降低约 40%–66% token，准确率总体可比但并非每项更高。",
+    "Figure 2（第 7 页）：GPQA 上 GPT-4o-mini/Llama-70B 的 accuracy-token Pareto 对比。",
+    "Table 2（第 7 页）：GPT-3.5 与 Mixtral-8x22B 在 author/reviewer/meta 角色中的异构组合。",
+    "Figure 3（第 8 页）：3–6 个总 Agent 时 MARS token 近线性增长，MAD 增长更快。",
+    "Table 3（第 8 页）：conservative/aggressive persona 通常没有提升，部分设置因过度批评而下降。",
+    "Table 4（第 13 页）：多数设置 MARS 相对 MAD 降低 30% 以上 wall-clock，但 Mixtral-8x7B GPQA 几乎持平。",
+    "Tables 5–6（第 17–18 页）：展示 reviewer 定位错误及 meta 在冲突 review 中选择更严谨推导的案例。"
+  ],
+  "findings": [
+    "对验证已有候选答案的任务，独立 review + 集中汇总不需要全连接讨论即可保持 MAD 级准确率。",
+    "token 降幅是论文最强、最稳定的证据；准确率差异多为 1–3 个百分点，在 100 题样本上证据较弱。",
+    "Author 能力决定系统上限，但异构、较弱且错误模式不同的 Reviewer 有时优于全强同构配置。",
+    "只用人格提示制造 reviewer 多样性通常无效，aggressive persona 还可能制造噪声和 over-correction。",
+    "整段平均 logprob 是 reliability heuristic，不是经 ECE/Brier 等指标验证的 correctness calibration。",
+    "公开代码同步调用 reviewer，未实现论文描述的并行潜力；且当前代码即使首轮 accepted 也强制继续，与 Algorithm 1 提前停止不同。"
+  ],
+  "limitations": [
+    "作者自述：LLM confidence calibration 未解决，当前 token-probability 方法仍需改进。",
+    "作者自述：Meta-reviewer 的错误负面反馈会推翻正确初稿，prompt 无法保证避免 over-correction。",
+    "作者自述：实验最多两轮，更多互动轮次的性能/成本影响未知。",
+    "100 题、3 次平均未报告方差、置信区间或显著性检验，微小准确率差异难以定论。",
+    "同模型 reviewer 共享训练数据、prompt 和 Author anchor，意见并非真正独立。",
+    "Meta-reviewer 是单点故障与 prompt-injection 汇聚点。",
+    "论文 Algorithm 1、实验固定 update 描述与当前官方代码的强制二轮行为不一致。",
+    "公开代码 reviewer 顺序同步执行，README 示例与当前返回结构/函数名有漂移。",
+    "只测试封闭答案 benchmark，开放式工具、代码和研究任务尚未验证。"
+  ],
+  "reproducibility": [
+    "完整 18 页 PDF 已读取，并渲染核对第 3、6、8、12、13 页的架构、主表、扩展曲线、算法和延迟表。",
+    "官方代码已核对 commit 37c5386b15c9b4f2b4aa464f2cf0ee4ad440448e，采用 MIT License。",
+    "MARS 主循环对应 pipelines.py:12-152；MAD baseline 对应 pipelines.py:191-219。",
+    "logprob reliability 对应 custom_agents.py:47-89；角色模型配置对应 custom_agents.py:93-117 与 config.yml。",
+    "完整 prompts 对应 prompt_templates.py:7-194；评测与 token/时间统计对应 evaluation.py:12-140。",
+    "无需训练，复现需要 OpenAI 或 NVIDIA NIM API key；论文主表每数据集 100 题、3 次平均。",
+    "当前 README 的 eval_marvel/旧返回键需要按实际 eval_mars 和 rounds/final_answer 接口修正。"
+  ],
+  "concepts": [
+    "Multi-Agent Review System",
+    "Hierarchical Review Topology",
+    "Independent Reviewer",
+    "Meta-Reviewer",
+    "Propose–Review–Feedback–Update",
+    "Sequence-level Log-probability Confidence",
+    "Over-correction",
+    "Inference-time Collaboration"
+  ],
+  "methods": [
+    "Chain-of-Thought authoring",
+    "Independent reviewer verification",
+    "Centralized meta-review",
+    "Average token log-probability reliability",
+    "Prompt-based rebuttal",
+    "Heterogeneous role assignment"
+  ],
+  "datasets": [
+    "GPQA",
+    "MMLU",
+    "GSM8K"
+  ],
+  "topics": [
+    "LLM multi-agent reasoning",
+    "multi-agent communication",
+    "inference-time verification",
+    "review systems",
+    "token efficiency",
+    "training-free collaboration"
+  ],
+  "open_questions": [
+    "如何基于风险和不确定性自适应选择首轮停止、固定复核或更多轮？",
+    "如何用 decision-token 概率、历史正确率和工具证据改进 reviewer reliability？",
+    "同模型随机 reviewer 与不同模型/工具 reviewer 的单位成本边际价值如何比较？",
+    "如何降低 meta 单点故障，并保留有证据支持的少数意见？",
+    "在相同美元预算下，MARS、MAD、自洽和 best-of-N 的 Pareto 前沿如何变化？",
+    "开放式代码与研究任务中如何定义可自动验证的 accept/reject？"
+  ],
+  "evidence": [
+    "Figure 1, page 3: architecture comparison.",
+    "Equations 1-4, page 4: four-stage workflow.",
+    "Equations 5-6, pages 4-5: log-probability reliability.",
+    "Table 1, page 6: accuracy and token results.",
+    "Figure 2 and Table 2, page 7: Pareto and heterogeneous roles.",
+    "Figure 3 and Table 3, page 8: scaling and personas.",
+    "Appendix A and Algorithm 1, pages 11-12: limitations and stopping logic.",
+    "Table 4, page 13: inference time.",
+    "Appendix E, pages 13-16: prompts.",
+    "Tables 5-6, pages 17-18: case studies."
+  ],
+  "mermaid": "flowchart LR\n  Q[User query] --> A[Author draft]\n  A --> R1[Reviewer 1]\n  A --> R2[Reviewer 2]\n  R1 --> M[Meta-reviewer]\n  R2 --> M\n  M -->|Accept| F[Final answer]\n  M -->|Reject| U[Author revision]\n  U --> R1\n  U --> R2"
+}

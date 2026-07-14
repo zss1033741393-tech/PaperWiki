@@ -83,6 +83,7 @@ class DepositTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as source_td, tempfile.TemporaryDirectory() as vault_td:
             report = Path(source_td) / "report.md"
             report.write_text("# External Notes\n\nSummary", encoding="utf-8")
+            original = report.read_text(encoding="utf-8")
             root = Path(vault_td)
 
             paperwiki.cmd_deposit(type("A", (), {"input": str(report), "root": str(root)}))
@@ -90,6 +91,54 @@ class DepositTests(unittest.TestCase):
             paper_page = next((root / "wiki/papers").glob("*.md")).read_text(encoding="utf-8")
             self.assertNotIn("[[report]]", paper_page)
             self.assertIn(f"`{report.resolve()}`", paper_page)
+            self.assertEqual(report.read_text(encoding="utf-8"), original)
+            self.assertFalse(report.with_suffix(".html").exists())
+
+    def test_canonical_deposit_synchronizes_source_status(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            report = root / "reports/sample/report.md"
+            report.parent.mkdir(parents=True)
+            report.write_text(
+                "---\npaper_id: arxiv:1234.5678\nstatus: reading\n"
+                "source: https://arxiv.org/abs/1234.5678\n"
+                "generated: true\nhuman_confirmed: false\n---\n\n"
+                "# Canonical Paper\n\nBody",
+                encoding="utf-8",
+            )
+            record = {
+                "paper_id": "arxiv:1234.5678",
+                "title": "Canonical Paper",
+                "status": "reading",
+                "reading": {
+                    "analysis_status": "generated-awaiting-human-confirmation",
+                    "concepts": [],
+                    "methods": [],
+                    "datasets": [],
+                    "topics": [],
+                },
+            }
+            (report.parent / "record.json").write_text(
+                json.dumps(record), encoding="utf-8"
+            )
+
+            paperwiki.cmd_deposit(
+                type("A", (), {"input": str(report), "root": str(root)})
+            )
+
+            updated_record = json.loads(
+                (report.parent / "record.json").read_text(encoding="utf-8")
+            )
+            updated_report = report.read_text(encoding="utf-8")
+            frontmatter = updated_report.split("---", 2)[1]
+            self.assertEqual(updated_record["status"], "deposited")
+            self.assertEqual(
+                updated_record["reading"]["analysis_status"],
+                "generated-awaiting-human-confirmation",
+            )
+            self.assertIn("status: deposited", frontmatter)
+            self.assertIn("human_confirmed: false", frontmatter)
+            self.assertTrue(report.with_suffix(".html").exists())
 
     def test_reciprocal_links_and_index_and_log(self):
         with tempfile.TemporaryDirectory() as td:
@@ -141,6 +190,75 @@ class DepositTests(unittest.TestCase):
             self.assertIn("[[agent-memory|Agent Memory]]", paper_page)  # paper -> concept, short name
             self.assertIn("[[doi-10-1-x|Linked Paper]]", concept)       # concept -> paper, short name
             self.assertIn("[[doi-10-1-x|Linked Paper]]", index)         # index -> paper, short name
+
+    def test_qualifies_same_stem_entities_across_collections(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            report = root / "reports/five-ws/report.md"
+            report.parent.mkdir(parents=True)
+            report.write_text(
+                "---\npaper_id: arxiv:2602.11583\nstatus: reading\n"
+                "human_confirmed: false\n---\n\n# Five Ws",
+                encoding="utf-8",
+            )
+            record = {
+                "paper_id": "arxiv:2602.11583",
+                "title": "Five Ws",
+                "reading": {
+                    "concepts": ["Emergent Language"],
+                    "methods": [],
+                    "datasets": [],
+                    "topics": ["Emergent Language"],
+                },
+            }
+            (report.parent / "record.json").write_text(
+                json.dumps(record), encoding="utf-8"
+            )
+
+            paperwiki.cmd_deposit(
+                type("A", (), {"input": str(report), "root": str(root)})
+            )
+
+            page = (root / "wiki/papers/arxiv-2602-11583.md").read_text(
+                encoding="utf-8"
+            )
+            self.assertIn(
+                "[[wiki/concepts/emergent-language|Emergent Language]]", page
+            )
+            self.assertIn(
+                "[[wiki/topics/emergent-language|Emergent Language]]", page
+            )
+            self.assertNotIn("- [[emergent-language|Emergent Language]]", page)
+
+    def test_redeposit_does_not_accumulate_empty_user_notes_headings(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            report = root / "reports/five-ws.md"
+            report.parent.mkdir(parents=True)
+            report.write_text(
+                "# Five Ws\n\nBody\n\n## User notes\n",
+                encoding="utf-8",
+            )
+            report.with_suffix(".json").write_text(
+                json.dumps(
+                    {
+                        "paper_id": "arxiv:2602.11583",
+                        "title": "Five Ws",
+                        "reading": {},
+                    }
+                ),
+                encoding="utf-8",
+            )
+            args = type("A", (), {"input": str(report), "root": str(root)})
+
+            paperwiki.cmd_deposit(args)
+            paperwiki.cmd_deposit(args)
+
+            page = (root / "wiki/papers/arxiv-2602-11583.md").read_text(
+                encoding="utf-8"
+            )
+            self.assertEqual(page.count("## User notes"), 2)
+            self.assertTrue(page.endswith("## User notes\n"))
 
 
 if __name__ == "__main__":

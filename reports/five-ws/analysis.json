@@ -1,0 +1,106 @@
+{
+  "tldr": "这篇 143 页综述的真正价值不是罗列约 400 篇论文，而是把多智能体通信重写成一组相互制约的设计决策：谁对谁说、说什么、何时说、为什么说，以及如何把动机落实为协议。MARL、涌现语言与 LLM 并非线性替代关系，而是在控制可验证性、语义结构、开放域泛化之间移动权衡；作者因此主张用受协议约束的混合系统连接高层语言协作与低层学习控制。",
+  "research_question": "能否用同一套 Five Ws 分析框架统一解释 MARL 中的奖励驱动消息、涌现语言中的离散符号协议，以及 LLM 多智能体系统中的自然语言协作，并由此提炼跨范式的设计规律、失效模式和混合架构方向？",
+  "contributions": [
+    "以 Five Ws 为统一坐标系组织 MARL-Comm、Emergent Language 和 LLM-Comm，避免三个社区各用一套术语讨论相似的路由、内容、时机和目标问题。",
+    "把通信追溯到 speech act 与 decentralized control：消息不是被动的数据搬运，而是改变他者信念、行动与未来系统轨迹的决策变量。",
+    "用显式 bridge 章节解释范式迁移：MARL 的不透明和任务绑定推动 EL，EL 的语义贫乏、训练成本和伙伴泛化问题推动 LLM，LLM 的弱 grounding 与无控制保证又推动混合 LLM-MARL。",
+    "整理约 400 项工作，其中约 100–130 项进入详细 taxonomy 和比较表，覆盖通信内容、接收者、时机、训练框架、协议结构、应用与 benchmark。",
+    "提出以理论保证、算法、统一 benchmark 和人类中心通信为四条未来路线，并强调混合系统应让语言承担高层规划/协商、让 MARL 承担低层控制/一致性。"
+  ],
+  "method": "作者采用结构化文献综述：检索截至 2024 年 8 月的工作，以 Google Scholar 关键词检索、NeurIPS/ICML/ICLR/AAAI/AAMAS 及相关 workshop 人工检查、前后向引文追踪组合获取候选；以通信是否为核心、多决策主体、是否有方法/实证/形式框架和技术实质为纳入条件。分析层面先把通信建模为 Dec-POMDP 中附加的消息动作：发送者由局部观测和内部状态生成消息，接收者集合定义路由，聚合器形成通信上下文，策略再基于局部观测与消息行动。随后分别在 MARL、EL、LLM 三个范式中沿 who/whom/what/when/why/how 编码代表方法，并通过桥接表比较前一范式的缺口如何塑造下一范式。",
+  "experiments": [
+    "本文是 survey，没有提出新算法，也没有训练模型、统一复现实验或统计显著性检验；其证据主要来自结构化检索、约 400 篇文献的定性综合和 20 张 taxonomy/比较表。",
+    "Section 4 报告文献搜索覆盖截至 2024 年 8 月，详细讨论约 100–130 篇代表论文；作者没有给出精确 PRISMA 流程、去重数量、逐阶段排除数或审稿者一致性。",
+    "MARL 部分比较 CommNet、DIAL/RIAL、IC3Net、TarMAC、ATOC、SchedNet、IMAC 等，按消息内容、接收者、编码/聚合、触发时机和训练架构组织。",
+    "EL 部分综合 population/role、合作关系、词汇与消息结构、多轮互动、compositionality、grounding、robustness 和 partner generalization 等评价维度。",
+    "LLM 部分比较 chain、decentralized、hierarchical、centralized 和 heterogeneous topology，单轮/多轮/具身通信，以及 static/dynamic protocol，并列举 AutoGen、CAMEL、MetaGPT、ChatDev、Cicero、FAMA、ACC-Collab 等系统。",
+    "Table 17–20 用 hybrid case study 和 decentralized-control desiderata 对照 LLM 的 grounding、时序一致性、效率、保证与难检测错误。"
+  ],
+  "findings": [
+    "Five Ws 不是五个可独立调参的旋钮：why 是因，决定 what/when/whom/how；例如减少部分可观测性偏向状态摘要和高频局部通信，纠错偏向多轮 critique，战略博弈则偏向选择性披露、延迟或欺骗。",
+    "MARL 的优势是消息与回报、状态转移和控制策略联合优化，弱点是连续 latent protocol 难解释、难迁移且常假定高带宽；注意力、门控和事件触发是从全广播向价值感知通信的演进。",
+    "EL 把协议本身变成研究对象，以离散符号、组合性和群体一致性换取更好的结构，却仍常在窄任务中从零训练，容易形成 population-specific convention 和 zero-shot partner failure。",
+    "LLM 通过预训练直接获得可读、可组合、开放域的自然语言接口，适合规划、辩论、协商和人机协作，但表面可解释性不等于控制层可解释性；语言可能脱离真实状态、承诺与动作不一致。",
+    "LLM-MARL 混合系统没有统一模板：Cicero 把语言当承诺，Werewolf 当信念信号，FAMA 当状态/意图摘要，ACC-Collab 当纠错基础设施；协议应匹配主要不确定性与激励结构。",
+    "作者最有操作性的结论是分层混合：让 LLM 负责高层抽象、协商和候选消息，让 RL/控制模块负责选择、约束、验证、低层时序一致性与安全关键通道。",
+    "通信增益不能只用任务 return 衡量；统一 benchmark 还应报告消息量、延迟、内存、推理成本、可解释性、跨伙伴/跨任务泛化、丢包/噪声/对抗鲁棒性和人类信任。"
+  ],
+  "limitations": [
+    "作者称采用 systematic literature review，但只给出关键词类别和停止条件，没有完整查询字符串、检索日期、候选/去重/排除计数、双人筛选一致性、质量评分或可下载文献清单，复现性低于 PRISMA 式综述。",
+    "语料声称截止 2024 年 8 月，却在 hybrid、LLM failure 和博弈部分纳入多项 2025 年工作；这可能来自修订期补充，但论文没有解释更新规则，时间边界并不完全一致。",
+    "约 400 篇与详细讨论 100–130 篇均为近似数；各范式覆盖深度不均，MARL 有较成熟的正式模型，LLM 部分则混合框架、应用、benchmark 和较新预印本，横向证据强度不完全可比。",
+    "所谓 Five Ws 实际还显式讨论 how，并把 who 与 whom 绑定；这对组织叙事有效，但不是互斥、完备的 taxonomy，同一方法可能跨多个格子，分类缺乏可计算的编码规则。",
+    "论文没有做跨范式统一实验，因此‘混合系统更优’主要是设计性推论，而非在同一任务、预算、agent 数和通信约束下得到的因果实证结论。",
+    "部分形式化公式更像研究议程的示意目标，而不是由文献系统推导且带可验证假设的定理；尤其 LLM grounding 的 softmax 形式并未单独解决语义正确性。",
+    "论文未提供官方代码、数据表或 bibliography artifact；作为 survey 不需要算法实现，但缺少机器可读 taxonomy 会限制持续更新和独立审计。"
+  ],
+  "reproducibility": [
+    "正式版本为 TMLR 2026 年 2 月论文；arXiv:2602.11583，OpenReview forum: LGsed0QQVq。",
+    "读取依据为 143 页完整 PDF，包含 20 张表、25 幅图（编号存在跳号）和完整参考文献；关键页已渲染核对版式与表格。",
+    "无论文配套 GitHub 仓库或实验代码；标题与作者组合检索未发现官方 code artifact，代码审计对综述不适用。",
+    "可复核的检索描述位于 Section 4：Google Scholar、五个主要会议/相关 workshop、前后向引文追踪，截止 2024 年 8 月。",
+    "若要复现 taxonomy，仍需作者公开纳入文献的稳定 ID、筛选日志、Five-Ws 标签与版本化更新记录；当前 PDF 只能人工反向抽取。"
+  ],
+  "concepts": [
+    "Communication as Action",
+    "Five Ws of Communication",
+    "Control-Relevant Information Channel",
+    "Emergent Language",
+    "Protocol Grounding",
+    "Partner Generalization",
+    "Static and Dynamic Communication",
+    "LLM-MARL Hybrid Communication"
+  ],
+  "methods": [
+    "Dec-POMDP with Communication",
+    "Graph-Based Message Passing",
+    "Attention-Based Communication",
+    "Event-Triggered Communication",
+    "Information Bottleneck",
+    "Emergent Discrete Protocols",
+    "Multi-Agent Debate",
+    "Protocol-Constrained Natural Language"
+  ],
+  "datasets": [
+    "Multi-Agent Particle Environment (MPE)",
+    "StarCraft Multi-Agent Challenge (SMAC)",
+    "Google Research Football (GRF)",
+    "Hanabi",
+    "Overcooked-AI",
+    "Melting Pot",
+    "referential/signaling games",
+    "embodied grid-world tasks"
+  ],
+  "topics": [
+    "Multi-Agent Communication",
+    "Multi-Agent Reinforcement Learning",
+    "Emergent Language",
+    "LLM Multi-Agent Systems",
+    "Decentralized Control",
+    "Human-Agent Collaboration",
+    "Communication Efficiency"
+  ],
+  "open_questions": [
+    "如何把 why 到 what/when/whom/how 的依赖写成可学习且可验证的联合决策，而不是分别设计路由器、压缩器和触发器？",
+    "能否在同一环境、同一算力/带宽预算下公平比较连续 MARL 消息、离散 emergent protocol 和自然语言 LLM 消息？",
+    "什么条件下语言应只承担高层承诺，而不能进入低层控制环；如何形式化消息—动作一致性和违约检测？",
+    "怎样衡量一条消息对最终行为的因果贡献，区分可读但未被使用的信息与真正控制相关的信息？",
+    "如何让协议对新伙伴、新 agent 数量、新任务和非平稳环境零样本泛化，同时保留组合性与安全边界？",
+    "怎样在丢包、延迟、噪声、幻觉、欺骗和恶意 agent 下给出通信收益与最坏回报损失的界？",
+    "可否建立持续更新、机器可读、带证据等级的 MA-Comm taxonomy 与统一 benchmark，而不是静态 PDF 表格？"
+  ],
+  "evidence": [
+    "Pages 4–8 / Sections 1–2：三范式演化、五维贡献，以及 communication-as-action 的 speech-act 基础。",
+    "Page 9 / Table 1：classical AI、MARL 与 LLM 在语义、grounding、可解释性、适应与主要限制上的对照。",
+    "Pages 13–14 / Section 4：检索策略、纳排标准、截至 2024 年 8 月、约 400 篇与 100–130 篇详细分析。",
+    "Pages 16–19 / Figures 2–3 / Section 5.1：MARL taxonomy、Dec-POMDP 消息生成—聚合—行动形式化及代表方法。",
+    "Pages 45–47 / Tables 6–7：MARL 的 what/whom/how 汇总，以及不透明、不可迁移信号如何推动 EL。",
+    "Pages 49、59–70 / Figures 8–10 / Tables 8–10：EL 的角色、消息结构、环境、指标、组合性、泛化与鲁棒性。",
+    "Pages 71–72 / Table 11 / Figure 11：MARL/EL 的限制如何推动 LLM-Comm，以及 LLM MAS 设计总览。",
+    "Pages 94–99 / Tables 15–16：单轮、多轮、具身以及静态/动态协议的动机—结构—代价关系。",
+    "Pages 103–109 / Tables 17–20：LLM-MARL hybrid 的功能差异与 grounding、时序、效率、保证、失败传播问题。",
+    "Pages 114–120 / Equations 2–7 / Section 8.3：回报差、通信成本约束、噪声鲁棒性、信息瓶颈、伙伴对齐及未来 benchmark。"
+  ],
+  "mermaid": "flowchart LR\n  P[Partial observability and coordination need] --> W{Why communicate?}\n  W --> R[Choose sender and recipients]\n  W --> C[Choose content and representation]\n  W --> T[Choose timing and frequency]\n  R --> H[Choose protocol and learning mechanism]\n  C --> H\n  T --> H\n  H --> M[MARL: reward-grounded control]\n  H --> E[Emergent language: structured symbols]\n  H --> L[LLM: natural-language priors]\n  M --> X[Hybrid: control and guarantees]\n  E --> X\n  L --> X"
+}

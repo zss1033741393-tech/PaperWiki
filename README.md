@@ -23,6 +23,8 @@ python scripts/render_report.py reports/latentmas/report.md reports/latentmas/re
 
 Each paper uses its official lowercase abbreviation under `reports/` (or a title-derived slug when no abbreviation is supplied). The versioned artifact contract is `report.md`, `report.html`, `analysis.json`, and `record.json` inside that directory.
 
+`finalize` treats an already authored `report.md` as the source of truth for long-form analysis: it preserves the body, normalizes pipeline-owned frontmatter, embeds `analysis.json` into `record.json`, and rebuilds `report.html`. It only replaces the initial `read` scaffold while that scaffold still contains the Paper Craft placeholder. Unconfirmed analysis remains `status: reading` with `analysis_status: generated-awaiting-human-confirmation`; `reviewed` is reserved for an explicit human-confirmation workflow.
+
 Initialize submodules after cloning so the reading skill can invoke Paper Craft:
 
 ```powershell

@@ -215,6 +215,13 @@ def normalize_report_frontmatter(text,paper):
     if not had_frontmatter and not body.startswith("\n"): body="\n"+body
     return frontmatter+body
 
+def set_report_frontmatter_status(text,status):
+    fields,body,had_frontmatter=split_report_frontmatter(text)
+    if not had_frontmatter: raise ValueError("Canonical report is missing frontmatter")
+    fields["status"]=status
+    frontmatter="---\n"+"\n".join(f"{key}: {value}" for key,value in fields.items())+"\n---\n"
+    return frontmatter+body
+
 def generated_report_body(p,analysis):
     src=p.get("source_url") or p.get("pdf_path"); mermaid=analysis.get("mermaid") or "flowchart LR\n  A[Input] --> B[Method] --> C[Output]"
     return f'''# {p['title']}
@@ -330,6 +337,12 @@ def report_wikilink_target(report, root):
     except ValueError: return None
     return relative.with_suffix("").as_posix()
 
+def is_canonical_report(report, root, record, text, paper):
+    try: relative=report.resolve().relative_to((root/"reports").resolve())
+    except ValueError: return False
+    fields,_,had_frontmatter=split_report_frontmatter(text)
+    return report.name=="report.md" and len(relative.parts)==2 and record.resolve()==(report.parent/"record.json").resolve() and had_frontmatter and fields.get("paper_id")==paper["paper_id"]
+
 def entity_path(root, collection, name):
     return root/"wiki"/collection/(slug(name)+".md")
 
@@ -370,7 +383,16 @@ def cmd_deposit(a):
     synthesis_text=strip_leading_frontmatter(text)
     body=f"---\npaper_id: {p['paper_id']}\ntitle: \"{p['title'].replace(chr(34),chr(39))}\"\nstatus: deposited\n---\n\n# {p['title']}\n\n## Source report\n\n{source_reference}\n\n## Related knowledge\n\n"+("\n".join(f"- {x}" for x in entities) if entities else "- No structured entities confirmed yet.")+f"\n\n## Generated synthesis (draft)\n\n{synthesis_text}\n\n## User notes\n\n{human}\n"
     target.write_text(body,encoding="utf-8"); (root/"index.md").parent.mkdir(parents=True,exist_ok=True); idx=root/"index.md"; line=f"- [[{target.stem}|{p['title']}]]\n"; old=idx.read_text(encoding="utf-8") if idx.exists() else "# PaperWiki Index\n\n"; idx.write_text(old if line in old else old+line,encoding="utf-8")
-    log=root/"log.md"; old=log.read_text(encoding="utf-8") if log.exists() else "# Operation Log\n\n"; log.write_text(old+f"- {dt.datetime.now(dt.timezone.utc).isoformat()} deposit {p['paper_id']}\n",encoding="utf-8"); print(target)
+    log=root/"log.md"; old=log.read_text(encoding="utf-8") if log.exists() else "# Operation Log\n\n"; log.write_text(old+f"- {dt.datetime.now(dt.timezone.utc).isoformat()} deposit {p['paper_id']}\n",encoding="utf-8")
+    if is_canonical_report(src,root,side,text,p):
+        updated_report=set_report_frontmatter_status(text,"deposited"); temporary_report=src.with_name(".report.deposit.md"); temporary_html=src.with_name(".report.deposit.html")
+        try:
+            temporary_report.write_text(updated_report,encoding="utf-8")
+            from scripts.render_report import render
+            render(temporary_report,temporary_html); p["status"]="deposited"; src.write_text(updated_report,encoding="utf-8"); side.write_text(json.dumps(p,ensure_ascii=False,indent=2)+"\n",encoding="utf-8"); temporary_html.replace(src.with_suffix(".html"))
+        finally:
+            temporary_report.unlink(missing_ok=True); temporary_html.unlink(missing_ok=True)
+    print(target)
 
 def cmd_recommend(a):
     root=Path(a.root); topics=[]; concepts=[]

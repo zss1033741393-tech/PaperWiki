@@ -1,10 +1,11 @@
 """Regression tests for Markdown-to-HTML report rendering."""
 
+import html
 import tempfile
 import unittest
 from pathlib import Path
 
-from scripts.render_report import render
+from scripts.render_report import MATH_TOKEN, protect_math, render
 
 
 class RenderReportTests(unittest.TestCase):
@@ -48,6 +49,19 @@ class RenderReportTests(unittest.TestCase):
     def test_rejects_unpaired_display_delimiter(self):
         with self.assertRaisesRegex(ValueError, "Unpaired math delimiter"):
             self._render("# Bad report\n\n$$\nx_i=1\n")
+
+    def test_canonical_reports_preserve_every_math_span(self):
+        root = Path(__file__).resolve().parents[1]
+        for slug in ("five-ws", "moc", "mars", "agentmaster"):
+            with self.subTest(report=slug):
+                folder = root / "reports" / slug
+                markdown_text = (folder / "report.md").read_text(encoding="utf-8")
+                rendered = (folder / "report.html").read_text(encoding="utf-8")
+                _, formulas = protect_math(markdown_text)
+                self.assertGreater(len(formulas), 0)
+                for formula in formulas:
+                    self.assertIn(html.escape(formula), rendered)
+                self.assertNotIn(MATH_TOKEN.split("{")[0], rendered)
 
 
 if __name__ == "__main__":

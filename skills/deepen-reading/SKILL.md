@@ -22,14 +22,24 @@ Read the matching-language file before writing. If `vendor/paperforge/` is absen
 
 Write like a person who just finished the paper and is thinking out loud, not like a form. Follow PaperForge's own style: concrete situation first, claim before evidence, plain words, every sentence carrying information, uncertainty kept visible. **Do not tag every sentence with 【推断】/【猜测】brackets** — that is the clinical AI voice PaperForge warns against. Keep source honesty in the prose instead: say "论文没明说，但……"、"更可能是……"、"这一步是猜测：……"、"这终究是重建，作者未必这么想". Distinguish four kinds of statement (paper states / prior work establishes / reasonable inference / speculation) by how you word them, not by prefix labels.
 
+## Search discipline (do not skip)
+
+PaperForge's §1/§3/§12 are not armchair sections — they require searching, not recall. Before writing:
+
+- **Verify, don't assert.** Every named prior work in §3 (the reconstruction) — predecessor method, dataset, theoretical result — must be checked, not written from memory. Search arXiv/web and cite it (e.g. `arXiv:2412.06769`). If the environment's web tools are down, use the arXiv API directly (`curl -sL "https://export.arxiv.org/api/query?search_query=..."`) or the Semantic Scholar API; if nothing works, mark the anchor "unverified" rather than stating it as fact.
+- **Calibrate follow-up novelty.** Before calling a §12 idea "non-incremental", search for it. The obvious follow-up to a paper is usually already published — find those 2–3 papers and either pivot to a genuinely open gap or state plainly that the direction is already being pursued (cite it). Do not manufacture novelty. Mark any residual "I didn't find prior work" as speculation, not a confirmed gap.
+- **Supplement thin background.** Where §1/§2 context is missing for a claim to stand, add a sourced sentence, not a hand-wave.
+
 ## Workflow
 
 1. Identify the target report directory `reports/<paper-slug>/`. Require an existing `report.md`, `analysis.json`, and `record.json`; if any is missing, run `read-paper` first.
 2. Re-read the full `report.md` and `analysis.json`, and re-open the paper's full text (or the archived PDF under `raw/`) when an added claim needs page/section/figure evidence. Do not deepen from the summary alone.
-3. Write the complementary sections in `references/complementary-sections.md` in the voice above, grounded in the paper, citing page/section/figure/equation where it helps.
-4. Append them to `report.md` as one delimited block under `## 精读补充（PaperForge 视角）`, placed **before** the trailing `## User notes`. Never overwrite existing report prose; this is additive.
-5. Leave `analysis.json` as the machine-readable extraction. Add to its `open_questions` / `limitations` only when the deeper read genuinely surfaces a new one, and keep it terse and neutrally worded.
-6. Rebuild HTML and re-sync the record: `python paperwiki.py finalize reports/<paper-slug>/report.md reports/<paper-slug>/analysis.json`. `finalize` preserves the authored body and only regenerates `report.html` + `record.json`.
+3. Run the searches above: verify §3 anchors, calibrate the §12 follow-up against existing work, and collect the arXiv IDs / citations you will cite inline.
+4. Write the complementary sections in `references/complementary-sections.md` in the voice above, grounded in the paper and in what the searches returned, citing page/section/figure/equation and arXiv IDs where it helps.
+5. Style pass before finalizing: read the added prose once as an editor — no 【】tags, no "不是……而是" and similar low-information AI constructions, every sentence carries information, and the four source categories (paper states / prior work / inference / speculation) are distinguishable from the wording.
+6. Append them to `report.md` as one delimited block under `## 精读补充（PaperForge 视角）`, placed **before** the trailing `## User notes`. Never overwrite existing report prose; this is additive.
+7. Leave `analysis.json` as the machine-readable extraction. Add to its `open_questions` / `limitations` only when the deeper read genuinely surfaces a new one, and keep it terse and neutrally worded.
+8. Rebuild HTML and re-sync the record: `python paperwiki.py finalize reports/<paper-slug>/report.md reports/<paper-slug>/analysis.json`. `finalize` preserves the authored body and only regenerates `report.html` + `record.json`.
    - **Already-deposited papers:** `finalize` unconditionally resets `status` to `reading` in both the frontmatter and `record.json`. If the target was `status: deposited`, restore `status: deposited` in both files afterward (the paper never left the wiki), or re-run `python paperwiki.py deposit reports/<paper-slug>/report.md` to refresh the wiki page. Do not silently leave a previously-deposited paper regressed to `reading`.
 
 ## Math must render in Obsidian, not just the HTML

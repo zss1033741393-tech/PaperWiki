@@ -10,3 +10,6 @@
 [submodule "vendor/obsidian-skills"]
 	path = vendor/obsidian-skills
 	url = https://github.com/kepano/obsidian-skills.git
+[submodule "vendor/paperforge"]
+	path = vendor/paperforge
+	url = https://github.com/FeijiangHan/PaperForge.git

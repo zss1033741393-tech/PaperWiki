@@ -32,3 +32,4 @@ If a check fails, fix the Markdown source or shared renderer, regenerate the HTM
 - Never invent venue, citation, experiment, or code information.
 - Treat authored `report.md` prose as canonical long-form content; do not replace it with a thinner summary when rerunning `finalize`.
 - Do not automatically invoke `deposit-paper-knowledge`.
+- A separate `deepen-reading` skill runs a complementary PaperForge reading pass over an existing report (how the idea formed, the one load-bearing assumption, a one-week test of it, the strongest counter-case, a non-incremental follow-up). Offer it as a follow-up; do not invoke it automatically.

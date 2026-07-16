@@ -24,6 +24,35 @@ def paper_id(p):
     title=re.sub(r"\W+"," ",p["title"].lower()).strip()
     return "title:"+hashlib.sha256(title.encode()).hexdigest()[:16]
 
+DOCS_HOST_PREFIXES=("docs.","platform.","developers.")
+DOCS_HOSTS=("modelcontextprotocol.io",)
+
+def norm_url(url):
+    """Canonical URL for identity: https, lowercase host, no trailing slash, no tracking params, no fragment."""
+    s=urllib.parse.urlsplit(url.strip())
+    pairs=[(k,v) for k,v in urllib.parse.parse_qsl(s.query,keep_blank_values=True) if not k.lower().startswith(("utm_","ref"))]
+    return urllib.parse.urlunsplit(("https",s.netloc.lower(),s.path.rstrip("/"),urllib.parse.urlencode(pairs),""))
+
+def url_source_id(url):
+    """Stable source identity: arXiv > DOI > hash of the normalized URL (spec §4.1)."""
+    host=urllib.parse.urlsplit(url).netloc.lower()
+    if host.endswith("arxiv.org"):
+        aid=norm_arxiv(url)
+        if aid: return "arxiv:"+aid
+    m=re.search(r"doi\.org/(10\.\d{4,9}/[^\s?#]+)",url,re.I)
+    if m: return "doi:"+m.group(1).rstrip("/").lower()
+    return "url:"+hashlib.sha256(norm_url(url).encode()).hexdigest()[:12]
+
+def classify_source(url):
+    """Host heuristic: paper | github | docs | blog | other (spec §4.1)."""
+    host=urllib.parse.urlsplit(url).netloc.lower()
+    if not host: return "other"
+    if host.endswith("arxiv.org") or host.endswith("doi.org"): return "paper"
+    if host=="github.com" or host.endswith(".github.com"): return "github"
+    if host.startswith(DOCS_HOST_PREFIXES) or host in DOCS_HOSTS: return "docs"
+    if url.startswith(("http://","https://")): return "blog"
+    return "other"
+
 def arxiv_search(query,limit):
     search='all:"'+query.replace('"','')+'"' if query else "all:*"
     url="https://export.arxiv.org/api/query?"+urllib.parse.urlencode({"search_query":search,"start":0,"max_results":limit,"sortBy":"relevance","sortOrder":"descending"})

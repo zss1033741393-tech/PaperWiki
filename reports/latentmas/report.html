@@ -69,7 +69,7 @@ $$</p>
 <p>人话解释：传统 CoT 的每一步是一个 token；LatentMAS 的每一步是一个 $d_h$ 维实数向量。这个向量不必对应某个可读单词，它可以同时编码多个语义方向、置信度或尚未被语言化的关系。因此作者把这些末层表示称为 latent thoughts。</p>
 <p>论文 Theorem 3.1 试图从表达容量说明这种设计。若长度为 $m$ 的 latent thoughts 能被文本无损表达，那么所需文本 token 数至少满足：</p>
 <p>$$
-m_{text}=\Omega!\left(\frac{d_hm}{\log|V|}\right),
+m_{text}=\Omega\!\left(\frac{d_hm}{\log|V|}\right),
 $$</p>
 <p>其中 $|V|$ 是词表大小。人话解释：一个离散 token 最多携带约 $\log|V|$ 的选择信息，而一个 $d_h$ 维连续状态的表达自由度随 $d_h$ 增长，所以等价文本往往需要许多 token。这个定理解释了为什么几十个 latent steps 可能替代数千个文本 token。</p>
 <p>但这里必须加上理论限定。该结论依赖附录 B.1 的 Linear Representation Hypothesis，并把连续向量视为能够承载高精度信息；它不是“一个 latent step 在真实推理中必然等于数百个有效 token”的实证证明。论文给出的 235.7/377.1/471.4 倍是由维度和词表规模推导出的表达容量比，不应与端到端实际加速 4 倍混为一谈。</p>
@@ -99,7 +99,7 @@ $$</p>
 <h2>7. 创新三：KV cache 如何变成跨 agent 工作记忆？</h2>
 <p>完成 $m$ 个 latent steps 后，第一个 agent 在每一层都拥有包含“原始问题、角色提示和新 latent thoughts”的缓存。论文公式（4）把它定义为：</p>
 <p>$$
-M_{A_1}=\left{\left(K^{(l)}<em>{A_1,cache},V^{(l)}</em>{A_1,cache}\right)\right}_{l=1}^{L}.
+M_{A_1}=\left\{\left(K^{(l)}_{A_1,cache},V^{(l)}_{A_1,cache}\right)\right\}_{l=1}^{L}.
 $$</p>
 <p>人话解释：$M_{A_1}$ 不是一个单独向量，而是一整套按层组织的历史。下一 agent 在自己的每一层注意力中，都能把前一个 agent 的 K/V 当作前文来关注。这比只传最后一个 hidden state 更完整，也避免重新计算前一个 agent 的所有上下文。</p>
 <p>官方实现把这一过程写得非常直接：非最终 agent 调用 <code>generate_latent_batch</code>，并把返回的 <code>past_kv</code> 原封不动交给循环中的下一个 agent；最终 judger 才调用文本生成。</p>
@@ -136,13 +136,13 @@ for step in range(latent_steps):
 <h2>8. 完整系统为什么更快？不要把 token 数当成全部计算量</h2>
 <p>Theorem 3.4 给出单个 LatentMAS agent 的复杂度：</p>
 <p>$$
-T_{latent}=O!\left((d_h^2m+d_hm^2+d_htm)L\right),
+T_{latent}=O\!\left((d_h^2m+d_hm^2+d_htm)L\right),
 $$</p>
 <p>其中 $t$ 是输入长度，$m$ 是 latent step 数，$L$ 是层数。文本 MAS 除 Transformer 计算外，还要对大量步骤执行词表投影与 softmax，并需要更多离散步骤才能达到理论上相同的表达容量。</p>
 <p>不过，更可信的指标不是“系统输出 token”本身，而是论文测得的端到端时间。latent step 虽然不计作输出 token，仍然需要一次 Transformer 前向传播；因此“减少 80% 输出 token”不代表“减少 80% FLOPs”。论文 Figure 4 报告的 4.0 倍 sequential 加速和 hierarchical 设置的 4.3 倍加速，才是更接近实际部署成本的证据。</p>
 <h2>9. 实验设计：作者到底比较了什么？</h2>
 <p>实验覆盖 9 个 benchmark：ARC-Easy、ARC-Challenge、GSM8K、MedQA、MBPP+、HumanEval+、AIME24、AIME25 和 GPQA-Diamond。模型包括 Qwen3-4B/8B/14B，以及附录中的 Llama3-3B/8B。比较对象是单模型、相同拓扑的 TextMAS 和 LatentMAS。</p>
-<p>所有配置采用 temperature 0.6、top-p 0.95，并报告三次独立运行的均值。latent steps 从 ${0,10,20,40,80}$ 中按任务和模型调节。论文主实验使用 8×NVIDIA A100-80G。这个设置说明“无需训练”只表示不更新参数，并不表示无需超参数选择或可以在普通笔记本上低成本运行。</p>
+<p>所有配置采用 temperature 0.6、top-p 0.95，并报告三次独立运行的均值。latent steps 从 $\{0,10,20,40,80\}$ 中按任务和模型调节。论文主实验使用 8×NVIDIA A100-80G。这个设置说明“无需训练”只表示不更新参数，并不表示无需超参数选择或可以在普通笔记本上低成本运行。</p>
 <h3>9.1 Sequential MAS 的代表性结果</h3>
 <p>下表从论文 Table 1 中选取 Qwen3-8B 的代表任务。速度是论文报告的每次运行总秒数，因此数值越低越好。</p>
 <table>
@@ -271,4 +271,38 @@ $$</p>
 <blockquote>
 <p>[!quote] 可转述的核心判断
 LatentMAS 不是教多个模型学会一种新语言，而是让同一类模型不再反复把自己已经知道的东西翻译成人话。</p>
-</blockquote></article></body></html>
+</blockquote>
+<h2>精读补充（PaperForge 视角）</h2>
+<blockquote>
+<p>[!note] 关于这一节
+用 PaperForge 的读法补几个第一遍没展开的角度：作者怎么想到这套做法、整篇真正押在哪条假设上、怎么花一周证伪、最强反例、以及一个非增量方向。是接着往深里读，不是打分。论文没明说、属于我推断或猜测的地方都会讲明。</p>
+</blockquote>
+<h3>作者是怎么走到"让 agent 不说话"的</h3>
+<p>论文没交代来路，但只用它之前的东西能拼出来。两条线当时都在：一条是单模型内部的连续推理，Coconut（Chain of Continuous Thought，arXiv:2412.06769，Hao 等，Meta，2024-12）已经证明可以不解码 token、直接把末层隐藏状态回灌当下一步输入，在隐空间里做 CoT；另一条是 KV cache 的复用和 prompt caching，本来是给单模型省重复计算的。（这条前置线索经检索核实，非凭记忆。）</p>
+<p>把这两条摆到"多个 agent 其实是同一个本地模型的不同角色"这个场景里，一个问题会自己冒出来：既然 Planner 和 Critic 是同一个模型，它把内部状态翻成人话、下一个角色再把人话读回同一个模型，这一整趟"连续到离散再到连续"到底图什么？顺着这个问题，intra-agent 用 Coconut 式 latent rollout、inter-agent 直接交接 KV cache，就是两条现成线的自然合流。真正要现场解决的技术障碍只有一个：末层隐藏状态和输入 embedding 不在同一个分布，直接回灌会漂移，于是有了那个用伪逆做的、training-free 的对齐矩阵。所以这篇的跳跃不是发明新模块，而是看穿"同模型角色之间的文本交接是冗余序列化"，再补上对齐这一块。这条路不需要论文自己的结论当前提——作者真实动机未必如此。</p>
+<h3>整篇真正押在哪一条假设上</h3>
+<p>报告在第 12、15、16 节已经反复点到同一件事。想把它拎成承重的那一条：所有 agent 必须共享兼容的内部表示空间——同一模型、同一 tokenizer、同样的层数和 KV 格式。因为方法的本体就是把一个 agent 的逐层 K/V 原样塞给下一个 agent，这一步一旦模型不同就不成立。</p>
+<p>这条假设的要害不在"实现麻烦"，而在它和标题打架。论文叫 Latent Collaboration in Multi-Agent Systems，但机制真正 work 的前提，是这些"多 agent"其实是同一个模型戴不同角色帽子。也就是说：越异构、越黑盒的 agent（几家不同厂商的模型拼起来，恰恰是"多智能体"最有价值的场景），LatentMAS 越用不上；一旦真异构，方法就退回到需要一个学出来的跨模型适配器，而这正是论文刻意不声称的东西。报告第 16 节其实已经承认了这个分叉，这里想强调的是它的代价：LatentMAS 展示的是"同模型多角色协同推理"，而它省下的文本交接开销，只在这个同构前提里才是净赚。</p>
+<h3>花一周就能把这条假设证伪的实验</h3>
+<p>论文的消融比的是 LatentMAS 对 TextMAS，但缺了一个更狠的对照：同一个模型、给等量的 latent 计算预算、把所有角色的 prompt 串起来一次连续 rollout，中间不设 agent 边界。</p>
+<ul>
+<li>数据：Qwen3-4B，GSM8K 小子集，sequential 拓扑。</li>
+<li>三条对比：完整 LatentMAS（多角色、cache 交接）；单模型跑等量 latent steps、一次性带上全部角色提示、不做交接；再加原来的 TextMAS 做锚。</li>
+<li>量：准确率、墙钟时间、峰值显存都对齐 latent 预算来比。</li>
+<li>判定：如果 LatentMAS 明显赢过"等预算单模型连续 rollout"，那 agent 边界和角色结构确实带来了协作增益；如果两者打平，那 LatentMAS 很大程度上就是"换了个多智能体包装的、预算更长的 latent CoT"，协作那部分是虚的。</li>
+</ul>
+<p>这正是主表回答不了的问题：现在的 Single 基线用的是文本、不是等量 latent 预算，所以分不清收益来自"隐空间"还是来自"结构"。</p>
+<h3>如果要反驳，最强的反例长什么样</h3>
+<p>最狠的反例，是一类真正需要异构 specialist 的任务：比如既要一个强代码模型、又要一个不同底座的领域模型，两者 tokenizer 和 KV 格式都不一样。</p>
+<p>在这种题上 LatentMAS 结构性地出不了场——两个模型的 cache 根本没法直接交接。它只有两条路：要么退回文本通信（那它相对 TextMAS 的全部优势当场归零），要么把你锁死在同一个模型家族里（那就放弃了 specialist 多样性，而多样性正是你要多智能体的理由）。对照之下，纯文本的方法（TextMAS，或按题选异构模型的 GoA）在这里反而畅通无阻。</p>
+<p>杀伤力在于：这不是某个数据集上掉几个点，而是方法最省的那个场景（同构白盒）恰好是"多智能体"最不增值的场景，而多智能体最增值的场景（异构黑盒）恰好是它结构上进不去的。顺带还有一个更隐蔽的反例，而且这条不是我的臆测：把 KV cache 当通道，本身就是一个不经文本披露、就能在 agent 间传递敏感内容的 opaque channel——LCGuard（arXiv:2605.22786）正是冲着这个风险去做 safe KV sharing 的守卫，而"AI agent 借隐蔽信道串通"更早已被 Secret Collusion（arXiv:2402.07510）正式形式化。latent thought 里若夹了一个自信的错误、或一段本不该外传的内容，因为它不解码，任何内容过滤器、人工审计或下游 agent 都看不见，TextMAS 至少会把它摆在明面上。隐空间省掉的可读性，在需要审计的场景里是负资产。</p>
+<h3>顺着缺口，一个值得做的新方向</h3>
+<p>报告第 15 节把可解释性退化和安全无从检测列为头两条独立局限。顺着这个，最顺手的 follow-up 是给共享 cache 挂一个可观测旁路：不解码成文本，用轻量探针把关键信息读成可审计的低维摘要。</p>
+<p>但按 PaperForge 的规矩先检索一遍，就会发现这个方向已经有人在做——这也正是这版补做要暴露的问题。LCGuard（arXiv:2605.22786）就是把 KV cache 当 opaque channel、专门做 safe KV sharing 的守卫；latent 推理的可解释性也已成线（Ulterior Motives 检测 continuous thought 里的 misaligned reasoning、以及 arXiv:2606.01243 对 latent reasoning 做干预）。所以"加个探针审计 cache"不是非增量方向，是正在进行的工作。我上一版把它当"新方向"，是漏了检索，这里更正。</p>
+<p>真正还空着、也更难的一格，是把问题从"检测"推到"预防"。现有审计都是事后看一眼，而 Secret Collusion（arXiv:2402.07510）已经论证隐蔽信道很难被可靠检测——监控做得再好，更强的 steganography 也可能绕过去。于是一个更值得做的方向是：在设计 latent 交接这一步，就给它一个可证明的信道容量上界，把"最多能偷偷夹带多少信息"物理地限住，而不是靠事后监控去追。</p>
+<ul>
+<li>它针对的缺口：检测是被动的、可被更强的 steganography 绕过；容量约束是主动的，给出的是"最坏能泄露多少比特"的界。</li>
+<li>能借的相邻领域：信息论的 covert-channel capacity 与 rate-distortion，加上 KV cache 的低秩/压缩——把交接前的 cache 过一个有容量预算的瓶颈，既省显存，又顺带压掉可用的隐蔽带宽。</li>
+<li>第一个实验：Qwen3-4B 上给跨 agent 的 cache 交接加一个可调容量瓶颈，测两样——任务准确率掉多少（有用信息的损失），以及一个受训去夹带 side-channel 的探针还能塞进多少比特（隐蔽带宽的上界）。找那个既保住准确率、又把隐蔽带宽压到近零的点。</li>
+</ul>
+<p>诚实划界：auditing 那条（LCGuard 和上面几篇可解释性工作）我已核实确有人做；"把信道容量上界当设计目标"这条，目前检索没看到直接对应的工作，但不敢断言空白——按 PaperForge 的四类信息纪律，它标成"待进一步 novelty 核实的方向"，不是已确证的空白。</p></article></body></html>

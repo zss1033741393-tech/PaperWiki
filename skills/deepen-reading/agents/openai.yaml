@@ -1,0 +1,4 @@
+interface:
+  display_name: "Deepen Reading"
+  short_description: "Supplement an already-read report with PaperForge's complementary reading angles"
+  default_prompt: "Use $deepen-reading to add a complementary deep-read (how the idea formed, the one load-bearing assumption, a one-week test of it, the strongest counter-case, a non-incremental follow-up) to this paper's existing report."

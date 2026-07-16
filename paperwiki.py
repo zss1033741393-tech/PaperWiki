@@ -53,6 +53,29 @@ def classify_source(url):
     if url.startswith(("http://","https://")): return "blog"
     return "other"
 
+ENTRY_RE=re.compile(r"^\s*-\s+\[([^\]]+)\]\((https?://[^)\s]+)\)(.*)$")
+
+def parse_awesome_readme(text):
+    """Parse an awesome-list README into normalized entries. Returns (entries, unparsed_lines)."""
+    entries=[]; by_id={}; unparsed=[]; section=[]
+    for line in text.splitlines():
+        h=re.match(r"^(#{2,3})\s+(.*?)\s*$",line)
+        if h:
+            title=re.sub(r"^[^\w&]+","",h.group(2)).strip()
+            section=[title] if len(h.group(1))==2 else (section[:1] or [""])+[title]
+            continue
+        if section and section[0].lower()=="contents": continue
+        if not line.lstrip().startswith("- ["): continue
+        m=ENTRY_RE.match(line)
+        if not m: unparsed.append(line.strip()); continue
+        title,url,rest=m.group(1).strip(),m.group(2),m.group(3)
+        desc=" ".join(re.sub(r"^\s*[—–-]\s*","",re.sub(r"!\[[^\]]*\]\([^)]*\)","",rest).strip()).split())
+        sid=url_source_id(url)
+        if sid in by_id: by_id[sid].setdefault("also_in",[]).append(list(section)); continue
+        entry={"source_id":sid,"title":title,"url":url,"source_type":classify_source(url),"section_path":list(section),"description":desc}
+        by_id[sid]=entry; entries.append(entry)
+    return entries,unparsed
+
 def arxiv_search(query,limit):
     search='all:"'+query.replace('"','')+'"' if query else "all:*"
     url="https://export.arxiv.org/api/query?"+urllib.parse.urlencode({"search_query":search,"start":0,"max_results":limit,"sortBy":"relevance","sortOrder":"descending"})

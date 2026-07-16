@@ -7,6 +7,56 @@ from unittest.mock import patch
 
 import paperwiki
 
+SAMPLE_README = """<div align="center"><h1>Awesome Harness Engineering</h1></div>
+
+Intro paragraph.
+
+## Contents
+
+- [Foundations](#foundations)
+- [Design Primitives](#design-primitives)
+
+## Foundations
+
+- [Harness Engineering](https://openai.com/index/harness-engineering/) — OpenAI's framing of the discipline.
+- [Building Effective Agents](https://www.anthropic.com/research/building-effective-agents) — Anthropic's guide.
+
+## Design Primitives
+
+Text under the section head.
+
+### Agent Loop
+
+- [ReAct](https://arxiv.org/abs/2210.03629) — The foundational paper.
+- [Harness Engineering](https://openai.com/index/harness-engineering/) — Duplicate URL listed again.
+- [statewright](https://github.com/statewright/statewright) — State machine guardrails. ![Stars](https://img.shields.io/github/stars/statewright/statewright?style=flat-square)
+- [broken entry without url
+"""
+
+
+class ParseAwesomeReadmeTests(unittest.TestCase):
+    def test_parses_entries_with_sections_types_and_clean_descriptions(self):
+        entries, unparsed = paperwiki.parse_awesome_readme(SAMPLE_README)
+        by_title = {e["title"]: e for e in entries}
+        self.assertEqual(len(entries), 4)  # duplicate URL folded into the first occurrence
+        self.assertEqual(by_title["Harness Engineering"]["section_path"], ["Foundations"])
+        self.assertEqual(by_title["Harness Engineering"]["also_in"], [["Design Primitives", "Agent Loop"]])
+        self.assertEqual(by_title["ReAct"]["section_path"], ["Design Primitives", "Agent Loop"])
+        self.assertEqual(by_title["ReAct"]["source_type"], "paper")
+        self.assertEqual(by_title["ReAct"]["source_id"], "arxiv:2210.03629")
+        self.assertEqual(by_title["statewright"]["source_type"], "github")
+        self.assertNotIn("img.shields.io", by_title["statewright"]["description"])
+        self.assertEqual(by_title["Building Effective Agents"]["description"], "Anthropic's guide.")
+
+    def test_contents_section_is_skipped_and_bad_lines_reported(self):
+        entries, unparsed = paperwiki.parse_awesome_readme(SAMPLE_README)
+        self.assertFalse(any(e["section_path"] == ["Contents"] for e in entries))
+        self.assertEqual(unparsed, ["- [broken entry without url"])
+
+    def test_emoji_section_headers_are_normalized(self):
+        entries, _ = paperwiki.parse_awesome_readme("## 📐 Foundations\n\n- [X](https://x.com/a) — d.\n")
+        self.assertEqual(entries[0]["section_path"], ["Foundations"])
+
 
 class UrlIdentityTests(unittest.TestCase):
     def test_norm_url_canonicalizes(self):

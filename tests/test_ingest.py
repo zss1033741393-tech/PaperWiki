@@ -95,5 +95,47 @@ class UrlIdentityTests(unittest.TestCase):
             self.assertEqual(paperwiki.classify_source(url), expected, url)
 
 
+class MergeReadingListTests(unittest.TestCase):
+    def _entry(self, sid, **kw):
+        base = {"source_id": sid, "title": sid, "url": "https://x.com/" + sid,
+                "source_type": "blog", "section_path": ["S"], "description": "d"}
+        base.update(kw)
+        return base
+
+    def test_new_entries_start_unread_with_timestamps(self):
+        merged, diff = paperwiki.merge_reading_list([], [self._entry("a")], "T1")
+        self.assertEqual(diff, {"added": ["a"], "removed": [], "changed": []})
+        self.assertEqual(merged[0]["status"], "unread")
+        self.assertEqual(merged[0]["added_at"], "T1")
+        self.assertEqual(merged[0]["status_updated_at"], "T1")
+
+    def test_rerun_preserves_status_and_updates_metadata(self):
+        old = [dict(self._entry("a"), status="studied", added_at="T0",
+                    status_updated_at="T0", notes="mine")]
+        new = [self._entry("a", title="Renamed", section_path=["S2"])]
+        merged, diff = paperwiki.merge_reading_list(old, new, "T1")
+        self.assertEqual(diff["changed"], ["a"])
+        self.assertEqual(merged[0]["status"], "studied")
+        self.assertEqual(merged[0]["added_at"], "T0")
+        self.assertEqual(merged[0]["notes"], "mine")
+        self.assertEqual(merged[0]["title"], "Renamed")
+        self.assertEqual(merged[0]["section_path"], ["S2"])
+
+    def test_upstream_removal_keeps_entry_flagged(self):
+        old = [dict(self._entry("a"), status="unread", added_at="T0", status_updated_at="T0")]
+        merged, diff = paperwiki.merge_reading_list(old, [], "T1")
+        self.assertEqual(diff["removed"], ["a"])
+        self.assertTrue(merged[0]["removed_upstream"])
+        merged2, diff2 = paperwiki.merge_reading_list(merged, [], "T2")
+        self.assertEqual(diff2["removed"], [])  # already flagged: not re-reported
+
+    def test_reappearing_entry_clears_removed_flag(self):
+        old = [dict(self._entry("a"), status="unread", added_at="T0",
+                    status_updated_at="T0", removed_upstream=True)]
+        merged, diff = paperwiki.merge_reading_list(old, [self._entry("a")], "T1")
+        self.assertNotIn("removed_upstream", merged[0])
+        self.assertEqual(diff, {"added": [], "removed": [], "changed": []})
+
+
 if __name__ == "__main__":
     unittest.main()

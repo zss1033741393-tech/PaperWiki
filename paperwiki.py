@@ -76,6 +76,31 @@ def parse_awesome_readme(text):
         by_id[sid]=entry; entries.append(entry)
     return entries,unparsed
 
+LIST_STATUSES=("unread","queued","skimmed","studied","deposited","blocked")
+LIST_SYNC_KEYS=("title","url","source_type","section_path","description")
+
+def merge_reading_list(existing,parsed,now):
+    """Re-runnable sync: upstream metadata refreshes, local study state never overwritten (spec §4.1)."""
+    old={e["source_id"]:e for e in existing}; merged=[]; added=[]; changed=[]
+    for e in parsed:
+        prev=old.pop(e["source_id"],None)
+        if prev is None:
+            entry=dict(e); entry.update({"status":"unread","added_at":now,"status_updated_at":now}); added.append(e["source_id"])
+        else:
+            entry=dict(prev)
+            if any(prev.get(k)!=e.get(k) for k in LIST_SYNC_KEYS+("also_in",)): changed.append(e["source_id"])
+            for k in LIST_SYNC_KEYS: entry[k]=e[k]
+            if "also_in" in e: entry["also_in"]=e["also_in"]
+            else: entry.pop("also_in",None)
+            entry.pop("removed_upstream",None)
+        merged.append(entry)
+    removed=[]
+    for prev in old.values():
+        entry=dict(prev)
+        if not prev.get("removed_upstream"): removed.append(prev["source_id"])
+        entry["removed_upstream"]=True; merged.append(entry)
+    return merged,{"added":added,"removed":removed,"changed":changed}
+
 def arxiv_search(query,limit):
     search='all:"'+query.replace('"','')+'"' if query else "all:*"
     url="https://export.arxiv.org/api/query?"+urllib.parse.urlencode({"search_query":search,"start":0,"max_results":limit,"sortBy":"relevance","sortOrder":"descending"})

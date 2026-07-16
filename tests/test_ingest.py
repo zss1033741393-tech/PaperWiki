@@ -137,5 +137,88 @@ class MergeReadingListTests(unittest.TestCase):
         self.assertEqual(diff, {"added": [], "removed": [], "changed": []})
 
 
+class CmdIngestTests(unittest.TestCase):
+    def _args(self, root, source, list_slug=None):
+        return type("A", (), {"source": source, "list_slug": list_slug, "root": str(root)})
+
+    def test_ingest_local_readme_writes_list_json(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            readme = root / "README.md"
+            readme.write_text(SAMPLE_README, encoding="utf-8")
+
+            paperwiki.cmd_ingest(self._args(root, str(readme), "harness-engineering"))
+
+            out = root / "reading-lists/harness-engineering.json"
+            data = json.loads(out.read_text(encoding="utf-8"))
+            self.assertEqual(data["list_slug"], "harness-engineering")
+            self.assertEqual(len(data["entries"]), 4)
+            self.assertTrue(all(e["status"] == "unread" for e in data["entries"]))
+            self.assertIn("retrieved_at", data)
+
+    def test_ingest_rerun_is_idempotent_and_preserves_status(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            readme = root / "README.md"
+            readme.write_text(SAMPLE_README, encoding="utf-8")
+            args = self._args(root, str(readme), "hx")
+            paperwiki.cmd_ingest(args)
+            out = root / "reading-lists/hx.json"
+            data = json.loads(out.read_text(encoding="utf-8"))
+            data["entries"][0]["status"] = "studied"
+            out.write_text(json.dumps(data), encoding="utf-8")
+
+            paperwiki.cmd_ingest(args)
+
+            again = json.loads(out.read_text(encoding="utf-8"))
+            self.assertEqual(len(again["entries"]), 4)
+            self.assertEqual(again["entries"][0]["status"], "studied")
+
+    def test_ingest_github_repo_url_fetches_raw_readme_and_derives_slug(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            seen = {}
+
+            def fake_fetch(url, binary=False):
+                seen["url"] = url
+                return SAMPLE_README
+
+            with patch.object(paperwiki, "fetch", fake_fetch):
+                paperwiki.cmd_ingest(self._args(
+                    root, "https://github.com/ai-boost/awesome-harness-engineering"))
+
+            self.assertEqual(
+                seen["url"],
+                "https://raw.githubusercontent.com/ai-boost/awesome-harness-engineering/HEAD/README.md",
+            )
+            self.assertTrue((root / "reading-lists/awesome-harness-engineering.json").exists())
+
+    def test_ingest_cli_is_wired(self):
+        import subprocess, sys
+        result = subprocess.run([sys.executable, "paperwiki.py", "ingest", "--help"],
+                                capture_output=True, text=True)
+        self.assertEqual(result.returncode, 0)
+        self.assertIn("--list-slug", result.stdout)
+
+    def test_gitignore_tracks_curated_lists_but_not_transient_outputs(self):
+        # Curated lists carry durable study state (like wiki pages); discover/recommend outputs stay transient.
+        import subprocess
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            subprocess.run(["git", "init", "-q", str(root)], check=True)
+            source = Path(paperwiki.__file__).with_name(".gitignore")
+            (root / ".gitignore").write_text(source.read_text(encoding="utf-8"), encoding="utf-8")
+            lists = root / "reading-lists"
+            lists.mkdir()
+            for name in ("harness-engineering.json", "latest.json", "recommended-next.json"):
+                (lists / name).write_text("{}", encoding="utf-8")
+
+            tracked = subprocess.run(["git", "check-ignore", "-q", "reading-lists/harness-engineering.json"], cwd=root)
+            self.assertEqual(tracked.returncode, 1)
+            for transient in ("latest.json", "recommended-next.json"):
+                ignored = subprocess.run(["git", "check-ignore", "-q", f"reading-lists/{transient}"], cwd=root)
+                self.assertEqual(ignored.returncode, 0, transient)
+
+
 if __name__ == "__main__":
     unittest.main()

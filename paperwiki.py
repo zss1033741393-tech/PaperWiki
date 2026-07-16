@@ -236,6 +236,30 @@ def cmd_discover(a):
     result=sorted((score(p,a.query) for p in normalized),key=lambda x:x["discovery"]["score"],reverse=True)[:a.limit]
     payload={"query":a.query,"papers":result,"errors":errors}; Path(a.output).parent.mkdir(parents=True,exist_ok=True); Path(a.output).write_text(json.dumps(payload,ensure_ascii=False,indent=2),encoding="utf-8"); print(a.output)
 
+def readme_source(value):
+    """Resolve a local path / GitHub repo URL / raw URL to README text."""
+    p=Path(value)
+    if p.is_file(): return p.read_text(encoding="utf-8")
+    m=re.match(r"https?://github\.com/([^/]+)/([^/#?]+)",value)
+    if m: return fetch(f"https://raw.githubusercontent.com/{m.group(1)}/{m.group(2).removesuffix('.git')}/HEAD/README.md")
+    if value.startswith(("http://","https://")): return fetch(value)
+    raise ValueError("Provide a GitHub repo URL, a raw README URL, or a local README path")
+
+def cmd_ingest(a):
+    text=readme_source(a.source)
+    list_slug=a.list_slug or slug(Path(urllib.parse.urlsplit(a.source).path or a.source).name.removesuffix(".git").removesuffix(".md"))
+    out=Path(a.root)/"reading-lists"/f"{list_slug}.json"
+    existing=json.loads(out.read_text(encoding="utf-8")).get("entries",[]) if out.exists() else []
+    parsed,unparsed=parse_awesome_readme(text); now=dt.datetime.now(dt.timezone.utc).isoformat()
+    entries,diff=merge_reading_list(existing,parsed,now)
+    payload={"list_slug":list_slug,"source_repo":a.source,"retrieved_at":now,"entries":entries}
+    out.parent.mkdir(parents=True,exist_ok=True); out.write_text(json.dumps(payload,ensure_ascii=False,indent=2),encoding="utf-8")
+    status_counts={}; section_counts={}
+    for e in entries:
+        status_counts[e["status"]]=status_counts.get(e["status"],0)+1
+        top=(e.get("section_path") or ["(none)"])[0]; section_counts[top]=section_counts.get(top,0)+1
+    print(json.dumps({"list":str(out),"total":len(entries),"status_counts":status_counts,"section_counts":section_counts,"diff":diff,"unparsed_lines":unparsed},ensure_ascii=False,indent=2))
+
 def resolve_arxiv(value):
     aid=norm_arxiv(value)
     if not aid: raise ValueError("Only arXiv IDs/URLs are supported by the dependency-free resolver")
@@ -488,6 +512,7 @@ def main():
     f=sub.add_parser("finalize"); f.add_argument("report"); f.add_argument("analysis"); f.set_defaults(func=cmd_finalize)
     k=sub.add_parser("deposit"); k.add_argument("input"); k.add_argument("--root",default="."); k.set_defaults(func=cmd_deposit)
     n=sub.add_parser("recommend"); n.add_argument("--topic"); n.add_argument("--limit",type=int,default=5); n.add_argument("--root",default="."); n.add_argument("--output",default="reading-lists/recommended-next.json"); n.set_defaults(func=cmd_recommend)
+    i=sub.add_parser("ingest"); i.add_argument("source",help="Awesome-list GitHub URL, raw README URL, or local README path"); i.add_argument("--list-slug",default=None); i.add_argument("--root",default="."); i.set_defaults(func=cmd_ingest)
     a=ap.parse_args()
     try: a.func(a)
     except Exception as e:

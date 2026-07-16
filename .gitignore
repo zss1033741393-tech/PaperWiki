@@ -19,6 +19,9 @@ reports/*/*
 !reports/*/record.json
 reading-lists/*
 !reading-lists/.gitkeep
+!reading-lists/*.json
+reading-lists/latest.json
+reading-lists/recommended-next.json
 # NOTE: wiki/papers/ is intentionally NOT ignored — the deposited paper pages
 # (generated synthesis + human-authored user notes + reciprocal wikilinks) are the
 # durable knowledge base this tool exists to produce, so they must be version-controlled.

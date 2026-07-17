@@ -3,10 +3,10 @@
 PaperWiki is a composable workflow for discovering worthwhile papers, reading a selected paper, and depositing reviewed knowledge into a durable Markdown wiki.
 
 ```text
-discover-papers -> read-paper -> deposit-paper-knowledge
+discover-papers -> read-source -> deposit-paper-knowledge
                       ^    \               ^
-                 URL/DOI/PDF  deepen-reading  existing report / notes
-                              (PaperForge 精读补充)
+              URL/DOI/PDF/web  deepen-reading  existing report / notes
+                               (PaperForge 精读补充)
 ```
 
 Every stage is independently invocable. See [docs/PROJECT_PLAN.md](docs/PROJECT_PLAN.md) for the implementation plan and [docs/WORKFLOW.md](docs/WORKFLOW.md) for the operating contract.
@@ -37,7 +37,7 @@ Vendored integrations are pinned as Git submodules: Paper Craft, paper-search-mc
 ## Skills
 
 - `discover-papers`: search, normalize, deduplicate, and transparently rank candidates.
-- `read-paper`: create a structured learning report from a URL, DOI, arXiv ID, or PDF.
+- `read-source`: create a structured learning report from a URL, DOI, arXiv ID, PDF, web page, or repository.
 - `deepen-reading`: a complementary reading pass over an already-read report, using PaperForge's angles the first pass skips — how the idea formed, the one load-bearing assumption, a one-week test of it, the strongest counter-case, and a non-incremental follow-up.
 - `deposit-paper-knowledge`: ingest a report or notes into an idempotent linked knowledge base.
 

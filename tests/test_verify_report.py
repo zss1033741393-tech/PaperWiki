@@ -8,8 +8,8 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-VERIFY_SCRIPT = ROOT / "skills" / "read-paper" / "scripts" / "verify_report.py"
-VERIFY_COMMAND = "python skills/read-paper/scripts/verify_report.py"
+VERIFY_SCRIPT = ROOT / "skills" / "read-source" / "scripts" / "verify_report.py"
+VERIFY_COMMAND = "python skills/read-source/scripts/verify_report.py"
 
 
 class VerifyReportCliTests(unittest.TestCase):
@@ -68,8 +68,8 @@ class VerifyReportCliTests(unittest.TestCase):
 
 
 class FormulaGateDocumentationTests(unittest.TestCase):
-    def test_read_paper_skill_requires_the_formula_gate(self):
-        skill = (ROOT / "skills" / "read-paper" / "SKILL.md").read_text(
+    def test_read_source_skill_requires_the_formula_gate(self):
+        skill = (ROOT / "skills" / "read-source" / "SKILL.md").read_text(
             encoding="utf-8"
         )
 

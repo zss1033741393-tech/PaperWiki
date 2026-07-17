@@ -1,0 +1,4 @@
+interface:
+  display_name: "Read Source"
+  short_description: "Read one source and create a learning report"
+  default_prompt: "Use $read-source to deeply explain this source and create a structured report."

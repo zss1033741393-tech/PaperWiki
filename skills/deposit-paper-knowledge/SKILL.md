@@ -1,6 +1,6 @@
 ---
 name: deposit-paper-knowledge
-description: Use when the user asks to archive, deposit, preserve, organize, connect, or add a paper report or reading notes to PaperWiki, including reports not produced by read-paper.
+description: Use when the user asks to archive, deposit, preserve, organize, connect, or add a paper report or reading notes to PaperWiki, including reports not produced by read-source.
 ---
 
 # Deposit Paper Knowledge

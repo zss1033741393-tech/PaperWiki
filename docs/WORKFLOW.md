@@ -3,7 +3,7 @@
 | Intent | Skill | Required input | Output |
 | --- | --- | --- | --- |
 | Find papers | `discover-papers` | Topic | Ranked records |
-| Deep-read | `read-paper` | URL, DOI, arXiv ID, PDF, or record | Report and reading record |
+| Deep-read | `read-source` | URL, DOI, arXiv ID, PDF, or record | Report and reading record |
 | Preserve knowledge | `deposit-paper-knowledge` | Report or notes | Linked wiki updates |
 
 ## Composition rules

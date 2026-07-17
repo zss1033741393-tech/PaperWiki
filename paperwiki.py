@@ -503,8 +503,35 @@ def strip_leading_frontmatter(text):
     match=re.match(r"\A---[ \t]*\r?\n.*?\r?\n---[ \t]*(?:\r?\n(?:[ \t]*\r?\n)?)?",text,re.S)
     return text[match.end():] if match else text
 
+def link_source_page(root,source,page_title,page_target):
+    """Create or update a wiki/sources stub for a studied source; append the backlink idempotently."""
+    folder=root/"wiki/sources"; folder.mkdir(parents=True,exist_ok=True)
+    name=str(source.get("title") or source.get("url") or source.get("source_id") or "source")
+    target=folder/(slug(name)+".md"); link=f"- [[{page_target}|{page_title}]]\n"
+    old=target.read_text(encoding="utf-8") if target.exists() else f"---\ntitle: \"{name.replace(chr(34),chr(39))}\"\ntype: source\nsource_type: {source.get('source_type','other')}\nurl: {source.get('url','')}\nsource_id: {source.get('source_id','')}\n---\n\n# {name}\n\n## Related pages\n\n"
+    target.write_text(old if link in old else old+link,encoding="utf-8"); return f"[[{target.stem}|{name}]]"
+
 def deposit_topic(a,src,p):
-    raise NotImplementedError("kind: topic deposits arrive in the next commit")
+    """Deposit a topic synthesis record: short English graph page linking the Chinese report (spec §4.4)."""
+    root=Path(a.root); tslug=slug(p.get("topic_slug") or p["title"]); folder=root/"wiki/topics"; folder.mkdir(parents=True,exist_ok=True)
+    target=folder/(tslug+".md"); existing=target.read_text(encoding="utf-8") if target.exists() else ""; human=""
+    m=re.search(r"## User notes\s*(.*?)(?=\n## |\Z)",existing,re.S)
+    if m: human=m.group(1).strip()
+    rp=re.search(r"## Related papers\s*(.*?)(?=\n## |\Z)",existing,re.S); related_papers=rp.group(1).strip() if rp else ""
+    ent=p.get("entities") or {}; entities=[]
+    for key,coll in [("concepts","concepts"),("methods","methods"),("tools","tools")]:
+        for name in ent.get(key,[]) or []: entities.append(link_entity(root,coll,str(name),p["title"],target.stem,heading="Related pages"))
+    sources=[link_source_page(root,s_,p["title"],target.stem) for s_ in p.get("sources") or []]
+    report_target=report_wikilink_target(src,root)
+    ref=f"[[{report_target}|{p['title']} 综述]]" if report_target else f"`{src.resolve()}`"
+    papers_block=f"\n\n## Related papers\n\n{related_papers}" if related_papers else ""
+    body=f"---\ntitle: \"{p['title'].replace(chr(34),chr(39))}\"\ntype: topic\nstatus: deposited\n---\n\n# {p['title']}\n\n## Synthesis report\n\n{ref}\n\n## Sources\n\n"+("\n".join(f"- {x}" for x in sources) if sources else "- None recorded.")+"\n\n## Related knowledge\n\n"+("\n".join(f"- {x}" for x in entities) if entities else "- No structured entities confirmed yet.")+papers_block+f"\n\n## User notes\n\n{human}\n"
+    target.write_text(body,encoding="utf-8")
+    idx=root/"index.md"; line=f"- [[{target.stem}|{p['title']}]]\n"; old=idx.read_text(encoding="utf-8") if idx.exists() else "# PaperWiki Index\n\n"; idx.write_text(old if line in old else old+line,encoding="utf-8")
+    log=root/"log.md"; old=log.read_text(encoding="utf-8") if log.exists() else "# Operation Log\n\n"; log.write_text(old+f"- {dt.datetime.now(dt.timezone.utc).isoformat()} deposit topic:{tslug}\n",encoding="utf-8")
+    lp=root/"reading-lists"/f"{p.get('list_slug') or ''}.json"
+    if p.get("list_slug") and lp.exists(): mark_list_entries(lp,{s_.get("source_id") for s_ in p.get("sources") or [] if s_.get("source_id")},"deposited")
+    print(target)
 
 def cmd_deposit(a):
     src=Path(a.input); text=src.read_text(encoding="utf-8"); side=resolve_record_path(src,diagnose=True); p=json.loads(side.read_text(encoding="utf-8")) if side.exists() else {"title":re.search(r"^#\s+(.+)$",text,re.M).group(1),"provenance":[{"provider":"user-notes","path":str(src)}]}

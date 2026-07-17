@@ -494,22 +494,28 @@ def colliding_entity_stems(root, entity_specs):
 def entity_wikilink_target(root, target, colliding_stems):
     return target.relative_to(root).with_suffix("").as_posix() if target.stem in colliding_stems else target.stem
 
+def insert_link_under_heading(old,heading,link):
+    """Insert a wikilink at the end of the heading's link list; append the heading section at EOF when absent."""
+    if link in old: return old
+    m=re.search(rf"^## {re.escape(heading)}[ \t]*\n(?:[ \t]*\n)?((?:- \[\[.*\n)*)",old,re.M)
+    return old[:m.end()]+link+old[m.end():] if m else old.rstrip("\n")+f"\n\n## {heading}\n\n{link}"
+
 def link_entity(root, collection, name, page_title, page_target, colliding_stems, heading="Related papers"):
     folder=root/"wiki"/collection; folder.mkdir(parents=True,exist_ok=True); target=entity_path(root,collection,name)
     link=f"- [[{page_target}|{page_title}]]\n"; old=target.read_text(encoding="utf-8") if target.exists() else f"---\ntitle: \"{name.replace(chr(34),chr(39))}\"\ntype: {collection.rstrip('s')}\n---\n\n# {name}\n\n## {heading}\n\n"
-    target.write_text(old if link in old else old+link,encoding="utf-8"); link_target=entity_wikilink_target(root,target,colliding_stems); return f"[[{link_target}|{name}]]"
+    target.write_text(insert_link_under_heading(old,heading,link),encoding="utf-8"); link_target=entity_wikilink_target(root,target,colliding_stems); return f"[[{link_target}|{name}]]"
 
 def strip_leading_frontmatter(text):
     match=re.match(r"\A---[ \t]*\r?\n.*?\r?\n---[ \t]*(?:\r?\n(?:[ \t]*\r?\n)?)?",text,re.S)
     return text[match.end():] if match else text
 
 def link_source_page(root,source,page_title,page_target):
-    """Create or update a wiki/sources stub for a studied source; append the backlink idempotently."""
+    """Create or update a wiki/sources stub for a studied source; append the backlink idempotently. Files are keyed by source identity (like wiki/papers), titles stay readable aliases."""
     folder=root/"wiki/sources"; folder.mkdir(parents=True,exist_ok=True)
     name=str(source.get("title") or source.get("url") or source.get("source_id") or "source")
-    target=folder/(slug(name)+".md"); link=f"- [[{page_target}|{page_title}]]\n"
+    target=folder/(slug(str(source.get("source_id") or name))+".md"); link=f"- [[{page_target}|{page_title}]]\n"
     old=target.read_text(encoding="utf-8") if target.exists() else f"---\ntitle: \"{name.replace(chr(34),chr(39))}\"\ntype: source\nsource_type: {source.get('source_type','other')}\nurl: {source.get('url','')}\nsource_id: {source.get('source_id','')}\n---\n\n# {name}\n\n## Related pages\n\n"
-    target.write_text(old if link in old else old+link,encoding="utf-8"); return f"[[{target.stem}|{name}]]"
+    target.write_text(insert_link_under_heading(old,"Related pages",link),encoding="utf-8"); return f"[[{target.stem}|{name}]]"
 
 def deposit_topic(a,src,p):
     """Deposit a topic synthesis record: short English graph page linking the Chinese report (spec §4.4)."""
@@ -530,7 +536,7 @@ def deposit_topic(a,src,p):
     idx=root/"index.md"; line=f"- [[{target.stem}|{p['title']}]]\n"; old=idx.read_text(encoding="utf-8") if idx.exists() else "# PaperWiki Index\n\n"; idx.write_text(old if line in old else old+line,encoding="utf-8")
     log=root/"log.md"; old=log.read_text(encoding="utf-8") if log.exists() else "# Operation Log\n\n"; log.write_text(old+f"- {dt.datetime.now(dt.timezone.utc).isoformat()} deposit topic:{tslug}\n",encoding="utf-8")
     lp=root/"reading-lists"/f"{p.get('list_slug') or ''}.json"
-    if p.get("list_slug") and lp.exists(): mark_list_entries(lp,{s_.get("source_id") for s_ in p.get("sources") or [] if s_.get("source_id")},"deposited")
+    if p.get("list_slug") and lp.exists(): mark_list_entries(lp,{s_.get("source_id") for s_ in p.get("sources") or [] if s_.get("source_id") and s_.get("status")=="studied"},"deposited")
     print(target)
 
 def cmd_deposit(a):
@@ -543,6 +549,7 @@ def cmd_deposit(a):
     target=pages/(slug(p["paper_id"])+".md"); existing=target.read_text(encoding="utf-8") if target.exists() else ""; human=""
     note_sections=list(re.finditer(r"^## User notes[ \t]*\r?\n(.*?)(?=^## |\Z)",existing,re.M|re.S))
     if note_sections: human=note_sections[-1].group(1).strip()
+    rp=re.search(r"## Related pages\s*(.*?)(?=\n## |\Z)",existing,re.S) if kind=="source" else None; related_pages=rp.group(1).strip() if rp else ""
     reading=p.get("reading") or {}; entity_specs=[]
     for key,entity_collection in [("concepts","concepts"),("methods","methods"),("datasets","datasets"),("topics","topics"),("tools","tools")]:
         for name in reading.get(key,[]) or []: entity_specs.append((entity_collection,str(name)))
@@ -550,8 +557,9 @@ def cmd_deposit(a):
     source_target=report_wikilink_target(src,root)
     source_reference=f"[[{source_target}|{p['title']} report]]" if source_target else f"`{src.resolve()}`"
     synthesis_text=strip_leading_frontmatter(text)
-    extra=f"\nsource_type: {p.get('source_type','other')}\nurl: {p.get('source_url','')}" if kind=="source" else ""
-    body=(f"---\npaper_id: {p['paper_id']}\ntitle: \"{p['title'].replace(chr(34),chr(39))}\"\nstatus: deposited{extra}\n---\n\n# {p['title']}\n\n## Source report\n\n{source_reference}\n\n## Related knowledge\n\n"+("\n".join(f"- {x}" for x in entities) if entities else "- No structured entities confirmed yet.")+f"\n\n## Generated synthesis (draft)\n\n{synthesis_text}\n\n## User notes\n\n{human}").rstrip()+"\n"
+    extra=f"\ntype: source\nsource_type: {p.get('source_type','other')}\nurl: {p.get('source_url','')}\nsource_id: {p['paper_id']}" if kind=="source" else ""
+    pages_block=f"\n\n## Related pages\n\n{related_pages}" if related_pages else ""
+    body=(f"---\npaper_id: {p['paper_id']}\ntitle: \"{p['title'].replace(chr(34),chr(39))}\"\nstatus: deposited{extra}\n---\n\n# {p['title']}\n\n## Source report\n\n{source_reference}\n\n## Related knowledge\n\n"+("\n".join(f"- {x}" for x in entities) if entities else "- No structured entities confirmed yet.")+pages_block+f"\n\n## Generated synthesis (draft)\n\n{synthesis_text}\n\n## User notes\n\n{human}").rstrip()+"\n"
     target.write_text(body,encoding="utf-8"); (root/"index.md").parent.mkdir(parents=True,exist_ok=True); idx=root/"index.md"; line=f"- [[{target.stem}|{p['title']}]]\n"; old=idx.read_text(encoding="utf-8") if idx.exists() else "# PaperWiki Index\n\n"; idx.write_text(old if line in old else old+line,encoding="utf-8")
     log=root/"log.md"; old=log.read_text(encoding="utf-8") if log.exists() else "# Operation Log\n\n"; log.write_text(old+f"- {dt.datetime.now(dt.timezone.utc).isoformat()} deposit {p['paper_id']}\n",encoding="utf-8")
     if is_canonical_report(src,root,side,text,p):

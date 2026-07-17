@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["list_slug", "source_repo", "retrieved_at", "entries"],
+  "properties": {
+    "list_slug": {"type": "string"},
+    "source_repo": {"type": "string"},
+    "retrieved_at": {"type": "string"},
+    "entries": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["source_id", "title", "url", "source_type", "section_path", "description", "status", "added_at", "status_updated_at"],
+        "properties": {
+          "source_id": {"type": "string", "pattern": "^(arxiv:|doi:|url:)"},
+          "title": {"type": "string"},
+          "url": {"type": "string"},
+          "source_type": {"enum": ["paper", "github", "blog", "docs", "other"]},
+          "section_path": {"type": "array", "items": {"type": "string"}},
+          "also_in": {"type": "array", "items": {"type": "array", "items": {"type": "string"}}},
+          "description": {"type": "string"},
+          "status": {"enum": ["unread", "queued", "skimmed", "studied", "deposited", "blocked"]},
+          "added_at": {"type": "string"},
+          "status_updated_at": {"type": "string"},
+          "notes": {"type": "string"},
+          "blocked_reason": {"type": "string"},
+          "removed_upstream": {"type": "boolean"}
+        }
+      }
+    }
+  }
+}

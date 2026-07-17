@@ -255,6 +255,21 @@ class MarkTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 paperwiki.mark_list_entries(lp, {"url:aaa"}, "done")
 
+    def test_reason_with_non_blocked_status_rejected(self):
+        with tempfile.TemporaryDirectory() as td:
+            lp = self._seed_list(Path(td))
+            with self.assertRaises(ValueError):
+                paperwiki.mark_list_entries(lp, {"url:aaa"}, "studied", reason="oops")
+
+    def test_unblocking_clears_blocked_reason(self):
+        with tempfile.TemporaryDirectory() as td:
+            lp = self._seed_list(Path(td))
+            paperwiki.mark_list_entries(lp, {"url:aaa"}, "blocked", reason="paywall")
+            paperwiki.mark_list_entries(lp, {"url:aaa"}, "queued")
+            entry = json.loads(lp.read_text(encoding="utf-8"))["entries"][0]
+            self.assertEqual(entry["status"], "queued")
+            self.assertNotIn("blocked_reason", entry)
+
     def test_cmd_mark_resolves_slug_via_root(self):
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)

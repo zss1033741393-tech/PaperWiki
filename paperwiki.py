@@ -264,12 +264,13 @@ def mark_list_entries(list_path,source_ids,status,reason=None):
     """Move reading-list entries through the study state machine (spec §4.1)."""
     if status not in LIST_STATUSES: raise ValueError(f"status must be one of {LIST_STATUSES}")
     if status=="blocked" and not reason: raise ValueError("blocked requires a --reason")
+    if reason and status!="blocked": raise ValueError("reason only applies to blocked status")
     path=Path(list_path); data=json.loads(path.read_text(encoding="utf-8")); now=dt.datetime.now(dt.timezone.utc).isoformat(); hit=0
     for e in data.get("entries",[]):
         if e.get("source_id") in source_ids:
             e["status"]=status; e["status_updated_at"]=now
-            if reason: e["blocked_reason"]=reason
-            elif status!="blocked": e.pop("blocked_reason",None)
+            if status=="blocked": e["blocked_reason"]=reason
+            else: e.pop("blocked_reason",None)
             hit+=1
     path.write_text(json.dumps(data,ensure_ascii=False,indent=2),encoding="utf-8"); return hit
 

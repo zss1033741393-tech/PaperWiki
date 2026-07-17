@@ -1,6 +1,6 @@
 ---
 name: deposit-paper-knowledge
-description: Use when the user asks to archive, deposit, preserve, organize, connect, or add a paper report or reading notes to PaperWiki, including reports not produced by read-source.
+description: Use when the user asks to archive, deposit, preserve, organize, connect, or add a paper report, topic synthesis, source report, or reading notes to PaperWiki, including reports not produced by read-source.
 ---
 
 # Deposit Paper Knowledge
@@ -15,6 +15,8 @@ description: Use when the user asks to archive, deposit, preserve, organize, con
 6. Preserve human-authored sections verbatim. Mark uncertain generated material as draft; never silently replace conflicts.
 7. Update `index.md`, affected topics, and `log.md`. Set `deposited` only after validation.
 8. For a PaperWiki report, use the official-abbreviation directory and run `python paperwiki.py deposit <vault>/reports/<paper-slug>/report.md --root <vault>`. The sibling `record.json` is authoritative; legacy same-stem JSON remains accepted. After deposition, run `python paperwiki.py recommend --topic "<topic>" --root <vault>` when the user asks for the next reading direction.
+9. For a topic synthesis (record `kind: topic`), deposit builds the short English graph page at `wiki/topics/<topic_slug>.md`: it links the Chinese synthesis via a vault-qualified wikilink, creates `wiki/sources/` stubs for every studied source, links `entities` (concepts/methods/tools) reciprocally, preserves existing `## Related papers` and `## User notes`, and marks the reading-list entries `deposited` when `list_slug` is set.
+10. For a single non-paper source (record `kind: source`), the page lands in `wiki/sources/` with `source_type` and `url` frontmatter; `tools` entities link into `wiki/tools/`.
 
 ## Idempotency
 

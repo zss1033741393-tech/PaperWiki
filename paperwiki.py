@@ -8,6 +8,8 @@ from xml.etree import ElementTree as ET
 UA = "PaperWiki/0.1 (+https://github.com/zss1033741393-tech/PaperWiki)"
 WEIGHTS = {"relevance":.30,"venue":.20,"citations":.15,"recency":.15,"reproducibility":.10,"author_continuity":.05,"novelty":.05}
 TOP_VENUES=("neurips","icml","iclr","acl","emnlp","cvpr","iccv","eccv","aaai","nature","science","jmlr")
+REQUIRED_PAPER_ANALYSIS=["research_question","contributions","method","experiments","findings","limitations","reproducibility","concepts","methods","datasets","topics","open_questions"]
+REQUIRED_SOURCE_ANALYSIS=["research_question","contributions","method","findings","limitations","concepts","methods","topics","open_questions"]
 
 def fetch(url, binary=False):
     req=urllib.request.Request(url,headers={"User-Agent":UA,"Accept":"application/json, application/atom+xml;q=.9, */*;q=.8"})
@@ -387,7 +389,7 @@ def generated_report_body(p,analysis):
 
 ## 实验与证据
 
-{bullets(analysis['experiments'])}
+{bullets(analysis.get('experiments',[]))}
 
 ## 主要发现
 
@@ -399,7 +401,7 @@ def generated_report_body(p,analysis):
 
 ## 复现条件
 
-{bullets(analysis['reproducibility'])}
+{bullets(analysis.get('reproducibility',[]))}
 
 ## 关键概念
 
@@ -422,7 +424,7 @@ def cmd_finalize(a):
     if not side.exists(): raise FileNotFoundError(f"Missing reading record: {side}")
     analysis_path=Path(a.analysis); analysis_text=analysis_path.read_text(encoding="utf-8")
     p=json.loads(side.read_text(encoding="utf-8")); analysis=json.loads(analysis_text)
-    required=["research_question","contributions","method","experiments","findings","limitations","reproducibility","concepts","methods","datasets","topics","open_questions"]
+    required=REQUIRED_SOURCE_ANALYSIS if p.get("kind")=="source" else REQUIRED_PAPER_ANALYSIS
     missing=[k for k in required if k not in analysis]
     if missing: raise ValueError("Analysis is missing fields: "+", ".join(missing))
     if report.name == "report.md":

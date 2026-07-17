@@ -290,8 +290,10 @@ def resolve_arxiv(value):
     return rows[0]
 
 def cmd_read(a):
-    aid=norm_arxiv(a.paper); local=Path(a.paper); doi=None; pdf_bytes=None
-    doi_match=re.search(r"(?:doi\.org/)?(10\.\d{4,9}/\S+)",a.paper,re.I)
+    local=Path(a.paper); doi=None; pdf_bytes=None
+    doi_match=re.search(r"(?:doi\.org/)?\b(10\.\d{4,9}/\S+)",a.paper,re.I)
+    is_url=a.paper.startswith(("http://","https://"))
+    aid=norm_arxiv(a.paper) if not doi_match and (not is_url or "arxiv.org" in a.paper.lower()) else None
     if aid:
         root=ET.fromstring(fetch(f"https://export.arxiv.org/api/query?id_list={aid}")); ns={"a":"http://www.w3.org/2005/Atom"}; e=root.find("a:entry",ns)
         if e is None: raise RuntimeError("Paper not found")
@@ -304,13 +306,23 @@ def cmd_read(a):
         p={"title":next(iter(x.get("title") or []),doi),"authors":[" ".join(filter(None,[v.get("given"),v.get("family")])) for v in x.get("author",[])],"abstract":re.sub(r"<[^>]+>"," ",x.get("abstract") or ""),"year":parts[0][0] if parts and parts[0] else None,"venue":next(iter(x.get("container-title") or []),None),"doi":doi,"source_url":x.get("URL") or "https://doi.org/"+doi,"provenance":[{"provider":"crossref","retrieved_at":dt.datetime.now(dt.timezone.utc).isoformat()}]}
     elif a.paper.startswith(("http://","https://")) and ".pdf" in a.paper.lower():
         p={"title":Path(urllib.parse.urlparse(a.paper).path).stem,"authors":[],"source_url":a.paper,"provenance":[{"provider":"direct-pdf","retrieved_at":dt.datetime.now(dt.timezone.utc).isoformat()}]}; pdf_bytes=fetch(a.paper,binary=True)
+    elif re.match(r"https?://github\.com/[^/]+/[^/#?]+",a.paper):
+        m=re.match(r"https?://github\.com/([^/]+)/([^/#?]+)",a.paper); owner,repo=m.group(1),m.group(2).removesuffix(".git")
+        try: readme=fetch(f"https://raw.githubusercontent.com/{owner}/{repo}/HEAD/README.md")
+        except Exception: readme=""
+        p={"title":f"{owner}/{repo}","authors":[],"abstract":" ".join(readme.split())[:600] or None,"source_url":a.paper,"kind":"source","source_type":"github","provenance":[{"provider":"github-readme","retrieved_at":dt.datetime.now(dt.timezone.utc).isoformat()}]}
+    elif is_url:
+        page=fetch(a.paper); tm=re.search(r"<title[^>]*>(.*?)</title>",page,re.S|re.I)
+        p={"title":html.unescape(" ".join(tm.group(1).split())) if tm else norm_url(a.paper),"authors":[],"source_url":a.paper,"kind":"source","source_type":classify_source(a.paper),"provenance":[{"provider":"web-page","retrieved_at":dt.datetime.now(dt.timezone.utc).isoformat()}]}
     else: raise ValueError("Provide an arXiv URL/ID, DOI, direct PDF URL, or local PDF")
-    p["paper_id"]=paper_id(p); p["status"]="reading"
+    p["paper_id"]=url_source_id(p["source_url"]) if p.get("kind")=="source" else paper_id(p); p["status"]="reading"
     raw=Path(a.root)/"raw/papers"; raw.mkdir(parents=True,exist_ok=True)
     stem=slug(p["paper_id"]); pdf=raw/f"{stem}.pdf"
     if pdf_bytes: pdf.write_bytes(pdf_bytes); p["pdf_path"]=str(pdf)
     paths=report_paths(a.root,getattr(a,"report_slug",None) or p["title"]); ensure_report_destination(paths,p["paper_id"]); paths["folder"].mkdir(parents=True,exist_ok=True); report=paths["report"]
-    report.write_text(f"---\npaper_id: {p['paper_id']}\nstatus: reading\nsource: {p.get('source_url') or str(local)}\n---\n\n# {p['title']}\n\n## Abstract\n\n{p.get('abstract') or 'Metadata source did not provide an abstract.'}\n\n## Paper Craft analysis\n\n> Run `$paper-analyzer` from `vendor/paper-craft-skills` against `{p.get('pdf_path') or p.get('source_url')}` and replace this block with the reviewed analysis.\n\n## User notes\n\n",encoding="utf-8"); p["reading"]={"report_path":str(report),"paper_craft_skill":"paper-analyzer","analysis_status":"pending-agent-review","full_text_available":bool(pdf_bytes)}; paths["record"].write_text(json.dumps(p,ensure_ascii=False,indent=2),encoding="utf-8"); print(report)
+    if p.get("kind")=="source": section,guidance="## Deep-read analysis",f"> Deep-read {p.get('source_url')} following `skills/read-source/SKILL.md`; cite section/heading (blog, docs) or file-path (repo) locators, write `analysis.json` beside this report, then run finalize."
+    else: section,guidance="## Paper Craft analysis",f"> Run `$paper-analyzer` from `vendor/paper-craft-skills` against `{p.get('pdf_path') or p.get('source_url')}` and replace this block with the reviewed analysis."
+    report.write_text(f"---\npaper_id: {p['paper_id']}\nstatus: reading\nsource: {p.get('source_url') or str(local)}\n---\n\n# {p['title']}\n\n## Abstract\n\n{p.get('abstract') or 'Metadata source did not provide an abstract.'}\n\n{section}\n\n{guidance}\n\n## User notes\n\n",encoding="utf-8"); p["reading"]={"report_path":str(report),"paper_craft_skill":"paper-analyzer" if p.get("kind")!="source" else None,"analysis_status":"pending-agent-review","full_text_available":bool(pdf_bytes)}; paths["record"].write_text(json.dumps(p,ensure_ascii=False,indent=2),encoding="utf-8"); print(report)
 
 def bullets(values): return "\n".join(f"- {v}" for v in values) if values else "- Not established from the available paper."
 

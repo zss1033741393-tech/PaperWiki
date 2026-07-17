@@ -220,5 +220,50 @@ class CmdIngestTests(unittest.TestCase):
                 self.assertEqual(ignored.returncode, 0, transient)
 
 
+class MarkTests(unittest.TestCase):
+    def _seed_list(self, root):
+        lp = root / "reading-lists/hx.json"
+        lp.parent.mkdir(parents=True)
+        entries = [{"source_id": "url:aaa", "title": "A", "url": "https://x.com/a",
+                    "source_type": "blog", "section_path": ["S"], "description": "",
+                    "status": "unread", "added_at": "T0", "status_updated_at": "T0"}]
+        lp.write_text(json.dumps({"list_slug": "hx", "source_repo": "r",
+                                  "retrieved_at": "T0", "entries": entries}), encoding="utf-8")
+        return lp
+
+    def test_mark_updates_status_and_timestamp(self):
+        with tempfile.TemporaryDirectory() as td:
+            lp = self._seed_list(Path(td))
+            hit = paperwiki.mark_list_entries(lp, {"url:aaa"}, "studied")
+            self.assertEqual(hit, 1)
+            entry = json.loads(lp.read_text(encoding="utf-8"))["entries"][0]
+            self.assertEqual(entry["status"], "studied")
+            self.assertNotEqual(entry["status_updated_at"], "T0")
+
+    def test_blocked_requires_reason_and_records_it(self):
+        with tempfile.TemporaryDirectory() as td:
+            lp = self._seed_list(Path(td))
+            with self.assertRaises(ValueError):
+                paperwiki.mark_list_entries(lp, {"url:aaa"}, "blocked")
+            paperwiki.mark_list_entries(lp, {"url:aaa"}, "blocked", reason="paywall")
+            entry = json.loads(lp.read_text(encoding="utf-8"))["entries"][0]
+            self.assertEqual(entry["blocked_reason"], "paywall")
+
+    def test_invalid_status_rejected(self):
+        with tempfile.TemporaryDirectory() as td:
+            lp = self._seed_list(Path(td))
+            with self.assertRaises(ValueError):
+                paperwiki.mark_list_entries(lp, {"url:aaa"}, "done")
+
+    def test_cmd_mark_resolves_slug_via_root(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            self._seed_list(root)
+            paperwiki.cmd_mark(type("A", (), {"list": "hx", "source_ids": ["url:aaa"],
+                                              "status": "queued", "reason": None, "root": str(root)}))
+            entry = json.loads((root / "reading-lists/hx.json").read_text(encoding="utf-8"))["entries"][0]
+            self.assertEqual(entry["status"], "queued")
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -260,6 +260,25 @@ def cmd_ingest(a):
         top=(e.get("section_path") or ["(none)"])[0]; section_counts[top]=section_counts.get(top,0)+1
     print(json.dumps({"list":str(out),"total":len(entries),"status_counts":status_counts,"section_counts":section_counts,"diff":diff,"unparsed_lines":unparsed},ensure_ascii=False,indent=2))
 
+def mark_list_entries(list_path,source_ids,status,reason=None):
+    """Move reading-list entries through the study state machine (spec §4.1)."""
+    if status not in LIST_STATUSES: raise ValueError(f"status must be one of {LIST_STATUSES}")
+    if status=="blocked" and not reason: raise ValueError("blocked requires a --reason")
+    path=Path(list_path); data=json.loads(path.read_text(encoding="utf-8")); now=dt.datetime.now(dt.timezone.utc).isoformat(); hit=0
+    for e in data.get("entries",[]):
+        if e.get("source_id") in source_ids:
+            e["status"]=status; e["status_updated_at"]=now
+            if reason: e["blocked_reason"]=reason
+            elif status!="blocked": e.pop("blocked_reason",None)
+            hit+=1
+    path.write_text(json.dumps(data,ensure_ascii=False,indent=2),encoding="utf-8"); return hit
+
+def cmd_mark(a):
+    path=Path(a.list) if Path(a.list).is_file() else Path(a.root)/"reading-lists"/f"{a.list}.json"
+    if not path.exists(): raise FileNotFoundError(f"Reading list not found: {path}")
+    hit=mark_list_entries(path,set(a.source_ids),a.status,getattr(a,"reason",None))
+    print(f"{hit}/{len(set(a.source_ids))} entries -> {a.status} in {path}")
+
 def resolve_arxiv(value):
     aid=norm_arxiv(value)
     if not aid: raise ValueError("Only arXiv IDs/URLs are supported by the dependency-free resolver")
@@ -513,6 +532,7 @@ def main():
     k=sub.add_parser("deposit"); k.add_argument("input"); k.add_argument("--root",default="."); k.set_defaults(func=cmd_deposit)
     n=sub.add_parser("recommend"); n.add_argument("--topic"); n.add_argument("--limit",type=int,default=5); n.add_argument("--root",default="."); n.add_argument("--output",default="reading-lists/recommended-next.json"); n.set_defaults(func=cmd_recommend)
     i=sub.add_parser("ingest"); i.add_argument("source",help="Awesome-list GitHub URL, raw README URL, or local README path"); i.add_argument("--list-slug",default=None); i.add_argument("--root",default="."); i.set_defaults(func=cmd_ingest)
+    mk=sub.add_parser("mark"); mk.add_argument("list",help="Reading-list slug or path"); mk.add_argument("source_ids",nargs="+"); mk.add_argument("--status",required=True,choices=LIST_STATUSES); mk.add_argument("--reason"); mk.add_argument("--root",default="."); mk.set_defaults(func=cmd_mark)
     a=ap.parse_args()
     try: a.func(a)
     except Exception as e:

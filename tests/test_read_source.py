@@ -63,6 +63,21 @@ class ReadSourceTests(unittest.TestCase):
             record = json.loads((root / "reports/post/record.json").read_text(encoding="utf-8"))
             self.assertEqual(record["kind"], "source")
 
+    def test_arxiv_doi_uses_arxiv_api_instead_of_crossref(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            atom = """<feed xmlns='http://www.w3.org/2005/Atom'><entry><title>Paper</title><summary>A</summary><published>2024-01-01</published><author><name>A</name></author></entry></feed>"""
+
+            def fake_fetch(url, binary=False):
+                self.assertNotIn("api.crossref.org", url)
+                return b"%PDF" if binary else atom
+
+            with patch.object(paperwiki, "fetch", fake_fetch):
+                paperwiki.cmd_read(self._args(root, "https://doi.org/10.48550/arXiv.2401.12345", "paper"))
+
+            record = json.loads((root / "reports/paper/record.json").read_text(encoding="utf-8"))
+            self.assertEqual(record["paper_id"], "arxiv:2401.12345")
+
     def test_paper_record_has_no_source_kind(self):
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)

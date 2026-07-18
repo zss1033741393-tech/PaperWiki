@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """PaperWiki v1 CLI: discover, acquire, and deposit papers using stdlib only."""
 
-import argparse, concurrent.futures, datetime as dt, hashlib, json, math, re, sys, urllib.error, urllib.parse, urllib.request
+import argparse, concurrent.futures, datetime as dt, hashlib, html, json, math, re, sys, urllib.error, urllib.parse, urllib.request
 from pathlib import Path
 from xml.etree import ElementTree as ET
 
@@ -32,7 +32,7 @@ DOCS_HOSTS=("modelcontextprotocol.io",)
 def norm_url(url):
     """Canonical URL for identity: https, lowercase host, no trailing slash, no tracking params, no fragment."""
     s=urllib.parse.urlsplit(url.strip())
-    pairs=[(k,v) for k,v in urllib.parse.parse_qsl(s.query,keep_blank_values=True) if not k.lower().startswith(("utm_","ref"))]
+    pairs=[(k,v) for k,v in urllib.parse.parse_qsl(s.query,keep_blank_values=True) if not (k.lower().startswith("utm_") or k.lower()=="ref")]
     return urllib.parse.urlunsplit(("https",s.netloc.lower(),s.path.rstrip("/"),urllib.parse.urlencode(pairs),""))
 
 def url_source_id(url):
@@ -279,8 +279,11 @@ def mark_list_entries(list_path,source_ids,status,reason=None):
 def cmd_mark(a):
     path=Path(a.list) if Path(a.list).is_file() else Path(a.root)/"reading-lists"/f"{a.list}.json"
     if not path.exists(): raise FileNotFoundError(f"Reading list not found: {path}")
-    hit=mark_list_entries(path,set(a.source_ids),a.status,getattr(a,"reason",None))
-    print(f"{hit}/{len(set(a.source_ids))} entries -> {a.status} in {path}")
+    requested=set(a.source_ids); existing={e.get("source_id") for e in json.loads(path.read_text(encoding="utf-8")).get("entries",[])}
+    missing=sorted(requested-existing)
+    if missing: raise ValueError("source IDs not found: "+", ".join(missing))
+    hit=mark_list_entries(path,requested,a.status,getattr(a,"reason",None))
+    print(f"{hit}/{len(requested)} entries -> {a.status} in {path}")
 
 def resolve_arxiv(value):
     aid=norm_arxiv(value)
@@ -294,8 +297,9 @@ def resolve_arxiv(value):
 def cmd_read(a):
     local=Path(a.paper); doi=None; pdf_bytes=None
     doi_match=re.search(r"(?:doi\.org/)?\b(10\.\d{4,9}/\S+)",a.paper,re.I)
+    arxiv_doi_match=re.search(r"10\.48550/arxiv\.(\d{4}\.\d{4,5})(?:v\d+)?",a.paper,re.I)
     is_url=a.paper.startswith(("http://","https://"))
-    aid=norm_arxiv(a.paper) if not doi_match and (not is_url or "arxiv.org" in a.paper.lower()) else None
+    aid=arxiv_doi_match.group(1) if arxiv_doi_match else (norm_arxiv(a.paper) if not doi_match and (not is_url or "arxiv.org" in a.paper.lower()) else None)
     if aid:
         root=ET.fromstring(fetch(f"https://export.arxiv.org/api/query?id_list={aid}")); ns={"a":"http://www.w3.org/2005/Atom"}; e=root.find("a:entry",ns)
         if e is None: raise RuntimeError("Paper not found")
@@ -524,9 +528,11 @@ def deposit_topic(a,src,p):
     m=re.search(r"## User notes\s*(.*?)(?=\n## |\Z)",existing,re.S)
     if m: human=m.group(1).strip()
     rp=re.search(r"## Related papers\s*(.*?)(?=\n## |\Z)",existing,re.S); related_papers=rp.group(1).strip() if rp else ""
-    ent=p.get("entities") or {}; entities=[]
+    ent=p.get("entities") or {}; entity_specs=[]
     for key,coll in [("concepts","concepts"),("methods","methods"),("tools","tools")]:
-        for name in ent.get(key,[]) or []: entities.append(link_entity(root,coll,str(name),p["title"],target.stem,heading="Related pages"))
+        for name in ent.get(key,[]) or []: entity_specs.append((coll,str(name)))
+    collisions=colliding_entity_stems(root,entity_specs)
+    entities=[link_entity(root,coll,name,p["title"],target.stem,collisions,heading="Related pages") for coll,name in entity_specs]
     sources=[link_source_page(root,s_,p["title"],target.stem) for s_ in p.get("sources") or []]
     report_target=report_wikilink_target(src,root)
     ref=f"[[{report_target}|{p['title']} 综述]]" if report_target else f"`{src.resolve()}`"
@@ -536,7 +542,10 @@ def deposit_topic(a,src,p):
     idx=root/"index.md"; line=f"- [[{target.stem}|{p['title']}]]\n"; old=idx.read_text(encoding="utf-8") if idx.exists() else "# PaperWiki Index\n\n"; idx.write_text(old if line in old else old+line,encoding="utf-8")
     log=root/"log.md"; old=log.read_text(encoding="utf-8") if log.exists() else "# Operation Log\n\n"; log.write_text(old+f"- {dt.datetime.now(dt.timezone.utc).isoformat()} deposit topic:{tslug}\n",encoding="utf-8")
     lp=root/"reading-lists"/f"{p.get('list_slug') or ''}.json"
-    if p.get("list_slug") and lp.exists(): mark_list_entries(lp,{s_.get("source_id") for s_ in p.get("sources") or [] if s_.get("source_id") and s_.get("status")=="studied"},"deposited")
+    if p.get("list_slug") and lp.exists():
+        live=json.loads(lp.read_text(encoding="utf-8")); studied={e.get("source_id") for e in live.get("entries",[]) if e.get("status")=="studied"}
+        record_ids={s_.get("source_id") for s_ in p.get("sources") or [] if s_.get("source_id")}
+        mark_list_entries(lp,studied & record_ids,"deposited")
     print(target)
 
 def cmd_deposit(a):

@@ -200,6 +200,21 @@ class DepositTopicTests(unittest.TestCase):
             self.assertEqual(entries["url:bbb444555666"]["status"], "blocked")
             self.assertEqual(entries["url:bbb444555666"]["blocked_reason"], "paywall")
 
+    def test_topic_deposit_writeback_uses_live_list_status(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            report = _seed_topic_report(root, with_list=True)
+            list_path = root / "reading-lists/hx.json"
+            data = json.loads(list_path.read_text(encoding="utf-8"))
+            data["entries"][0]["status"] = "blocked"
+            data["entries"][0]["blocked_reason"] = "changed after synthesis"
+            list_path.write_text(json.dumps(data), encoding="utf-8")
+
+            paperwiki.cmd_deposit(type("A", (), {"input": str(report), "root": str(root)}))
+
+            entry = json.loads(list_path.read_text(encoding="utf-8"))["entries"][0]
+            self.assertEqual(entry["status"], "blocked")
+
     def test_same_title_sources_get_distinct_stub_pages(self):
         # Two distinct sources sharing a title must not collide into one stub.
         with tempfile.TemporaryDirectory() as td:

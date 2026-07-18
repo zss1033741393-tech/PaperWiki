@@ -70,6 +70,12 @@ class UrlIdentityTests(unittest.TestCase):
         b = paperwiki.norm_url("https://blog.langchain.com/post")
         self.assertEqual(a, b)
 
+    def test_norm_url_preserves_non_tracking_ref_prefix_parameters(self):
+        self.assertEqual(
+            paperwiki.norm_url("https://example.com/post?reference=paper&refresh=1&ref=feed"),
+            "https://example.com/post?reference=paper&refresh=1",
+        )
+
     def test_url_source_id_prefers_arxiv_then_doi_then_hash(self):
         self.assertEqual(paperwiki.url_source_id("https://arxiv.org/abs/2210.03629v2"), "arxiv:2210.03629")
         self.assertEqual(paperwiki.url_source_id("https://doi.org/10.1145/AbC"), "doi:10.1145/abc")
@@ -278,6 +284,14 @@ class MarkTests(unittest.TestCase):
                                               "status": "queued", "reason": None, "root": str(root)}))
             entry = json.loads((root / "reading-lists/hx.json").read_text(encoding="utf-8"))["entries"][0]
             self.assertEqual(entry["status"], "queued")
+
+    def test_cmd_mark_rejects_unknown_source_ids(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            self._seed_list(root)
+            with self.assertRaisesRegex(ValueError, "not found.*url:missing"):
+                paperwiki.cmd_mark(type("A", (), {"list": "hx", "source_ids": ["url:aaa", "url:missing"],
+                                                  "status": "queued", "reason": None, "root": str(root)}))
 
 
 if __name__ == "__main__":

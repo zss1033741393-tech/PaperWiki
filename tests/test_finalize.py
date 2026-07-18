@@ -201,7 +201,7 @@ class FinalizeSourceTests(unittest.TestCase):
             report, ap = _seed_source(Path(td), dict(SOURCE_ANALYSIS))
             paperwiki.cmd_finalize(type("A", (), {"report": str(report), "analysis": str(ap)}))
             text = report.read_text(encoding="utf-8")
-            self.assertIn("status: reviewed", text)
+            self.assertIn("status: reading", text)
 
     def test_source_analysis_still_requires_core_fields(self):
         with tempfile.TemporaryDirectory() as td:

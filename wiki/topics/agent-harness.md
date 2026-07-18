@@ -29,5 +29,3 @@ status: deposited
 - [[harness-decomposition|Harness Decomposition]]
 
 ## User notes
-
-

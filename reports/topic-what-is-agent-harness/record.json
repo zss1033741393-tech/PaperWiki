@@ -1,0 +1,71 @@
+{
+  "kind": "topic",
+  "topic_slug": "agent-harness",
+  "title": "Agent Harness",
+  "list_slug": "harness-engineering",
+  "sources": [
+    {
+      "source_id": "url:f6b93302265d",
+      "title": "Harness Engineering",
+      "url": "https://openai.com/index/harness-engineering/",
+      "source_type": "blog",
+      "role": "definition",
+      "status": "studied"
+    },
+    {
+      "source_id": "url:ae10eb4597fe",
+      "title": "Unrolling the Codex Agent Loop",
+      "url": "https://openai.com/index/unrolling-the-codex-agent-loop/",
+      "source_type": "blog",
+      "role": "runtime-loop",
+      "status": "studied"
+    },
+    {
+      "source_id": "url:38c43325a50c",
+      "title": "Building Effective Agents",
+      "url": "https://www.anthropic.com/research/building-effective-agents",
+      "source_type": "blog",
+      "role": "architecture-boundary",
+      "status": "studied"
+    },
+    {
+      "source_id": "url:7659f727e260",
+      "title": "The Anatomy of an Agent Harness",
+      "url": "https://blog.langchain.com/the-anatomy-of-an-agent-harness/",
+      "source_type": "blog",
+      "role": "component-anatomy",
+      "status": "studied"
+    },
+    {
+      "source_id": "url:33f520c0c534",
+      "title": "Harness Engineering",
+      "url": "https://martinfowler.com/articles/exploring-gen-ai/harness-engineering.html",
+      "source_type": "blog",
+      "role": "engineering-system",
+      "status": "studied"
+    },
+    {
+      "source_id": "arxiv:2606.10106",
+      "title": "What makes a harness a harness: necessary and sufficient conditions for an agent harness",
+      "url": "https://arxiv.org/abs/2606.10106",
+      "source_type": "paper",
+      "role": "constitutive-test",
+      "status": "studied"
+    }
+  ],
+  "entities": {
+    "concepts": [
+      "Agent Loop",
+      "Context Engineering",
+      "Control Mechanisms",
+      "Entropy Management"
+    ],
+    "methods": [
+      "Deterministic Feedback",
+      "Harness Decomposition"
+    ],
+    "tools": []
+  },
+  "created": "2026-07-18T14:37:50.1690562+00:00",
+  "updated": "2026-07-18T14:37:50.1690562+00:00"
+}

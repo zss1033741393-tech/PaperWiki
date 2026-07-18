@@ -32,8 +32,8 @@ human_confirmed: false
 ## Harness、Model、Agent 与 Framework
 
 - **Model** 是推理引擎：它接收当前输入，生成自然语言输出或工具调用意图。单次推理本身不会自动拥有持续任务状态、执行权限或确定性验证。
-- **Agent** 是会根据观察选择后续行动的系统。Anthropic 将预定代码路径称为 workflow，将由 LLM 动态决定过程和工具使用的系统称为 agent（来源观点；定位：heading “What are agents?”，两条分别以 “Workflows are systems…” 与 “Agents, on the other hand…” 开头的项目）。
-- **Harness** 是运行时控制层：它承接模型的行动请求，执行工具，把结果作为新观察送回循环，并管理上下文与非模型控制。Codex 的运行 walkthrough 明确展示了“推理—工具执行—结果写回—再次推理”的闭环（来源观点；定位：heading “The agent loop”，以 “To kick off, we’ll focus…” 和 “As the result of the inference step…” 开头的段落）。
+- **Agent** 是会根据观察选择后续行动的系统。Anthropic 将预定代码路径称为 workflow，将由 LLM 动态决定过程和工具使用的系统称为 agent（来源观点；定位：heading “What are agents?” 下定义 workflow 与 agent 的两条项目）。
+- **Harness** 是运行时控制层：它承接模型的行动请求，执行工具，把结果作为新观察送回循环，并管理上下文与非模型控制。Codex 的运行 walkthrough 明确展示了“推理—工具执行—结果写回—再次推理”的闭环（来源观点；定位：heading “The agent loop” 中说明初次推理与工具调用结果处理的段落）。
 - **Framework** 是复用这些能力的构建工具箱，可能提供模型适配、工具注册、编排、状态或中间件。是否形成完整 harness，仍要看具体实例在任务运行时是否满足四项构成判据；“使用了 agent framework”不能替代逐项检查（综合判断；四项门槛依据：arXiv:2606.10106，Section 4 → “The inclusion and exclusion test”，官方 PDF viewer p. 8 / printed p. 7，Table 2 后段落）。
 
 四者的关系可以简写为：模型负责提出下一步，agent 体现基于观察而改变行动的能力，harness 让这种能力在环境中持续而受控地运行，framework 则帮助工程师搭建这些部件。一个 framework 可以只提供其中一部分；一个 harness 也可以由项目自有代码、脚本和仓库约定组成。
@@ -47,13 +47,13 @@ human_confirmed: false
 3. **Context Management（主动上下文管理）**：运行时应根据内容或任务选择、组织、保留或压缩上下文；仅按长度机械截断不达到该论文对 T3 的阈值。
 4. **Control Mechanisms（模型无关控制机制）**：至少一种限制、验证或确定性动作即使模型不合作仍然有效，例如权限边界、步数限制或测试门禁。
 
-这四项回答的是成员资格，不是成熟度排名。多 agent、学习或微调、某个特定模型和用户界面都不是必要条件（来源观点；定位：arXiv:2606.10106，Section 4, “Anatomy”，官方 PDF viewer p. 7 / printed p. 6，以 “What is NOT necessary…” 开头的段落）。同理，日志、重试、规划文件和沙箱往往很有价值，但应先说明它们增强哪一项核心功能，而不是无限扩张定义。
+这四项回答的是成员资格，不是成熟度排名。多 agent、学习或微调、某个特定模型和用户界面都不是必要条件（来源观点；定位：arXiv:2606.10106，Section 4, “Anatomy”，官方 PDF viewer p. 7 / printed p. 6，讨论非必要属性的段落）。同理，日志、重试、规划文件和沙箱往往很有价值，但应先说明它们增强哪一项核心功能，而不是无限扩张定义。
 
 ## 从构成到工程：上下文、约束与熵管理
 
-OpenAI 的实践把工程师角色描述为设计系统、脚手架、工具、抽象与反馈回路，并建议让短小的 `AGENTS.md` 充当结构化、版本化仓库知识的地图（来源观点；定位：headings “Redefining the role of the engineer” 与 “We made repository knowledge the system of record”，分别见以 “The lack of hands-on human coding…”、“Early progress was slower…”、“Context management is one of the biggest challenges…” 和 “The repository’s knowledge base lives…” 开头的段落）。同一文章还以自定义 linter 和结构测试机械执行架构不变量，并用周期性清理与“黄金原则”抵抗 agent 复制既有模式造成的漂移（来源观点；定位：headings “Enforcing architecture and taste” 与 “Entropy and garbage collection”，分别见以 “Documentation alone doesn’t keep…”、“Agents are most effective in environments…”、“Full agent autonomy…” 和 “Instead, we started encoding…” 开头的段落）。
+OpenAI 的实践把工程师角色描述为设计系统、脚手架、工具、抽象与反馈回路，并建议让短小的 `AGENTS.md` 充当结构化、版本化仓库知识的地图（来源观点；定位：headings “Redefining the role of the engineer” 与 “We made repository knowledge the system of record”）。同一文章还以自定义 linter 和结构测试机械执行架构不变量，并用周期性清理与“黄金原则”抵抗 agent 复制既有模式造成的漂移（来源观点；定位：headings “Enforcing architecture and taste” 与 “Entropy and garbage collection”）。
 
-Fowler 则把 coding-agent 用户的外层 harness 写成互补的 feedforward guides 与 feedback sensors：前者在行动前引导，后者在行动后提供可自我纠正的信号（来源观点；定位：heading “Feedforward and Feedback”，以 “To harness a coding agent…” 开头的段落、其两条项目及结尾关于单独使用任一方向的提醒）。这些控制既可以是计算式的，也可以是推断式的，具体例子包括脚本、codemod、结构测试、静态分析、`AGENTS.md`、skills 与 review agents（来源观点；定位：heading “Computational vs Inferential”，表格中 coding conventions、bootstrap instructions、code mods、structural tests 与 review instructions 各行）。
+Fowler 则把 coding-agent 用户的外层 harness 写成互补的 feedforward guides 与 feedback sensors：前者在行动前引导，后者在行动后提供可自我纠正的信号（来源观点；定位：heading “Feedforward and Feedback”，定义两种控制方向的项目及该节结尾）。这些控制既可以是计算式的，也可以是推断式的，具体例子包括脚本、codemod、结构测试、静态分析、`AGENTS.md`、skills 与 review agents（来源观点；定位：heading “Computational vs Inferential”，表格中 coding conventions、bootstrap instructions、code mods、structural tests 与 review instructions 各行）。
 
 **综合判断：**可以把成熟 harness 理解为三个相互连接、但层级不同的工程回路：上下文工程让模型在当前任务中看到正确的信息；机械约束与可执行反馈限制当次行为并暴露错误；熵管理把重复出现的失败模式反写为规则、测试或清理任务，防止长期漂移。它们分别服务于认知可行性、运行时可控性和系统可维护性，不应都缩减为“写更长的 prompt”。这一组合是对 OpenAI 与 Fowler 实践框架的综合，而非任何单一来源给出的必要且充分定义。
 
@@ -75,7 +75,7 @@ flowchart TD
   H --> K
 ```
 
-图中的闭环有直接的运行时依据：Codex walkthrough 描述工具结果被追加到下一次模型输入，循环直到模型输出 assistant message（来源观点；定位：heading “The agent loop”，以 “This process repeats…” 与 “Because the agent can execute tool calls…” 开头的段落）。四条从 Harness 指向核心部件的边，则采用 arXiv:2606.10106 的四项构成性拆分（来源观点；定位同前：Section 4, “Constitutive Definition (RQ2)”，Table 2）。
+图中的闭环有直接的运行时依据：Codex walkthrough 描述工具结果被追加到下一次模型输入，循环直到模型输出 assistant message（来源观点；定位：heading “The agent loop” 中说明循环重复、终止与环境变更的两个相邻段落）。四条从 Harness 指向核心部件的边，则采用 arXiv:2606.10106 的四项构成性拆分（来源观点；定位同前：Section 4, “Constitutive Definition (RQ2)”，Table 2）。
 
 ## 最小对比案例：给 Python CLI 增加输入校验
 
@@ -89,13 +89,13 @@ flowchart TD
 
 执行路径如下，每一步括号中标出主要的 harness 部件：
 
-1. **读取仓库规则与相关文件**（Context Management + Tool Interface）：主动选择 `AGENTS.md`、CLI 入口和相关测试，而不是把整个仓库无差别塞入 prompt。仓库本地知识与渐进披露的依据见 OpenAI 的 “We made repository knowledge the system of record”，以 “Context management is one of the biggest challenges…” 和 “The repository’s knowledge base lives…” 开头的段落。
-2. **建立任务状态**（Context Management）：记录目标、约束、已读文件和待验证事项，让后续迭代能够延续。文件系统承担上下文窗外状态与中间结果的依据见 LangChain 的 “Filesystems for Durable Storage and Context Management”，以 “The filesystem is arguably…” 开头的列表及随后 Git 段落。
-3. **在隔离 worktree 中编辑**（Tool Interface + Control Mechanisms）：工具改变真实代码，隔离边界限制影响范围。沙箱隔离与安全执行的依据见 LangChain 的 “Sandboxes and Tools to Execute & Verify Work”，以 “Sandboxes give agents…” 开头的段落。
-4. **运行聚焦测试**（Tool Interface + Control Mechanisms）：测试运行器把可执行验证变成模型外部的确定性传感器。测试工具提供观察并支持自验证的依据见 LangChain 同一 heading，以 “Good environments come…” 开头的段落。
-5. **解释失败并迭代**（Agent Loop + Environment Feedback）：把测试输出作为新观察，模型据此选择下一次读取、编辑或测试。工具结果进入下一轮推理的依据见 OpenAI 的 “The agent loop”，以 “This process repeats…” 开头的段落。
+1. **读取仓库规则与相关文件**（Context Management + Tool Interface）：主动选择 `AGENTS.md`、CLI 入口和相关测试，而不是把整个仓库无差别塞入 prompt。仓库本地知识与渐进披露的依据见 OpenAI 的 “We made repository knowledge the system of record”。
+2. **建立任务状态**（Context Management）：记录目标、约束、已读文件和待验证事项，让后续迭代能够延续。文件系统承担上下文窗外状态与中间结果的依据见 LangChain 的 “Filesystems for Durable Storage and Context Management” 中 filesystem 列表及随后 Git 段落。
+3. **在隔离 worktree 中编辑**（Tool Interface + Context Management）：工具在独立 checkout 中改变真实代码，Git 保存差异并支持比较或恢复。**综合判断：**worktree 是本案例对状态与工具工作流的工程适配，只分离 checkout，不执行文件系统或进程权限；真正的权限边界必须由沙箱或工具策略提供。文件/Git 的持久状态与回滚依据见 LangChain 的 “Filesystems for Durable Storage and Context Management”；沙箱隔离依据见 “Sandboxes and Tools to Execute & Verify Work”。
+4. **运行聚焦测试**（Tool Interface + Control Mechanisms）：测试运行器把可执行验证变成模型外部的确定性传感器。测试工具提供观察并支持自验证的依据见 LangChain “Sandboxes and Tools to Execute & Verify Work” 中配置工具与环境反馈的段落。
+5. **解释失败并迭代**（Agent Loop + Environment Feedback）：把测试输出作为新观察，模型据此选择下一次读取、编辑或测试。工具结果进入下一轮推理的依据见 OpenAI 的 “The agent loop” 中说明循环重复的段落。
 6. **运行完整验证**（Control Mechanisms）：在局部修正后执行更广的门禁，避免模型仅凭自述宣布成功。模型无关验证属于 T4 的依据见 arXiv:2606.10106，Section 4, “Constitutive Definition (RQ2)”，Table 2；其不依赖模型合作的阈值见 “The inclusion and exclusion test”，官方 PDF viewer p. 8 / printed p. 7。
-7. **发出可审计结果**（Context Management + Control Mechanisms）：报告改动、命令、结果和仍存疑点，使人能复核完成判据。Fowler 关于反馈传感器与持续改进的依据见 “Feedforward and Feedback” 及 “The steering loop”，后者以 “The human’s job…” 开头的段落。
+7. **发出可审计结果**（Context Management + Control Mechanisms）：报告改动、命令、结果和仍存疑点，使人能复核完成判据。Fowler 关于反馈传感器与持续改进的依据见 “Feedforward and Feedback” 及 “The steering loop”。
 
 ### 对照表
 
@@ -105,7 +105,7 @@ flowchart TD
 | 迭代 | 通常止于一次回答 | 推理—行动—观察循环持续到满足停止条件（Agent Loop） |
 | 工具反馈 | 没有真实执行结果回流 | 文件、测试与命令结果写回下一轮（Tool Interface + Environment Feedback） |
 | 状态 | 仅有当前请求中的临时文本 | 任务记录、文件与 Git 保存中间状态（Context Management） |
-| 权限 | 没有独立的运行时边界 | worktree、沙箱或工具策略限制可改变的环境（Control Mechanisms） |
+| 权限 | 没有独立的运行时边界 | 沙箱或工具策略限制文件系统、进程及可调用能力；worktree 不承担权限隔离（Control Mechanisms） |
 | 验证 | 依赖模型自述或用户之后检查 | 聚焦测试与完整门禁提供模型外验证（Control Mechanisms） |
 | 恢复 | 失败后由用户重新组织上下文 | 从持久状态、版本记录与失败观察继续（Context Management + Agent Loop） |
 | 完成判据 | “已经回答”即结束 | 确定性检查通过并输出可审计结果（Control Mechanisms） |
@@ -116,42 +116,42 @@ flowchart TD
 
 ### 1. OpenAI：Harness engineering: leveraging Codex in an agent-first world（`url:f6b93302265d`，definition）
 
-- **来源观点 1：**工程师的工作从亲自写每一行代码，转向设计系统、脚手架、工具、抽象与反馈回路，使 agent 的工作可执行、可约束（定位：heading “Redefining the role of the engineer”，以 “The lack of hands-on human coding…” 和 “Early progress was slower…” 开头的段落）。
-- **来源观点 2：**上下文应仓库本地化并渐进披露，短 `AGENTS.md` 应作为结构化、版本化知识库的地图，而不是巨型说明书（定位：heading “We made repository knowledge the system of record”，以 “Context management is one of the biggest challenges…” 和 “The repository’s knowledge base lives…” 开头的段落）。
-- **来源观点 3：**自定义 linter 与结构测试机械执行架构边界；周期性清理与编码后的原则用于抑制 agent 复制旧模式带来的熵积累（定位：headings “Enforcing architecture and taste” 与 “Entropy and garbage collection”，分别见以 “Documentation alone doesn’t keep…”、“Agents are most effective in environments…”、“Full agent autonomy…” 和 “Instead, we started encoding…” 开头的段落）。
+- **来源观点 1：**工程师的工作从亲自写每一行代码，转向设计系统、脚手架、工具、抽象与反馈回路，使 agent 的工作可执行、可约束（定位：heading “Redefining the role of the engineer”）。
+- **来源观点 2：**上下文应仓库本地化并渐进披露，短 `AGENTS.md` 应作为结构化、版本化知识库的地图，而不是巨型说明书（定位：heading “We made repository knowledge the system of record”）。
+- **来源观点 3：**自定义 linter 与结构测试机械执行架构边界；周期性清理与编码后的原则用于抑制 agent 复制旧模式带来的熵积累（定位：headings “Enforcing architecture and taste” 与 “Entropy and garbage collection”）。
 - **局限：**这是一个 OpenAI 团队和一个仓库的第一方经验；文章在 “Increasing levels of autonomy” 强调结果依赖仓库结构与工具，并在 “What we’re still learning” 保留长期架构一致性和人类判断位置等问题，不能把其经验数字或做法推广成普遍因果规律。
 
 ### 2. OpenAI：Unrolling the Codex Agent Loop（`url:ae10eb4597fe`，runtime-loop）
 
-- **来源观点 1：**核心循环在用户、模型与工具之间编排：推理要么给出最终响应，要么请求工具；harness 执行工具、追加结果并再次请求模型（定位：heading “The agent loop”，以 “To kick off, we’ll focus…” 和 “As the result of the inference step…” 开头的段落）。
-- **来源观点 2：**工具结果是改变下一轮推理的观察，循环直到模型发出 assistant message；实际成果也可能是代码已经在环境中被修改（定位：heading “The agent loop”，以 “This process repeats…” 和 “Because the agent can execute tool calls…” 开头的段落）。
-- **来源观点 3：**不断增长的上下文需要运行时管理；Codex 到达 token 阈值后会压缩为较小、具有代表性的 item 列表以继续工作（定位：heading “Model inference” → subheading “Performance considerations”，以 “There’s another key resource…” 和 “Our general strategy to avoid running out…” 开头的段落）。
+- **来源观点 1：**核心循环在用户、模型与工具之间编排：推理要么给出最终响应，要么请求工具；harness 执行工具、追加结果并再次请求模型（定位：heading “The agent loop” 中说明初次推理与工具调用结果处理的段落）。
+- **来源观点 2：**工具结果是改变下一轮推理的观察，循环直到模型发出 assistant message；实际成果也可能是代码已经在环境中被修改（定位：heading “The agent loop” 中说明循环重复、终止与环境变更的两个相邻段落）。
+- **来源观点 3：**不断增长的上下文需要运行时管理；Codex 到达 token 阈值后会压缩为较小、具有代表性的 item 列表以继续工作（定位：heading “Model inference” → subheading “Performance considerations” 中讨论 context window 与 compaction 的两个相邻段落）。
 - **局限：**这是 Codex CLI 与 Responses API 的实现 walkthrough，不是技术中立规范；文章把工具实现与沙箱留给后续内容，因此不能单独证明所有 harness 的完整解剖或安全属性。
 
 ### 3. Anthropic：Building Effective Agents（`url:38c43325a50c`，architecture-boundary）
 
-- **来源观点 1：**workflow 让 LLM 与工具沿预定代码路径运行；agent 则由 LLM 动态决定过程和工具使用（定位：heading “What are agents?”，以 “Workflows are systems…” 与 “Agents, on the other hand…” 开头的两条项目）。
-- **来源观点 2：**agent 反复使用工具并以环境结果校准进展；人类检查点或确定性停止条件是可采用的常见模式，而不是该文要求每个 agent 必须同时具备的定义条件（定位：heading “Building blocks, workflows, and agents” → subheading “Agents”，以 “During execution, it’s crucial…” 和 “Agents can handle sophisticated tasks…” 开头的段落）。
-- **来源观点 3：**开放式、路径和步数难以预先硬编码的任务更适合 agent；自治也增加成本与错误累积风险，因此文章建议在沙箱中测试并采用适当 guardrails（定位：同一 heading/subheading，以 “When to use agents…” 和 “The autonomous nature of agents…” 开头的段落）。
+- **来源观点 1：**workflow 让 LLM 与工具沿预定代码路径运行；agent 则由 LLM 动态决定过程和工具使用（定位：heading “What are agents?” 下定义 workflow 与 agent 的两条项目）。
+- **来源观点 2：**agent 反复使用工具并以环境结果校准进展；人类检查点或确定性停止条件是可采用的常见模式，而不是该文要求每个 agent 必须同时具备的定义条件（定位：heading “Building blocks, workflows, and agents” → subheading “Agents” 中讨论环境反馈与停止的段落）。
+- **来源观点 3：**开放式、路径和步数难以预先硬编码的任务更适合 agent；自治也增加成本与错误累积风险，因此文章建议在沙箱中测试并采用适当 guardrails（定位：同一 heading/subheading 中 “When to use agents” 与自治风险段落）。
 - **局限：**文章把 “agentic systems” 用作总称，没有给出 agent harness 的形式定义；这些是经验性工程建议，并且文章明确主张简单方案足够时不必使用 agent。
 
 ### 4. LangChain：The Anatomy of an Agent Harness（`url:7659f727e260`，component-anatomy）
 
-- **来源观点 1：**作者采用宽边界，把模型之外的代码、配置和执行逻辑纳入 harness，包括系统提示、工具/skills/MCP、基础设施、编排与确定性 hooks 或 middleware（定位：heading “Can Someone Please Define a ‘Harness’?”，以 “A harness is every piece…” 开头的定义段落及其后的组件列表）。
-- **来源观点 2：**文件系统可暴露工作数据、把状态移出上下文窗并跨 session 保存中间结果；Git 进一步提供协作、版本和回滚（定位：heading “Filesystems for Durable Storage and Context Management”，以 “The filesystem is arguably…” 开头的列表及随后 Git 段落）。
-- **来源观点 3：**沙箱隔离 agent 生成代码，浏览器、日志和测试运行器等工具提供观察，从而支持自验证循环（定位：heading “Sandboxes and Tools to Execute & Verify Work”，以 “Sandboxes give agents…” 和 “Good environments come…” 开头的段落）。
-- **局限：**“模型以外的一切”是作者偏好的宽泛切分，比本文采用的四项运行时成员测试更宽；这是 vendor 工程文章，不是关于哪些组件必要的比较实验。
+- **来源观点 1：**作者采用宽边界，把模型之外的代码、配置和执行逻辑纳入 harness，包括系统提示、工具/skills/MCP、基础设施、编排与确定性 hooks 或 middleware（定位：heading “Can Someone Please Define a ‘Harness’?” 的定义段落及随后组件列表）。
+- **来源观点 2：**文件系统可暴露工作数据、把状态移出上下文窗并跨 session 保存中间结果；Git 进一步提供协作、版本和回滚（定位：heading “Filesystems for Durable Storage and Context Management” 的 filesystem 列表及随后 Git 段落）。
+- **来源观点 3：**沙箱隔离 agent 生成代码，浏览器、日志和测试运行器等工具提供观察，从而支持自验证循环（定位：heading “Sandboxes and Tools to Execute & Verify Work” 中分别讨论 sandbox 与配置工具的两个段落）。
+- **局限：**把边界扩展到模型外的全部代码、配置与执行逻辑，是作者偏好的宽泛切分，比本文采用的四项运行时成员测试更宽；这是 vendor 工程文章，不是关于哪些组件必要的比较实验。
 
 ### 5. Martin Fowler：Harness Engineering（`url:33f520c0c534`，engineering-system）
 
-- **来源观点 1：**coding-agent 用户的外层 harness 同时需要行动前的 feedforward guides 与行动后的 feedback sensors；只依赖一个方向会失去另一方向的控制能力（定位：heading “Feedforward and Feedback”，以 “To harness a coding agent…” 开头的段落、其两条项目与结尾提醒）。
+- **来源观点 1：**coding-agent 用户的外层 harness 同时需要行动前的 feedforward guides 与行动后的 feedback sensors；只依赖一个方向会失去另一方向的控制能力（定位：heading “Feedforward and Feedback”，定义两种控制方向的项目及该节结尾）。
 - **来源观点 2：**控制可以是计算式或推断式，实例从脚本、codemod、结构测试和静态分析，到 `AGENTS.md`、skills 与 review agents（定位：heading “Computational vs Inferential”，表格中 coding conventions、bootstrap instructions、code mods、structural tests 与 review instructions 各行）。
-- **来源观点 3：**harness engineering 是持续维护：失败重复出现时，人类改进 guides 与 sensors；代码库的类型、显式模块边界、framework 等 ambient affordances 又决定能构建哪些控制（定位：headings “The steering loop”、“A starting point - and open questions”、“Harnessability” 与 “Ambient affordances”，分别见以 “The human’s job…”、“Feedforward and feedback controls are currently scattered…”、“Not every codebase…” 和 “My colleague Ned Letcher…” 开头的段落）。
+- **来源观点 3：**harness engineering 是持续维护：失败重复出现时，人类改进 guides 与 sensors；代码库的类型、显式模块边界、framework 等 ambient affordances 又决定能构建哪些控制（定位：headings “The steering loop”、“A starting point - and open questions”、“Harnessability” 与 “Ambient affordances”）。
 - **局限：**文章有意聚焦 coding-agent 用户的外层 harness，不是完整产品级解剖；其 “Behaviour harness” 还指出当前方法可能过度相信 AI 生成测试，降低监督所需的置信度仍未解决。
 
 ### 6. What makes a harness a harness（`arxiv:2606.10106`，constitutive-test）
 
-- **来源观点 1：**论文提出四个构成条件：推理—行动—观察循环、能感知并改变外部环境的工具接口、主动上下文管理，以及至少一种模型无关控制机制（定位：Section 4, “Constitutive Definition (RQ2)”，官方 PDF viewer pp. 6–8 / printed pp. 5–7，boxed definition、Table 2；官方 HTML §4 以 “We propose the following reference definition…” 与 “Given a candidate system…” 开头的段落）。
+- **来源观点 1：**论文提出四个构成条件：推理—行动—观察循环、能感知并改变外部环境的工具接口、主动上下文管理，以及至少一种模型无关控制机制（定位：Section 4, “Constitutive Definition (RQ2)”，官方 PDF viewer pp. 6–8 / printed pp. 5–7，boxed definition、Table 2；官方 HTML §4 的 reference definition 与 candidate-system test 两段）。
 - **来源观点 2：**成员资格要求 T1–T4 全为 yes；T2 不能只读，T3 不能只是按大小截断，T4 必须不依赖模型合作仍能生效（定位：Section 4 → “The inclusion and exclusion test”，官方 PDF viewer p. 8 / printed p. 7，Table 2 后段落）。
 - **来源观点 3：**agent harness 在任务运行时控制、限制、验证和纠正，而 eval harness 从外部在执行后衡量；multi-agent、学习/微调、特定模型和 UI 均非必要条件（定位：Section 3 → “The agent harness”，官方 PDF viewer p. 5 / printed p. 4，Table 1 及后续段落；Section 5, “Boundary Delimitation (RQ3)”，eval-harness comparison 与 Table 3；Section 4, “Anatomy”，官方 PDF viewer p. 7 / printed p. 6）。
 - **局限：**这是 2026-06-08 提交的 arXiv v1、单作者概念分析。其 Section 1, “Positioning”（官方 PDF viewer p. 3 / printed p. 2）明确说明工作是定义性的，不衡量 benchmark 性能，也不是调查或用量统计；四项测试应视为提议的参考定义，而非经实证确立的共识。
@@ -161,7 +161,7 @@ flowchart TD
 1. **Prompt ≠ harness。**系统提示可以作为 feedforward guide，但它本身没有行动—观察循环、可改变环境的工具、主动上下文管理和模型外控制。把 prompt 写长不会自动补齐这些部件（综合判断；四项门槛见 arXiv:2606.10106，Section 4, Table 2）。
 2. **工具 wrapper ≠ harness。**一次 API 包装即使能调用工具，也可能没有迭代、上下文选择或模型无关门禁；工具必须进入可观察、可纠正的运行时闭环（综合判断；循环依据见 OpenAI “The agent loop”；T1–T4 全纳入测试见 arXiv:2606.10106，Section 4 → “The inclusion and exclusion test”）。
 3. **Framework ≠ 自动获得完整 harness。**framework 提供可复用原语，但具体配置可能只形成预定 workflow，或者缺少四项中的某一项（综合判断；workflow/agent 边界见 Anthropic “What are agents?”；构成门槛见 arXiv:2606.10106，Section 4, Table 2）。
-4. **脚手架越多 ≠ 总是越好。**Anthropic 建议在简单方案足够时优先简单方案，并指出自治会增加成本和错误累积风险（来源观点；定位：“Building blocks, workflows, and agents” → “Agents”，以 “When to use agents…” 和 “The autonomous nature of agents…” 开头的段落）。额外机制应对应已识别的失败模式，并能说明它增强循环、工具、上下文还是控制中的哪一项（综合判断）。
+4. **脚手架越多 ≠ 总是越好。**Anthropic 建议在简单方案足够时优先简单方案，并指出自治会增加成本和错误累积风险（来源观点；定位：“Building blocks, workflows, and agents” → “Agents” 中 “When to use agents” 与自治风险段落）。额外机制应对应已识别的失败模式，并能说明它增强循环、工具、上下文还是控制中的哪一项（综合判断）。
 
 ## 实践启发
 

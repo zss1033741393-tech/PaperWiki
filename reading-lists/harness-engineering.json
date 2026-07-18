@@ -22,9 +22,9 @@
           "Task Runners & Orchestration"
         ]
       ],
-      "status": "unread",
+      "status": "studied",
       "added_at": "2026-07-17T07:22:14.125237+00:00",
-      "status_updated_at": "2026-07-17T07:22:14.125237+00:00"
+      "status_updated_at": "2026-07-18T16:00:32.467538+00:00"
     },
     {
       "source_id": "url:ae10eb4597fe",
@@ -41,9 +41,9 @@
           "Agent Loop"
         ]
       ],
-      "status": "unread",
+      "status": "studied",
       "added_at": "2026-07-17T07:22:14.125237+00:00",
-      "status_updated_at": "2026-07-17T07:22:14.125237+00:00"
+      "status_updated_at": "2026-07-18T16:00:32.467538+00:00"
     },
     {
       "source_id": "url:9a17e7add848",
@@ -79,9 +79,9 @@
           "Memory & State"
         ]
       ],
-      "status": "unread",
+      "status": "studied",
       "added_at": "2026-07-17T07:22:14.125237+00:00",
-      "status_updated_at": "2026-07-17T07:22:14.125237+00:00"
+      "status_updated_at": "2026-07-18T16:00:32.467538+00:00"
     },
     {
       "source_id": "url:9fa759b72385",
@@ -200,9 +200,9 @@
         "Foundations"
       ],
       "description": "Martin Fowler's synthesis of what harness engineering practice looks like: three interlocking systems — context engineering (curating what the agent knows), architectural constraints (deterministic linters and structural tests), and entropy management (periodic agents that repair documentation drift). The \"humans on the loop\" framing — harness engineers who design and maintain agent environments rather than inspecting individual outputs — is the clearest conceptual map of what the discipline actually entails.",
-      "status": "unread",
+      "status": "studied",
       "added_at": "2026-07-17T07:22:14.125237+00:00",
-      "status_updated_at": "2026-07-17T07:22:14.125237+00:00"
+      "status_updated_at": "2026-07-18T16:00:32.467538+00:00"
     },
     {
       "source_id": "url:7659f727e260",
@@ -213,9 +213,9 @@
         "Foundations"
       ],
       "description": "LangChain's structural breakdown of the five primitives that compose a harness: filesystem (durable state + agent collaboration surface), code execution (autonomous problem-solving without pre-designed solutions), sandbox (isolation + verification), memory (cross-session persistence), and context management (compaction against \"context rot\"). The co-evolution warning — models trained with specific harnesses can become overfitted to those designs — explains why harness architecture choices have lasting consequences beyond the immediate task.",
-      "status": "unread",
+      "status": "studied",
       "added_at": "2026-07-17T07:22:14.125237+00:00",
-      "status_updated_at": "2026-07-17T07:22:14.125237+00:00"
+      "status_updated_at": "2026-07-18T16:00:32.467538+00:00"
     },
     {
       "source_id": "arxiv:2603.05344",
@@ -408,9 +408,9 @@
         "Foundations"
       ],
       "description": "June 2026 constitutive definition of an agent harness as a runtime layer with four necessary and sufficient elements: an agent loop, a tool interface, context management, and control mechanisms. Applied to Claude Code, Codex CLI, Aider, Cline, OpenHands, and SWE-agent, it provides a rigorous inclusion test for distinguishing harnesses from generators, guardrails, or plain tool wrappers.",
-      "status": "unread",
+      "status": "studied",
       "added_at": "2026-07-17T07:22:14.125237+00:00",
-      "status_updated_at": "2026-07-17T07:22:14.125237+00:00"
+      "status_updated_at": "2026-07-18T16:00:32.467538+00:00"
     },
     {
       "source_id": "arxiv:2604.18071",

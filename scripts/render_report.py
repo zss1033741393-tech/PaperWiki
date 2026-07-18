@@ -8,13 +8,29 @@ from pathlib import Path
 
 import markdown
 
+if __package__:
+    from scripts.report_math import MATH_TOKEN, protect_math
+else:
+    from report_math import MATH_TOKEN, protect_math
+
+def restore_math(body: str, formulas: list[str]) -> str:
+    """Restore exact, HTML-safe LaTeX after Markdown conversion."""
+    for index, formula in enumerate(formulas):
+        token = MATH_TOKEN.format(index)
+        if body.count(token) != 1:
+            raise ValueError(f"Math placeholder mismatch: {token}")
+        body = body.replace(token, html.escape(formula))
+    return body
+
 
 def render(source: Path, output: Path) -> None:
     text = source.read_text(encoding="utf-8")
     text = re.sub(r"^---\n.*?\n---\n", "", text, count=1, flags=re.S)
     title_match = re.search(r"^#\s+(.+)$", text, re.M)
     title = title_match.group(1) if title_match else source.stem
-    body = markdown.markdown(text, extensions=["tables", "fenced_code", "sane_lists"])
+    protected_text, formulas = protect_math(text)
+    body = markdown.markdown(protected_text, extensions=["tables", "fenced_code", "sane_lists"])
+    body = restore_math(body, formulas)
     body = re.sub(r'<pre><code class="language-mermaid">(.*?)</code></pre>', r'<pre class="mermaid">\1</pre>', body, flags=re.S)
     page = f'''<!doctype html>
 <html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">

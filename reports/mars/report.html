@@ -1,0 +1,403 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MARS: Toward More Efficient Multi-Agent Collaboration for LLM Reasoning</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]})"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script><script>mermaid.initialize({startOnLoad:true,theme:'neutral'})</script>
+<style>
+:root{--ink:#172033;--muted:#64748b;--accent:#2563eb;--line:#dbe4f0;--paper:#fff;--bg:#f4f7fb}
+*{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.85 -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC",sans-serif}
+article{max-width:920px;margin:32px auto;padding:56px 72px;background:var(--paper);box-shadow:0 12px 40px #1e3a5f18;border-radius:18px}
+h1{font-size:2.35rem;line-height:1.3;margin:0 0 2rem} h2{margin-top:3rem;padding-bottom:.5rem;border-bottom:1px solid var(--line);color:#174ea6} h3{margin-top:2rem}
+p{margin:1rem 0} blockquote{margin:1.5rem 0;padding:1rem 1.25rem;background:#eff6ff;border-left:4px solid var(--accent);border-radius:0 10px 10px 0}
+table{width:100%;border-collapse:collapse;margin:1.4rem 0;font-size:.93rem} th,td{padding:.7rem .8rem;border:1px solid var(--line);vertical-align:top} th{background:#f1f5f9}
+pre:not(.mermaid){overflow:auto;padding:1rem 1.2rem;background:#0f172a;color:#e2e8f0;border-radius:10px} code{font-family:"SFMono-Regular",Consolas,monospace}
+.katex-display{overflow-x:auto;overflow-y:hidden;padding:.5rem 0} a{color:var(--accent)}
+@media(max-width:760px){article{margin:0;padding:28px 20px;border-radius:0}h1{font-size:1.75rem}body{font-size:16px}}
+</style></head><body><article><h1>MARS: Toward More Efficient Multi-Agent Collaboration for LLM Reasoning</h1>
+<blockquote>
+<p>[!summary] 一句话结论
+MARS 用“作者—独立审稿人—元审稿人—作者修订”的星形层级结构替代多智能体圆桌辩论，在不训练模型的情况下，把 reviewer-to-reviewer 的全连接通信改成一次集中汇总。三类 benchmark、五种 LLM 的 100 题子集实验显示，它通常以接近或优于 MAD 的准确率把 token 降低约一半；但置信度校准没有被独立验证，当前代码也没有实现论文所称的 reviewer 并行与接受后提前停止。</p>
+</blockquote>
+<h2>论文信息</h2>
+<ul>
+<li>作者：Xiao Wang, Jia Wang, Yijie Wang, Pengtao Dang, Sha Cao, Chi Zhang</li>
+<li>时间：2025 年 9 月，arXiv:2509.20502（当前 PDF 为 v2，preprint）</li>
+<li>原文：https://arxiv.org/abs/2509.20502</li>
+<li>官方代码：https://github.com/xwang97/MARS</li>
+<li>代码核对版本：<code>37c5386b15c9b4f2b4aa464f2cf0ee4ad440448e</code>（2026-03-13）</li>
+<li>代码状态：MIT License，包含 Pipeline、prompt、数据子集与评测脚本；README 与当前函数签名存在少量漂移。</li>
+</ul>
+<h2>研究问题</h2>
+<p>Multi-Agent Debate（MAD）让多个 Agent 分别解题，再在每一轮读取其他 Agent 的完整回答并互相修订。它能引入外部反馈，却让通信量随 Agent 数与对话轮次快速增长。MARS 追问：<strong>是否真的需要每个 Agent 与所有其他 Agent 直接交流，还是可以用层级式 review 汇总，在保留纠错收益的同时显著减少 token 和延迟？</strong></p>
+<p>论文的核心主张是 <strong>“direct communication among all agents is unnecessary for effective collaboration”</strong>。它并没有发明新的推理模型，而是重新设计推理期角色、消息方向和停止条件，因此天然属于无需训练的系统编排方法。</p>
+<h2>1. 从圆桌辩论改为同行评审</h2>
+<p>Figure 1（第 3 页）同时画出四种推理结构：单模型/反思、自洽采样、MAD 和 MARS。MAD 是对称全连接结构；MARS 是一个有中心汇聚节点的有向流程：</p>
+<pre class="mermaid">flowchart LR
+  Q[User query] --&gt; A[Author draft]
+  A --&gt; R1[Reviewer 1]
+  A --&gt; R2[Reviewer 2]
+  A --&gt; RN[Reviewer m]
+  R1 --&gt; M[Meta-reviewer]
+  R2 --&gt; M
+  RN --&gt; M
+  M --&gt;|Accept| F[Final answer]
+  M --&gt;|Reject with feedback| U[Author revision]
+  U --&gt; R1
+  U --&gt; R2
+  U --&gt; RN
+</pre>
+<p>三种角色的职责不是“换 persona”这么简单。</p>
+<ul>
+<li><strong>Author</strong> 负责产生完整 reasoning trajectory 与最终答案，是系统能力上限和最终输出责任主体。</li>
+<li><strong>Reviewer</strong> 不直接与作者争论，也不读取其他 reviewer；它先独立重做问题，再给出 right/wrong、解释与置信度。</li>
+<li><strong>Meta-reviewer</strong> 同时读取作者答案和所有 review，自己判断证据而不是简单多数投票；若拒绝，生成一份去重、解决冲突后的反馈。</li>
+</ul>
+<p>这种拓扑把 $m$ 个 reviewer 的相互通信从潜在的 $O(m^2)$ 消息关系降为 $O(m)$：作者广播一次、reviewer 向 meta 汇总一次、meta 只向作者反馈一次。真正节省的不是 reviewer 的“思考”，而是避免每个 reviewer 在后续轮次重复读取其他所有人的长推理。</p>
+<h2>2. 四阶段算法</h2>
+<p>给定第 $i$ 个问题 $x_i$，作者先生成推理步骤 $t_i$ 和答案 $y_i$：</p>
+<p>$$
+t_i,y_i=\mathcal A(x_i).
+$$</p>
+<p>人话解释：MARS 要求显式 CoT，是因为 reviewer 不只核对最终选项，还要定位中间推理中的错误。这个设计提升可审查性，也意味着论文依赖可见 reasoning trace；对于不提供完整思维链的现代 API，需要改成简短可验证 rationale 或结构化证据。</p>
+<p>第 $j$ 个 reviewer 独立审查：</p>
+<p>$$
+r_{ij}=\mathcal R_j(x_i,t_i,y_i),\qquad j=1,\ldots,m.
+$$</p>
+<p>$r_{ij}$ 包含 decision、confidence 和 justification。Appendix E.1.2（第 13–14 页）的 prompt 明确要求 reviewer 先忽略作者答案、自行重做，再比较选项。这一点很重要：如果只让模型“找错”，它容易接受作者锚定或制造不存在的问题。</p>
+<p>元审稿人将所有 review 拼接为 $r_i=r_{i1}\oplus\cdots\oplus r_{im}$，输出决策与反馈：</p>
+<p>$$
+m_i=\mathcal M(x_i,t_i,y_i,r_i).
+$$</p>
+<p>Appendix E.1.4 要求 meta-reviewer <strong>“Do not only rely on the reviewers, you must also think by yourself.”</strong> 因而 meta 既是聚合器，也是额外 verifier。它被提示按论证质量和可靠性权重判断，而非只数 right/wrong 票数。</p>
+<p>若拒绝，作者根据自己的原推理和 meta 反馈修订：</p>
+<p>$$
+y_i^*=\mathcal A(t_i,y_i,m_i).
+$$</p>
+<p>Appendix E.1.5 还要求作者只有在强烈同意反馈时才修改，否则坚持原答案。这是对 over-correction 的软防护：错误 reviewer 不应自动推翻正确答案。</p>
+<p>Algorithm 1（第 12 页）给出的停止条件是：</p>
+<p>$$
+\text{while decision=Reject and }k\le K,
+$$</p>
+<p>一旦 meta 接受就 <code>break</code>，否则最多修订 $K$ 次。理论上，容易问题只需一次 author + reviews + meta，难题才支付修订成本。</p>
+<h2>3. Reviewer confidence：名字叫校准，证据还不够</h2>
+<p>Reviewer 的自然语言“Confidence: 1–5”容易过度自信。MARS 另外读取 API 返回的 token log probability。若 review 由 $N$ 个 token 构成，平均对数概率为：</p>
+<p>$$
+\mathrm{AvgLogProb}_{ij}=\frac{1}{N}\sum_{k=1}^{N}\log P(t_k).
+$$</p>
+<p>再指数化得到 0–1 分数：</p>
+<p>$$
+\mathrm{Conf}_{ij}=\exp(\mathrm{AvgLogProb}_{ij}).
+$$</p>
+<p>分数越接近 1，表示模型对自己生成的整段 review 序列平均越“顺手”。官方实现确实请求 <code>logprobs=True</code>，并计算均值后指数化：</p>
+<pre><code class="language-python"># custom_agents.py:61-88
+token_logprobs = [
+    t.logprob for t in response.choices[0].logprobs.content
+    if t.logprob is not None
+]
+avg_logprob = np.mean(token_logprobs)
+confidence_score = np.exp(avg_logprob)
+</code></pre>
+<p>但这不是严格意义上已经验证的 correctness calibration。平均整段 logprob 会受措辞、长度、格式和模型语言习惯影响，不等同于“Decision: right/wrong”正确的概率。论文没有报告 ECE、Brier score、AUROC，也没有比较“无 reliability score”“口头 1–5”“decision-token 概率”“整段平均概率”的下游准确率。因此它更准确的名称应是 <strong>sequence-likelihood reliability heuristic</strong>。</p>
+<h2>4. 为什么 token 大幅下降</h2>
+<p>假设有 $n$ 个 MAD Agent、两轮推理。第一轮每人生成答案；第二轮每人都要读取其他 $n-1$ 条完整答案并再生成一次。消息被重复放进多个 prompt，密集拓扑让输入 token 近似二次增长。</p>
+<p>MARS 的 reviewer 只读取同一份 author draft，meta 只读取 $m$ 份较短 review，作者只读取 meta 的单份归纳反馈。reviewer 不互读，作者也不直接消化多份可能冲突的意见。因此 token 复杂度对 reviewer 数更接近线性。</p>
+<p>Figure 3（第 8 页）从 3 到 6 个总 Agent 比较 MARS 与 MAD。GPT-3.5 和 GPT-4o-mini 上，MARS token 曲线近似线性缓升，而 MAD 上升更快；准确率则没有因稀疏通信而下降。这个结果支持结构性论点：对“验证一个候选答案”这种任务，星形 review 比全连接 debate 更匹配信息流。</p>
+<h2>5. 主实验：约一半 token，准确率总体可比</h2>
+<p>实验在 GPQA、MMLU、GSM8K 上各随机抽 100 题，每个设置平均 3 次。模型包括 GPT-3.5-turbo、GPT-4o-mini、Mixtral-8x7B、Mixtral-8x22B、Llama-3.3-70B。主设置使用相同总 Agent 数比较 MARS 与 MAD，并在初始轮后进行一轮更新。</p>
+<h3>表 1：GPQA 的准确率与平均 token</h3>
+<table>
+<thead>
+<tr>
+<th>Backbone</th>
+<th style="text-align: right;">MAD Acc./Tok.</th>
+<th style="text-align: right;">MARS Acc./Tok.</th>
+<th style="text-align: right;">Token 降幅</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>GPT-3.5</td>
+<td style="text-align: right;">31.00 / 7,567</td>
+<td style="text-align: right;">36.33 / 3,741</td>
+<td style="text-align: right;">50.6%</td>
+</tr>
+<tr>
+<td>GPT-4o-mini</td>
+<td style="text-align: right;">47.50 / 17,083</td>
+<td style="text-align: right;">48.33 / 7,903</td>
+<td style="text-align: right;">53.7%</td>
+</tr>
+<tr>
+<td>Mixtral-8x7B</td>
+<td style="text-align: right;">35.67 / 12,835</td>
+<td style="text-align: right;">37.33 / 6,441</td>
+<td style="text-align: right;">49.8%</td>
+</tr>
+<tr>
+<td>Mixtral-8x22B</td>
+<td style="text-align: right;">47.00 / 13,308</td>
+<td style="text-align: right;">44.00 / 5,418</td>
+<td style="text-align: right;">59.3%</td>
+</tr>
+<tr>
+<td>Llama-3.3-70B</td>
+<td style="text-align: right;">59.67 / 19,255</td>
+<td style="text-align: right;">60.00 / 6,633</td>
+<td style="text-align: right;">65.6%</td>
+</tr>
+</tbody>
+</table>
+<p>Table 1（第 6 页）证明 token 降幅在不同 provider/model 上相当稳定，这是论文最强的证据。准确率则不能概括为 MARS 全胜：Mixtral-8x22B 的 GPQA 从 MAD 47.00 降为 44.00，差 3 题；其余四个 backbone 持平或提升。换句话说，MARS 的优势首先是 Pareto 效率，而不是无条件更准。</p>
+<h3>表 2：跨任务的代表结果</h3>
+<table>
+<thead>
+<tr>
+<th>设置</th>
+<th style="text-align: right;">MAD Acc./Tok.</th>
+<th style="text-align: right;">MARS Acc./Tok.</th>
+<th>解读</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>GPT-4o-mini, MMLU</td>
+<td style="text-align: right;">85.33 / 8,338</td>
+<td style="text-align: right;">85.67 / 4,210</td>
+<td>准确率持平，token 约减半</td>
+</tr>
+<tr>
+<td>GPT-4o-mini, GSM8K</td>
+<td style="text-align: right;">97.67 / 7,440</td>
+<td style="text-align: right;">98.00 / 3,389</td>
+<td>高饱和任务仍保持效果</td>
+</tr>
+<tr>
+<td>GPT-3.5, GSM8K</td>
+<td style="text-align: right;">79.00 / 4,355</td>
+<td style="text-align: right;">75.67 / 2,508</td>
+<td>节省 token，但少答对约 3 题</td>
+</tr>
+<tr>
+<td>Mixtral-8x22B, GSM8K</td>
+<td style="text-align: right;">87.00 / 6,805</td>
+<td style="text-align: right;">90.33 / 3,515</td>
+<td>更省且多答对约 3 题</td>
+</tr>
+<tr>
+<td>Llama-3.3-70B, MMLU</td>
+<td style="text-align: right;">84.00 / 9,370</td>
+<td style="text-align: right;">84.67 / 4,210</td>
+<td>约 55% token 降幅</td>
+</tr>
+</tbody>
+</table>
+<p>论文每个设置只有 100 题、3 次平均，没有给标准差或显著性检验。1–3 个百分点变化处在少数样本量级，不能据此断言某架构在准确率上稳定优越；但 40%–66% 的 token 差距量级很大，且跨 15 个 model-task 设置一致，效率结论明显更强。</p>
+<p>Figure 2（第 7 页）把 GPQA 的 accuracy-token 点画在一起：MARS 相对 MAD 平均 token 分别下降约 54%（GPT-4o-mini）和 66%（Llama-70B），准确率略高。图形表达合理，但“+8% Avg. acc”是相对百分比而非百分点，阅读时不要误解为多 8 道题。</p>
+<h2>6. 延迟：报告有效，公开实现仍有并行空间</h2>
+<p>Table 4（第 13 页）报告 MARS 相对 MAD 通常降低 30% 以上延迟。例如：</p>
+<table>
+<thead>
+<tr>
+<th>设置</th>
+<th style="text-align: right;">MAD 秒/题</th>
+<th style="text-align: right;">MARS 秒/题</th>
+<th style="text-align: right;">降幅</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>GPT-4o-mini, GPQA</td>
+<td style="text-align: right;">85.67</td>
+<td style="text-align: right;">49.02</td>
+<td style="text-align: right;">42.8%</td>
+</tr>
+<tr>
+<td>Llama-70B, GPQA</td>
+<td style="text-align: right;">104.25</td>
+<td style="text-align: right;">49.77</td>
+<td style="text-align: right;">52.3%</td>
+</tr>
+<tr>
+<td>GPT-4o-mini, MMLU</td>
+<td style="text-align: right;">41.58</td>
+<td style="text-align: right;">28.14</td>
+<td style="text-align: right;">32.3%</td>
+</tr>
+<tr>
+<td>Mixtral-8x22B, GSM8K</td>
+<td style="text-align: right;">23.55</td>
+<td style="text-align: right;">16.23</td>
+<td style="text-align: right;">31.1%</td>
+</tr>
+</tbody>
+</table>
+<p>有一个反例：Mixtral-8x7B 的 GPQA 是 79.24 秒，几乎等于 MAD 79.33 秒。API 排队、provider 吞吐和输出长度都会影响 wall-clock，所以延迟结论没有 token 结论稳定。</p>
+<p>论文多次称 reviewer 可并行，但当前官方 <code>run_mars_pipeline</code> 用普通 <code>for</code> 循环逐个同步调用：</p>
+<pre><code class="language-python"># pipelines.py:54-93
+review_responses = []
+for i, reviewer in enumerate(reviewers):
+    review_response_dict = reviewer.run(reviewer_histories[i])
+    review_content = review_response_dict[&quot;content&quot;]
+    review_responses.append(review_content)
+</code></pre>
+<p>因此公开实现没有利用 reviewer 的天然并行性。若用 <code>asyncio.gather</code> 或并发 API 请求，交互延迟理论上可接近最慢 reviewer 加 meta/author，而不是所有 reviewer 延迟之和；这可能使生产版本比论文表格更快，但也会遇到 rate limit 和吞吐配额。</p>
+<h2>7. 异构角色：强 reviewer 有用，强 author 更重要</h2>
+<p>Table 2（第 7 页）在 GPQA 上混合 GPT-3.5 与 Mixtral-8x22B。作者总结三点。</p>
+<p>第一，弱 GPT author 配强 Mixtral reviewer/meta，准确率从约 35.33 提至最高 39.00。第二，author 决定能力上限：最弱的 Mixtral-author 组合 41.67 仍高于所有 GPT-author 组合。第三，模型多样性不等于“各角色越强越好”：Mixtral author + 两个 GPT reviewer + GPT meta 达到 46.40，超过全 Mixtral。</p>
+<p>这个实验提示一种实用成本分配：把最强模型放在 author，reviewer 可用更便宜但错误模式不同的模型，meta 根据风险选中等或强模型。可惜每个组合只在 GPQA 100 题上评估，没有 token/价格表，也没有系统搜索角色分配，46.40 可能包含抽样和随机性。</p>
+<h2>8. Persona 实验的反直觉结果</h2>
+<p>作者给 reviewer 加 conservative/aggressive persona，期望人为制造认知多样性。Table 3（第 8 页）显示 persona 除少量 MMLU 设置外普遍无益，甚至使 GPT-3.5 GPQA 从 36.33 降至 34.00、Mixtral-8x22B MMLU 从 77.67 升/降至 80.00（少数提升）。</p>
+<p>作者的解释是 temperature 带来的自然随机性已经提供差异，而 aggressive reviewer 即使作者正确也会强行寻找漏洞，造成 noisy feedback 和 over-correction。这一发现比“多角色更好”的常见叙事更有价值：<strong>角色多样性只有在对应不同证据源、工具或专业能力时才可靠；只改人格形容词可能制造无效冲突。</strong></p>
+<h2>9. 论文算法、实验设置与当前代码并不完全一致</h2>
+<p>Algorithm 1 规定 meta 接受即终止。然而 Appendix C 又说 MARS 与 MAD 都在初始轮后运行一轮 update，用于公平比较。2026-03 的当前代码进一步明确：</p>
+<pre><code class="language-python"># pipelines.py:107-129
+decision = extract_meta_decision(meta_decision).lower()
+if decision == &quot;right&quot;:
+    full_history[&quot;final_status&quot;] = &quot;accepted&quot;
+    # DO NOT BREAK here. We continue to max_rounds.
+if round_idx &lt; max_rounds:
+    feedback_input = self.templates.construct_feedback_prompt(
+        meta_decision, status=decision
+    )
+    author_rebuttal = author.run(author_history)
+</code></pre>
+<p>也就是说，即使首轮已判正确，代码仍让 author 做 robustness check，再让 reviewer 审一轮。这与“accept early stop”不同，也会增加 token。报告结果究竟使用哪一版实现，论文没有代码 commit 对应表；当前仓库提交晚于论文首版，可能是后续重构。复现时应明确选择：</p>
+<ul>
+<li><strong>论文算法模式</strong>：接受即停，成本最低，但不同问题调用数不同；</li>
+<li><strong>主实验公平模式</strong>：固定一轮 update，使 MARS/MAD调用轮数更可比；</li>
+<li><strong>当前代码稳定模式</strong>：无论对错都复核两轮，可能降低偶然接受，但成本更高。</li>
+</ul>
+<p>README 也有可见漂移：示例调用返回新结构 <code>rounds/final_answer</code>，但 README 仍读取旧键 <code>author_response/author_rebuttal</code>；评测示例写 <code>eval_marvel</code>，实际函数是 <code>eval_mars</code>。这不影响方法思想，却意味着不能直接复制 README 就期待无修改运行。</p>
+<h2>10. 放回《Five Ws》框架</h2>
+<table>
+<thead>
+<tr>
+<th>Five Ws</th>
+<th>MARS 的回答</th>
+<th>设计含义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Who/Whom</td>
+<td>Author 广播给多个 reviewer；reviewer 只发给 meta；meta 只反馈 author</td>
+<td>用星形层级代替全连接对话，通信边从近二次降到线性</td>
+</tr>
+<tr>
+<td>When</td>
+<td>Author 完成后并行 review，meta 聚合；拒绝后才修订，理论上接受即停</td>
+<td>event-driven 的 review gate；当前代码则固定复核</td>
+</tr>
+<tr>
+<td>What</td>
+<td>完整解题轨迹、独立重做、二元决策、解释、可靠性分数、合并反馈</td>
+<td>信息类型结构化，比自由辩论更可控</td>
+</tr>
+<tr>
+<td>Why</td>
+<td>外部纠错，同时避免 reviewer 之间重复交换长答案</td>
+<td>主要优化 accuracy-resource Pareto，而非追求开放式讨论</td>
+</tr>
+<tr>
+<td>How</td>
+<td>prompt-defined roles + centralized meta-review + optional revision</td>
+<td>纯推理期编排，不更新模型参数</td>
+</tr>
+</tbody>
+</table>
+<p>MARS 最适合“先有候选产物，再审查是否正确”的任务：数学/科学问答、代码审查、研究报告事实核验、方案评审。它不适合需要多个 Agent 共同探索尚无候选解的任务；此时 reviewer 全部围绕同一 author anchor，可能一起错过替代方向。</p>
+<h2>11. 无需训练的落地建议</h2>
+<p>最低配实现只需现成 LLM API，不需要 fine-tuning、RL、训练 verifier 或向量数据库。</p>
+<ol>
+<li>用一个强 author 生成结构化草稿：结论、依据、可检查中间结果和引用。</li>
+<li>配 2 个 reviewer，要求先独立求解/检查，再比较 author；工具或证据源应不同，而不只是 persona 不同。</li>
+<li>reviewer 输出固定 JSON：<code>decision</code>、<code>confidence</code>、<code>issues[]</code>、<code>evidence[]</code>、<code>suggestion</code>。</li>
+<li>并发执行 reviewer；不要照官方同步循环。</li>
+<li>meta 根据证据质量聚合，不能只投票；高风险任务应接入规则、测试或检索证据。</li>
+<li>首轮全体接受且无高风险警报时提前停止；拒绝时只把 meta 去重后的 actionable feedback 发给 author。</li>
+<li>记录纠错率、误改率、首次接受率、每角色 token、端到端延迟与单题成本。</li>
+</ol>
+<p>用于 PR review 时，可以让 author 是实现 Agent，reviewer 分别运行测试/静态分析、安全检查和需求核对，meta 只合并有文件行号或命令输出支持的问题。这样“独立 reviewer”来自独立工具证据，而非同一模型随机采样，可靠性会比论文的纯文本 benchmark 更强。</p>
+<h2>局限与风险</h2>
+<ul>
+<li>作者自述：token 概率置信度并未解决 LLM calibration；当前 heuristic 没有独立校准指标或消融。</li>
+<li>作者自述：meta 的负面反馈可能推翻正确初稿，导致 over-correction；“不同意就坚持”只是 prompt 防护，没有形式保证。</li>
+<li>作者自述：实验最多两轮，没有系统研究更多 review/revision 对准确率和成本的影响。</li>
+<li>100 题、3 次平均足以显示大幅 token 差异，但对 1–3 个百分点的准确率差异统计力度有限；论文未报告方差、置信区间或检验。</li>
+<li>所有 reviewer 往往使用相同模型、相同 prompt 和同一 author anchor，错误高度相关；人数增加不等于独立证据增加。</li>
+<li>meta 是单点故障和权力中心：它可能忽略少数正确 reviewer，或受 author/reviewer 中的 prompt injection 影响。</li>
+<li>显式 CoT 增加 token，并不适用于所有 API/隐私环境；生产系统应改用可验证摘要、工具证据或结构化 rationale。</li>
+<li>论文称 reviewer parallel，公开代码却同步顺序调用；论文 Algorithm 1 与当前固定二轮实现的停止行为不同。</li>
+<li>当前代码默认 temperature=1 且每次随机 seed，复现需要保存具体 seed 和原始 response；README 示例与代码接口有漂移。</li>
+<li>benchmark 都是封闭答案推理；软件工程、长文研究、工具使用等开放任务上的正确性判断和停止条件尚未验证。</li>
+</ul>
+<h2>结论</h2>
+<p>MARS 最可靠的发现不是“模拟同行评审更像人”，而是一个信息架构原则：<strong>当任务目标是验证已有候选时，独立检查加集中汇总通常比所有人互相辩论更经济。</strong> 论文跨模型、跨任务的一致 token 降幅支持这一点，且整个方案无需训练，适合快速接入现有 Agent workflow。</p>
+<p>它仍不是可靠性银弹。reviewer 共享偏差、meta 单点误判、置信度未经校准、停止条件版本不一致，都说明生产实现必须引入独立工具证据、真正并发、结构化输出和误改率监控。把这些补上后，MARS 比传统多轮 MAD 更接近可运营的多智能体审查管线。</p>
+<h2>关键概念</h2>
+<ul>
+<li>Multi-Agent Review System</li>
+<li>Hierarchical Review Topology</li>
+<li>Independent Reviewer</li>
+<li>Meta-Reviewer</li>
+<li>Propose–Review–Feedback–Update</li>
+<li>Sequence-level Log-probability Confidence</li>
+<li>Over-correction</li>
+<li>Inference-time Collaboration</li>
+</ul>
+<h2>开放问题</h2>
+<ul>
+<li>哪些问题应首轮接受即停，哪些需要固定复核或更多轮？能否基于风险/不确定性自适应决定？</li>
+<li>如何用 reviewer 的 decision-token 概率、历史正确率与工具证据替代整段平均 logprob？</li>
+<li>相同模型的多个随机 reviewer 与不同模型/不同工具 reviewer，谁提供更高的边际纠错价值？</li>
+<li>meta 单点错误如何被检测？是否需要少数意见保留、规则 veto 或二级 meta？</li>
+<li>在同一美元成本而非相同 Agent 数下，MARS 与 self-consistency、best-of-N、MAD 的 Pareto 前沿如何变化？</li>
+<li>开放式代码/研究任务中，怎样定义 accept/reject 和可自动验证的 feedback？</li>
+</ul>
+<h2>证据定位</h2>
+<ul>
+<li>Figure 1（第 3 页）：单 Agent、自洽、MAD 与 MARS 拓扑对比。</li>
+<li>Equations (1)–(4)（第 4 页）：author、reviewer、meta 和 rebuttal 四阶段。</li>
+<li>Equations (5)–(6)（第 4–5 页）：整段 token logprob 可靠性分数。</li>
+<li>Table 1（第 6 页）：五模型、三 benchmark 的准确率与 token 主结果。</li>
+<li>Figure 2 与 Table 2（第 7 页）：accuracy-token Pareto 与异构角色组合。</li>
+<li>Figure 3、Table 3（第 8 页）：Agent 数扩展与 persona 消融。</li>
+<li>Appendix A、Algorithm 1、Appendix C（第 11–12 页）：作者局限、提前停止算法与实验轮数说明。</li>
+<li>Table 4（第 13 页）：平均推理时间。</li>
+<li>Appendix E（第 13–16 页）：完整角色与 baseline prompts。</li>
+<li>Tables 5–6（第 17–18 页）：纠错成功与 reviewer 冲突裁决案例。</li>
+</ul>
+<h2>精读补充（PaperForge 视角）</h2>
+<blockquote>
+<p>[!note] 关于这一节
+用 PaperForge 的读法补几个第一遍没展开的角度：作者怎么想到同行评审这套、整篇真正押在哪条假设上、怎么花一周证伪、最强反例、以及一个非增量方向。是接着往深里读，不是打分。论文没明说、属于我推断或猜测的地方都会讲明。</p>
+</blockquote>
+<h3>作者是怎么走到"同行评审"这套结构的</h3>
+<p>论文没交代来路，但拼得出来。当时 MAD（Multi-Agent Debate，arXiv:2305.14325，Du 等，2023-05，经检索核实）很流行，可它 O(m²) 的通信成本是公认的痛——每个 agent 每轮都要读完其他所有人的长回答再改写。同时，generator-verifier 的非对称、LLM-as-a-judge，这些"生成一个、再独立核一个"的框架也都成熟了。</p>
+<p>再看学术同行评审这套人类制度：审稿人之间根本不互相通信，各审各的，一个 editor（meta）把意见汇总后再回给作者。它天生就是"不让所有人互相说话、却仍能纠错"的解法。一个被 MAD 的二次成本硌到、又熟悉 generator-verifier 的人，很自然会想：这些 agent 为什么要互相辩论？让它们各自独立 review、把汇总集中到一个 meta 不就行了。所以 MARS 的跳跃不是新推理算法，而是把一套现成的人类制度（星形评审）搬到 agent 通信拓扑上，再补两个防过度纠正的 prompt 细节。这条路不需要论文自己的结论当前提——作者真实动机未必如此。</p>
+<h3>整篇真正押在哪一条假设上</h3>
+<p>论文的核心主张是"agent 之间的直接通信对有效协作不是必需的"。它承重的那条假设，是这句话背后的更强版本：集中汇总一批独立 review，能拿回跨 reviewer 互动本来会贡献的一切。星形省下的那部分通信，只有在"它本来就是冗余"时才是白赚。</p>
+<p>问题在于，MAD 里 reviewer 互看的价值往往不是重复彼此的判断，而是看到别人的推理会改变自己的判断——一个审稿人因为另一个人的角度，才意识到自己的反对站不住，或者两个人各看到一半、拼起来才发现的错误。MARS 的 reviewer 从不互看，meta 拿到的是一组互不影响的独立报告。所以真正的假设是"独立 review 的集中聚合等于互动式讨论的产物"。报告的局限里已经点到 reviewer 常同模型同 prompt、错误高度相关；这里想更进一步：就算你把 reviewer 换成不同模型，只要他们不互动，那种"因对话才浮现的错误"仍然抓不到。效率的赢面和这条假设是有张力的——越是需要互动才能纠错的题，星形省掉的就越不是冗余。</p>
+<h3>花一周就能把这条假设证伪的实验</h3>
+<p>论文比的是 MARS 和 MAD 的总体准确率打平、token 减半。但要打这条承重假设，得专门盯"互动到底有没有用"的那批题。</p>
+<ul>
+<li>先用 MAD 跑一遍，记录每个 reviewer 在看到别人回答后有没有改变立场；切出"确实因互看而翻了答案"的子集。</li>
+<li>在这个子集上跑 MARS（无互看，只有 meta 聚合），看它能不能靠集中聚合拿回同样的正确答案。</li>
+<li>判定：如果在"互动起作用"的子集上 MARS 系统性掉分，那"直接通信不必需"就在它本该覆盖的场景里被证伪了——省 token 的代价是丢掉了只有对话才浮现的纠错。</li>
+</ul>
+<p>这比主表更狠，因为主表把"互动无所谓"的题和"互动有用"的题混在一起平均，正好把差别抹平了。</p>
+<h3>如果要反驳，最强的反例长什么样</h3>
+<p>最狠的反例不在论文自己都承认不适合的"开放探索"任务上，而是打进它的主场——验证。</p>
+<p>构造一个多步证明，作者的草稿有一个跨步骤的隐错：第 3 步用的假设，和第 5 步的用法其实不一致。让 reviewer 1 盯前半段（步骤都对）、reviewer 2 盯后半段（步骤也都对）。两人各自独立看，都会给"没问题"；meta 收到两份"看着都对"，于是接受。而在 MAD 里，reviewer 1 看到 reviewer 2 对第 5 步的解读，才可能反应过来它和自己看的第 3 步冲突。</p>
+<p>杀伤力在于：这不是 MARS 在它自认不擅长的地方翻车，而是独立评审加集中聚合这个结构，对"跨局部、只有拼起来才可见"的错误有系统性盲区，而这类错误恰恰是验证任务里最危险的。星形拓扑省下的通信，正是本可以照亮这个盲区的那束光。</p>
+<h3>顺着缺口，一个值得做的新方向</h3>
+<p>报告的开放问题问了自适应停止、更好的置信度、异构 reviewer。顺着上面那条盲区，一个方向是：让拓扑本身按题自适应，把通信变成"按需触发"而不是二选一。</p>
+<p>先把 novelty 说清楚，别重犯只凭直觉宣称"新"的错：按题自适应的稀疏拓扑已经不是空白。arXiv:2406.11776 就在给 MAD 做 sparse communication topology；2606.01828（Dynamic Trust-Aware Sparse Communication Topology）更是直接点出固定稀疏拓扑"没法随任务实例和中间推理状态调整"，做的正是动态化。所以"动态拓扑"本身是正在进行的方向，不能算我的新提法。这里还能站住的、相对具体的差别，只是把触发信号锚在上一节那个盲区上——不是按 trust 或图结构预优化，而是按"reviewer 是否在同一处出现实质分歧"来决定要不要开那条最小对话。</p>
+<ul>
+<li>它针对的缺口：MARS 和 MAD 是拓扑光谱两个极端（全星形对全连接），而已有的动态方法多按 trust 或全局图结构来调；"按跨局部分歧触发"这个具体信号还少见。</li>
+<li>能借的相邻领域：event-triggered communication（正好是《Five Ws》那篇综述里 when 的核心）、以及 active learning 的"只在不确定时才查询"。默认走 MARS 的廉价独立评审；只有当两个 reviewer 在同一处结论相反、或 meta 置信度偏低时，才在这两个 reviewer 之间开一条最小 pairwise 对话。O(m²) 的成本只花在稀疏那批真正需要它的题上，其余保持 O(m)。</li>
+<li>第一个实验：给 MARS 加一个分歧或低置信检测器，只在触发时开 pairwise 对话，测它能不能把上一节那种"跨局部错误"子集的准确率补回来，同时 token 成本贴近原版 MARS，并和 2606.01828 那种 trust-aware 动态拓扑做对照。</li>
+</ul>
+<p>诚实划界：动态稀疏拓扑这个大方向已有人做（2406.11776、2606.01828，经检索核实），本条不重复那个主张，只在其内收窄一个机制——用"跨局部分歧"而非 trust/图先验来触发、且只开 pairwise 而非重排整张图。这个具体触发信号我没检索到直接对应，但按 PaperForge 的四类信息纪律，它算"已有动态拓扑方向内一个待核实的变体"，不是全新方向。风险也得说：分歧检测本身可能不准，触发早了省不了钱、触发晚了漏掉该救的题，阈值得校。</p></article></body></html>

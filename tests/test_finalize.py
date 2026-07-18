@@ -45,12 +45,62 @@ def _seed_canonical(root, analysis):
 
 
 class FinalizeTests(unittest.TestCase):
+    def test_preserves_authored_report_body(self):
+        with tempfile.TemporaryDirectory() as td:
+            report, ap = _seed_canonical(Path(td), dict(FULL_ANALYSIS))
+            report.write_text(
+                "---\npaper_id: arxiv:2511.20639\nstatus: reading\n"
+                "source: https://example.test\n---\n\n"
+                "# Canonical Paper\n\nSENTINEL DEEP READING\n\n"
+                "$$\nx_i=\\Phi(y_i)\n$$\n",
+                encoding="utf-8",
+            )
+
+            paperwiki.cmd_finalize(type("A", (), {
+                "report": str(report), "analysis": str(ap),
+            }))
+
+            text = report.read_text(encoding="utf-8")
+            self.assertIn("SENTINEL DEEP READING", text)
+            self.assertIn(r"x_i=\Phi(y_i)", text)
+
+    def test_keeps_unconfirmed_analysis_in_reading_state(self):
+        with tempfile.TemporaryDirectory() as td:
+            report, ap = _seed_canonical(Path(td), dict(FULL_ANALYSIS))
+            report.write_text("# Canonical Paper\n\nAuthored analysis.\n", encoding="utf-8")
+
+            paperwiki.cmd_finalize(type("A", (), {
+                "report": str(report), "analysis": str(ap),
+            }))
+
+            record = json.loads((report.parent / "record.json").read_text(encoding="utf-8"))
+            self.assertEqual(record["status"], "reading")
+            self.assertEqual(
+                record["reading"]["analysis_status"],
+                "generated-awaiting-human-confirmation",
+            )
+            self.assertEqual(record["reading"]["findings"], FULL_ANALYSIS["findings"])
+
+    def test_finalize_is_idempotent_for_authored_report(self):
+        with tempfile.TemporaryDirectory() as td:
+            report, ap = _seed_canonical(Path(td), dict(FULL_ANALYSIS))
+            report.write_text("# Canonical Paper\n\nAuthored analysis.\n", encoding="utf-8")
+            args = type("A", (), {"report": str(report), "analysis": str(ap)})
+
+            paperwiki.cmd_finalize(args)
+            first_report = report.read_bytes()
+            first_record = (report.parent / "record.json").read_bytes()
+            paperwiki.cmd_finalize(args)
+
+            self.assertEqual(report.read_bytes(), first_report)
+            self.assertEqual((report.parent / "record.json").read_bytes(), first_record)
+
     def test_uses_sibling_record_json(self):
         with tempfile.TemporaryDirectory() as td:
             report, ap = _seed_canonical(Path(td), dict(FULL_ANALYSIS))
             paperwiki.cmd_finalize(type("A", (), {"report": str(report), "analysis": str(ap)}))
             record = json.loads((report.parent / "record.json").read_text(encoding="utf-8"))
-            self.assertEqual(record["status"], "reviewed")
+            self.assertEqual(record["status"], "reading")
             self.assertTrue((report.parent / "report.html").exists())
 
     def test_canonical_record_wins_with_diagnostic(self):
@@ -99,15 +149,15 @@ class FinalizeTests(unittest.TestCase):
                 paperwiki.cmd_finalize(type("A", (), {"report": str(report), "analysis": str(ap)}))
             self.assertIn("findings", str(cm.exception))
 
-    def test_marks_reviewed_and_human_unconfirmed(self):
+    def test_marks_reading_and_human_unconfirmed(self):
         with tempfile.TemporaryDirectory() as td:
             report, ap = _seed(Path(td), dict(FULL_ANALYSIS))
             paperwiki.cmd_finalize(type("A", (), {"report": str(report), "analysis": str(ap)}))
             text = report.read_text(encoding="utf-8")
-            self.assertIn("status: reviewed", text)
+            self.assertIn("status: reading", text)
             self.assertIn("human_confirmed: false", text)
             side = json.loads(report.with_suffix(".json").read_text(encoding="utf-8"))
-            self.assertEqual(side["status"], "reviewed")
+            self.assertEqual(side["status"], "reading")
             self.assertEqual(side["reading"]["analysis_status"], "generated-awaiting-human-confirmation")
 
     def test_mermaid_fallback_when_absent(self):

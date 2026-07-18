@@ -2,6 +2,7 @@ __pycache__/
 *.py[cod]
 .venv/
 .env
+.DS_Store
 .paperwiki/
 .obsidian/workspace.json
 .obsidian/workspace-mobile.json

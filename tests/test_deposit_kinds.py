@@ -128,6 +128,17 @@ def _seed_topic_report(root, with_list=False, with_blocked=False):
 
 
 class DepositTopicTests(unittest.TestCase):
+    def test_topic_page_ends_with_single_newline(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            report = _seed_topic_report(root)
+
+            paperwiki.cmd_deposit(type("A", (), {"input": str(report), "root": str(root)}))
+
+            page = (root / "wiki/topics/context-compaction.md").read_bytes().replace(b"\r\n", b"\n")
+            self.assertTrue(page.endswith(b"\n"))
+            self.assertFalse(page.endswith(b"\n\n"))
+
     def test_topic_record_builds_english_graph_page(self):
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)

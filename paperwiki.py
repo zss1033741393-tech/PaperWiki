@@ -537,7 +537,7 @@ def deposit_topic(a,src,p):
     report_target=report_wikilink_target(src,root)
     ref=f"[[{report_target}|{p['title']} 综述]]" if report_target else f"`{src.resolve()}`"
     papers_block=f"\n\n## Related papers\n\n{related_papers}" if related_papers else ""
-    body=f"---\ntitle: \"{p['title'].replace(chr(34),chr(39))}\"\ntype: topic\nstatus: deposited\n---\n\n# {p['title']}\n\n## Synthesis report\n\n{ref}\n\n## Sources\n\n"+("\n".join(f"- {x}" for x in sources) if sources else "- None recorded.")+"\n\n## Related knowledge\n\n"+("\n".join(f"- {x}" for x in entities) if entities else "- No structured entities confirmed yet.")+papers_block+f"\n\n## User notes\n\n{human}\n"
+    body=(f"---\ntitle: \"{p['title'].replace(chr(34),chr(39))}\"\ntype: topic\nstatus: deposited\n---\n\n# {p['title']}\n\n## Synthesis report\n\n{ref}\n\n## Sources\n\n"+("\n".join(f"- {x}" for x in sources) if sources else "- None recorded.")+"\n\n## Related knowledge\n\n"+("\n".join(f"- {x}" for x in entities) if entities else "- No structured entities confirmed yet.")+papers_block+f"\n\n## User notes\n\n{human}\n").rstrip()+"\n"
     target.write_text(body,encoding="utf-8")
     idx=root/"index.md"; line=f"- [[{target.stem}|{p['title']}]]\n"; old=idx.read_text(encoding="utf-8") if idx.exists() else "# PaperWiki Index\n\n"; idx.write_text(old if line in old else old+line,encoding="utf-8")
     log=root/"log.md"; old=log.read_text(encoding="utf-8") if log.exists() else "# Operation Log\n\n"; log.write_text(old+f"- {dt.datetime.now(dt.timezone.utc).isoformat()} deposit topic:{tslug}\n",encoding="utf-8")

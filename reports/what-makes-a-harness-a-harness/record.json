@@ -32,7 +32,11 @@
     ],
     "method": "概念分析结合持久标识学术文献和官方文档等一手灰色文献，并用案例分类检查定义。",
     "argument_structure": "术语谱系 → 构成性定义 → 边界划分 → 案例应用 → 设计张力与研究议程。",
-    "experiments": [],
+    "experiments": [
+      "对 Claude Code、Codex CLI、Aider、Cline、OpenHands 和 SWE-agent 六个预选正例做公开证据分类",
+      "用 inline autocomplete 与固定 retrieve–generate–format pipeline 两个边缘案例检查排除力",
+      "用图 4 对六个正例的 anatomy components 做定性比较；这不是性能实验"
+    ],
     "findings": [
       "agent harness 的区分性特征是控制在单个任务运行时发生",
       "T1—T4 共同决定成员资格",
@@ -42,41 +46,63 @@
     ],
     "limitations": [
       "正例选择存在近似同义反复",
-      "必要充分性尚未经过大样本和多编码者经验检验",
-      "T3 与 T4 在复杂实现中存在阈值判断空间",
-      "没有隔离模型与 harness 的性能贡献"
+      "必要充分性尚未经过大样本、多编码者一致性、盲编或单条件消融检验",
+      "T3 的 task-aware 要求可能把成熟度混入成员条件，T4 在复杂实现中也存在阈值判断空间",
+      "已有配置级 model–harness 比较，但机制级因果隔离仍缺失",
+      "案例没有统一的版本冻结、公共证据包与搜索协议",
+      "Aider 的 Git 审计/回滚判例与 T4 必须在线改变或约束执行的阈值存在潜在不一致",
+      "案例集中于 software engineering agents，跨领域边界尚未验证"
     ],
     "reproducibility": [
-      "按第 4 节表 2 依次检查 T1—T4",
-      "对照第 5 节邻近概念失败条件",
-      "记录成员资格与成熟度判断分离"
+      "先冻结单任务 runtime scope，再按第 4 节表 2 依次检查 T1—T4",
+      "为每项判断记录源码、配置或轨迹证据，并对照第 5 节邻近概念失败条件",
+      "对 T3 记录选择是否依赖任务内容；对 T4 区分事后 audit、人工 rollback 与在线 enforcement",
+      "隐藏产品自称做多编码者复核，并把成员资格与成熟度判断分离"
     ],
     "concepts": [
       "Agent Harness",
+      "Runtime Scope",
       "Agent Loop",
       "Tool Interface",
       "Context Management",
-      "Control Mechanisms"
+      "Control Mechanisms",
+      "Constitutive Definition",
+      "Membership vs Maturity",
+      "Anatomy Qualifiers",
+      "Online Enforcement",
+      "Evaluation Harness"
     ],
     "methods": [
       "Harness Decomposition",
       "Inclusion and Exclusion Test",
-      "Conceptual Analysis"
+      "Conceptual Analysis",
+      "Conceptual Genealogy",
+      "Binary Membership Test",
+      "Boundary Case Analysis",
+      "Qualitative Case Classification"
     ],
-    "datasets": [],
+    "datasets": [
+      "Selected Coding-Agent Case Corpus"
+    ],
     "topics": [
       "Agent Harness",
       "Software Engineering Agents"
     ],
     "open_questions": [
       "如何控制模型变量测量 harness 独立贡献？",
-      "怎样把 T3 与 T4 阈值转化为跨研究者可复现规则？"
+      "怎样把 T3 与 T4 阈值转化为跨研究者可复现规则？",
+      "源码盲编、轨迹盲编与运行干预能否对 T1—T4 得出一致结论？",
+      "可逆能力、事后审计与在线 enforcement 中哪一项构成 T4 最低门槛？",
+      "task-aware context 是成员条件还是成熟度？",
+      "T1—T4 能否预测过程可靠性，而不只是重述产品命名？"
     ],
     "evidence": [
+      "第 1 节 RQ1—RQ5 与第 2 节四条 prior-work front",
       "第 3 节，表 1",
       "第 4 节，官方 PDF 页 6—8（印刷页 5—7），表 2",
       "第 5 节五类邻近概念边界",
       "第 6 节，图 4 与表 4",
+      "第 7 节图 5 与四条 design tension axis",
       "第 8 节结论"
     ],
     "topic_contribution": "提供整个主题的构成性定义锚点和可操作成员测试。",
@@ -98,8 +124,23 @@
       },
       {
         "target": "arxiv:2604.18071",
-        "relation": "precedes",
-        "detail": "先判断成员资格，再进入五维架构设计空间"
+        "relation": "complements-and-scope-conflicts",
+        "detail": "先判断成员资格，再进入五维设计空间；70 项目宽语料不保证全部通过 T1—T4"
+      },
+      {
+        "target": "arxiv:2605.27922",
+        "relation": "partially-addresses-open-gap",
+        "detail": "已做 model–harness configuration 级比较，未完成单机制因果隔离"
+      },
+      {
+        "target": "arxiv:2605.14271",
+        "relation": "operationalizes-control-outcomes",
+        "detail": "从轨迹安全评估 harness 配置"
+      },
+      {
+        "target": "arxiv:2602.22302",
+        "relation": "formalizes-runtime-control",
+        "detail": "将部分行为约束表达为可执行 contract"
       }
     ]
   }

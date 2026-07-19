@@ -70,7 +70,7 @@
       "status": "deposited",
       "report_path": "reports/what-makes-a-harness-a-harness/report.md",
       "report_kind": "paper",
-      "report_sha256": "c3d553898ab81f0a1407fc9bd2aacb9d26a71d27cb35feff994180e0c60f8a4b"
+      "report_sha256": "bdc8e2f3786d57dc0a514d35f227b79fd0919ebc7aa2bd8920b4e78988049f8f"
     },
     {
       "source_id": "arxiv:2604.18071",
@@ -81,7 +81,7 @@
       "status": "deposited",
       "report_path": "reports/architectural-design-decisions-agent-harnesses/report.md",
       "report_kind": "paper",
-      "report_sha256": "49b2975a38a9fec790d5f52b519452ccb3c4de1f1bead84d4e0fca0865ded0a9"
+      "report_sha256": "48994bf0ae94a44a4b5450e1454dcc91c13ca353ad5b3ad432fe4910361c2168"
     }
   ],
   "entities": {
@@ -90,8 +90,12 @@
       "Architecture Design Space",
       "Context Engineering",
       "Control Mechanisms",
+      "Constitutive Definition",
       "Entropy Management",
       "Orchestration",
+      "Membership vs Maturity",
+      "Online Enforcement",
+      "Runtime Scope",
       "Safety Mechanisms",
       "Subagent Architecture",
       "Tool Systems"
@@ -100,7 +104,9 @@
       "Deterministic Feedback",
       "Harness Decomposition",
       "Co-occurrence Analysis",
-      "Pattern Synthesis"
+      "Pattern Synthesis",
+      "Binary Membership Test",
+      "Boundary Case Analysis"
     ],
     "tools": []
   },

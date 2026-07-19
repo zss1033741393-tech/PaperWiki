@@ -83,8 +83,8 @@ pre:not(.mermaid){overflow:auto;padding:1rem 1.2rem;background:#0f172a;color:#e2
 </tr>
 </tbody>
 </table>
-<p>论文进一步综合出 lightweight tools、balanced CLI frameworks、multi-agent orchestrators、enterprise full-featured、scenario-verticalized/research-oriented 五种模式（来源观点；定位：第 6.2—6.6 节）。这些是反复出现的设计组合中心，不是互斥类别、统计聚类或成熟度排行榜。对实际选型最有用的结论是：先确定目标的 complexity envelope——单步辅助、长时工作、多 agent 协调还是生产治理——再选一致的设计组合，而不是按流行度或逐项堆功能（来源观点；定位：第 7.1 节）。</p>
-<p>这也补强了“脚手架越多不一定越好”：70 项目横断面显示更深协调常与更显式的上下文服务共同出现，更强执行常与结构化治理共同出现，但论文明确把这些关系限定为描述性共现而非因果律（来源观点；定位：第 5 节与第 7.2—7.3 节）。</p>
+<p>论文进一步综合出 lightweight tools、balanced CLI frameworks、multi-agent orchestrators、enterprise full-featured、scenario-verticalized/research-oriented 五种模式（来源观点；定位：第 6.2—6.6 节）。这些是人工解释性综合得到的设计组合中心，不是互斥类别、统计聚类或成熟度排行榜。表 14 的 dominant assignments 分别为：lightweight 15 个、balanced CLI 18 个、multi-agent 22 个、enterprise 7 个、scenario/research 8 个；但完整项目矩阵和分配证据没有公开下载位置，因此外部读者不能独立复算模式稳定性。对实际选型最有用的仍是问题框架：先确定目标的 complexity envelope——单步辅助、长时工作、多 agent 协调还是生产治理——再选一致的设计组合，而不是把这些比例当作行业基准（来源观点与精读校正；定位：第 3.4、6.1—6.6、7.1 节）。</p>
+<p>这也补强了“脚手架越多不一定越好”：论文报告更深协调常与更显式的上下文服务共同出现，更强执行常与结构化治理共同出现，并把它们限定为描述性共现而非因果律（来源观点；定位：第 5 节与第 7.2—7.3 节）。不过精读发现表 10—12 的部分 support 数值无法按正文定义成立：container isolation 的边际比例为 0.31，交集 support 却写成 0.89；MCP-first 的边际为 0.143，交集 support 却写成 0.62。因而这里保留架构问题和作者报告的方向，不把共现强度视为已复核事实（精读核验；定位：表 6、7、10、12）。</p>
 <h2>概念地图</h2>
 <pre class="mermaid">flowchart TD
   M[Model] --&gt; L[Agent Loop]
@@ -191,7 +191,7 @@ pre:not(.mermaid){overflow:auto;padding:1rem 1.2rem;background:#0f172a;color:#e2
 <li><strong>模型本身不是完整 agent。</strong>OpenAI 的运行 walkthrough、Anthropic 的环境反馈循环、LangChain 的模型能力缺口和 arXiv 四项测试都要求模型外存在行动、观察和状态机制。</li>
 <li><strong>可靠完成不能只依赖模型自述。</strong>OpenAI 的测试与 lint、Fowler 的 feedback sensors、LangChain 的 verification hooks 以及 arXiv T4 都把外部验证视为可信执行的关键。</li>
 <li><strong>长时工作需要外部状态。</strong>OpenAI 的 compaction 与仓库知识、LangChain 的文件/Git、Fowler 的持续传感器共同表明，长期任务不能只靠无限增长的 prompt。</li>
-<li><strong>架构选择必须成组考虑。</strong>70 项目研究显示深层协调、显式上下文服务、工具扩展边界和治理机制反复共同出现；这支持按目标复杂度选择一致组合，但不证明任何组合具有因果性能优势。</li>
+<li><strong>架构选择值得成组检查。</strong>70 项目论文报告深层协调、显式上下文服务、工具扩展边界和治理机制反复共同出现；这给出了有用的选型问题，但原始矩阵未公开且部分 support 算术不一致，尚不能把组合强度或因果性能当作确定结论。</li>
 </ol>
 <h3>两组边界差异</h3>
 <ol>
@@ -200,7 +200,7 @@ pre:not(.mermaid){overflow:auto;padding:1rem 1.2rem;background:#0f172a;color:#e2
 <p><strong>讨论尺度不同。</strong>OpenAI Codex 文章描述单次运行内核；OpenAI Harness Engineering 与 Fowler 描述代码库和团队的长期控制系统。两者不是互斥定义，而是运行时核心与工程环境两个尺度。</p>
 </li>
 <li>
-<p><strong>“harness”一词的研究用途不同。</strong>arXiv:2606.10106 把它作为需要严格判定的概念，arXiv:2604.18071 只把它当作非 LLM 工程层的宽泛工作标签。本文保留前者的成员门槛，再使用后者的经验比较，不将 70 项目自动视为全部通过 T1—T4。</p>
+<p><strong>“harness”一词的研究用途不同，而且会改变经验分母。</strong>arXiv:2606.10106 把它作为需要严格判定的概念，arXiv:2604.18071 只把它当作非 LLM 工程层的宽泛工作标签。后者的纳入条件只要求约 500 LOC 或等同架构足迹，并暴露至少一种 infrastructure capability。固定 pipeline、机械 context handling 或无独立控制的项目可能被 T1—T4 排除，所以严格筛选不仅增加标签，还可能改变五维比例、共现和模式分布。</p>
 </li>
 </ol>
 <h3>一组互补关系</h3>
@@ -227,6 +227,7 @@ pre:not(.mermaid){overflow:auto;padding:1rem 1.2rem;background:#0f172a;color:#e2
 <li>arXiv:2606.10106 的四项条件能否在跨框架、跨任务的独立分类中获得稳定一致性？该论文是定义性预印本，本身没有做这种经验验证（来源观点与局限；定位：第 1 节官方 PDF 页 3〔印刷页 2〕的研究定位段）。</li>
 <li>上下文压缩怎样在节省 token 的同时保留长期任务的因果状态？Codex 的实现采用阈值触发的 compaction，LangChain 还列出工具输出卸载、skills、文件/Git 与规划等组合，70 项目研究观察到 hybrid、file-persistent 与 hierarchical 的多种实现，但七个来源没有给出统一最优策略（来源观点；OpenAI Codex [定位：全文 H2 #2（模型推理下的性能考量），第 11—14 段]；LangChain [定位：全文 H2 #9（上下文退化管理），第 4—6 段；全文 H2 #10（长时自治执行），第 2—7 段]；arXiv:2604.18071 第 4.2 节表 5）。</li>
 <li>用 T1—T4 重新筛选 70 项目语料后，五维分布和五种模式是否仍稳定？这是两篇论文组合后出现、但任一单篇都没有回答的问题（综合问题）。</li>
+<li>对 <code>claw-*</code> 等相关项目做谱系去重，并公开 70×字段矩阵后，表 10—12 的 support/confidence/lift 和表 14 的 dominant patterns 能否复算？这是 2604.18071 的复现门槛（精读问题；定位：第 3.4、5.1、6.1 节及附录 A）。</li>
 <li>哪些控制必须是计算式，哪些可以交给推断式 reviewer？Fowler 将二者并列，但其行为控制主题小节对 AI 生成测试的可信度保留疑问（来源观点；[定位：全文 H2 #4（计算式与推断式控制），表格；全文 H2 #8（控制类别中的行为控制），第 10—12 段]）。</li>
 <li>长期自治下，怎样验证架构一致性而不让人类重新逐项检查所有输出？OpenAI 在末尾学习中问题小节保留了长期架构连贯性与人类判断位置的问题（来源观点；[定位：全文 H2 #11（仍在探索的问题），第 2 段]）。</li>
 </ul>

@@ -15,7 +15,7 @@ human_confirmed: false
 - 作者：Sanderson Oliveira de Macedo。
 - 版本：arXiv:2606.10106v1，2026-06-08，cs.SE。
 - 原文：https://arxiv.org/abs/2606.10106
-- 阅读范围：第 1—8 节、表 1—4 和主要图示；这是概念分析论文，不包含性能实验。
+- 阅读范围：第 1—8 节、表 1—4、图 1—5、生成式 AI 使用声明与参考文献；论文没有附录，也不包含性能实验。
 
 ## 问题与背景
 
@@ -35,7 +35,7 @@ human_confirmed: false
 
 ### 2. 四项条件共同构成成员资格
 
-**来源观点：**系统必须同时具有 T1 推理—行动—观察循环、T2 可感知并改变外部环境的工具接口、T3 主动决定上下文进出的管理机制、T4 至少一种不依赖模型服从的限制、验证或确定性行动。
+**来源观点：**在单个任务运行时，包围一个或多个语言模型并使其作用于外部环境的工程层，必须同时具有 T1 推理—行动—观察循环、T2 可感知并改变外部环境的工具接口、T3 主动决定上下文进出的管理机制、T4 至少一种不依赖模型服从的限制、验证或确定性行动。
 
 [定位：第 4 节，官方 PDF 页 6—8（印刷页 5—7），表 2]
 
@@ -53,7 +53,7 @@ human_confirmed: false
 
 ### 5. 邻近概念通过失败条件分离
 
-**来源观点：**framework 提供多 agent 组合抽象，SDK 提供原材料，inline autocomplete 不闭合任务循环，eval harness 事后评分，固定 orchestrator 不根据观察改变路径；它们分别缺失四项条件中的某些部分。
+**来源观点：**framework 提供多 agent 组合抽象，SDK 提供原材料，inline autocomplete 不闭合任务循环，eval harness 事后评分，遵循固定图的 workflow orchestrator 不根据观察改变路径；它们分别缺失四项条件中的某些部分。这里的排除对象是固定编排，adaptive orchestrator 仍可能内嵌或实现 harness。
 
 [定位：第 5 节，framework、SDK、IDE plugin、eval harness 与 orchestrator 五个分界段]
 
@@ -74,14 +74,15 @@ human_confirmed: false
 
 ## 实验与证据性质
 
-论文没有运行 benchmark 或统计实验。它采用概念分析、术语谱系、一手灰色文献与持久标识文献综合，并用六个正例和两个边缘案例检查定义的一致性。因此表 4 是分类应用，不是证明性能收益的实验结果。
+论文没有运行 benchmark 或统计实验。它采用概念分析、术语谱系、一手灰色文献与持久标识文献综合，并用六个预选正例、inline autocomplete 和固定 retrieve–generate–format pipeline 两个边缘案例检查定义。图 4 还对 anatomy components 做了定性比较。因此表 4 是 conceptual case application，不是证明性能收益或跨观察者一致性的实验结果。
 
 ## 局限与适用边界
 
 - 六个正例本来就被选择为 harness，不能独立验证条件的经验充分性。
 - 论文的“必要且充分”是概念分析主张，尚未经过多研究者编码一致性或大样本系统分类验证。
 - T3 的“task-aware”阈值和 T4 的模型独立性在复杂产品中仍可能存在判断灰区。
-- 论文没有隔离模型与 harness 对任务性能的贡献，作者将其明确列为后续方法学缺口。
+- 案例证据没有冻结统一产品版本，也没有公开编码手册、搜索协议、盲编或多编码者复核。
+- 提交更早或同期的 Harness-Bench 已开始做 model–harness configuration 级比较（arXiv:2605.27922），但机制级因果隔离、单条件消融和严格成员测试仍缺失。
 
 [定位：第 6 节图 4 后的选择偏差说明；第 7 节末与第 8 节结论]
 
@@ -103,5 +104,40 @@ human_confirmed: false
 - 怎样在固定模型条件下测量 harness 的独立贡献？
 - T3 与 T4 的阈值怎样形成可复现的编码手册？
 - 成员资格之外，哪些成熟度指标能预测可靠性、成本和可审计性？
+
+## 精读补充（PaperForge 视角）
+
+> [!note] 关于这一节
+> 这一节在原报告的解释性阅读之上，补充作者思路重建、承重假设、最小证伪实验、强反例和后续方向。凡是论文没有直接声称的内容，正文都会说明它是重建、质疑或研究提议；这不是审稿评分，也不改变 `human_confirmed: false`。
+
+### 作者是怎么走到四条件测试的
+
+ReAct 已把 reasoning、action 和 observation 接成循环（arXiv:2210.03629）；SWE-agent 随后表明，模型能否有效改文件、跑命令，很大程度取决于 agent-computer interface（arXiv:2405.15793）；context engineering 的综述又把 retrieval、processing 和 management 提升为推理时的独立工程层（arXiv:2507.13334）。与此同时，AgentDojo 展示了工具返回内容劫持 agent 的攻击面，说明单靠模型服从不能形成可靠边界（arXiv:2406.13352）。实践侧却同时把 coding agent、SDK、framework、IDE plugin 和评测执行器称为 harness。
+
+从这些前置线索出发，一条合理的构思路径是：先抽出 loop、tool、context、control 四种反复出现的机制，再用“控制是否发生在单个任务运行时”切开 agent harness 与 eval harness，最后把四项机制写成成员测试。论文第 2—4 节给出了这条逻辑的材料，但没有把它写成真实的发现史；这里是逆向重建，未必等于作者实际的构思顺序。
+
+### 整篇真正押在哪一条假设上
+
+最承重的假设是：T1—T4 能形成稳定、二元、与具体实现无关的成员边界，而且不同观察者能从公开证据一致判断每一项是否越过阈值。论文确实给了阈值：T2 必须改变外部环境，T3 必须根据任务或当前观察选择上下文，T4 的效果必须不依赖模型合作（第 4 节，表 2 后 threshold and gradation 段）。它没有报告多编码者一致性、盲测样本或系统性的近邻负例。
+
+两个内部压力点会直接影响这项假设。固定窗口截断被判定不满足 T3，但带自适应 loop、读写工具和确定性测试门禁的短任务 coding agent 仍可能可靠工作；task-aware curation 可能更像成熟度要求。论文又用 Git auditability 与 reversal 判定 Aider 满足 T4（第 6 节 Aider 案例和表 4），而第 4 节明确说，单纯日志因不改变执行而失败。如果版本历史只支持事后审计和人工回滚，它是否独立约束当前执行仍不清楚。四项的工程直觉很强，“必要且充分”目前仍是需要经验检验的构成性主张。
+
+### 花一周就能把这条假设证伪的实验
+
+从 arXiv:2604.18071 的 70 项目语料中分层抽取 20 个系统，再加入 8 个近邻案例：inline completion、固定 pipeline、工具 SDK，以及从真实 harness 人工消融 T3 或 T4 后得到的变体。把第 4 节改写成逐项 codebook，隐藏项目自称和原论文标签，让 3 名工程师仅凭同一版本的源码、配置与运行轨迹独立判断 T1—T4，并保留证据路径。
+
+主指标是每项条件的 Fleiss κ、整体成员结论一致率，以及单条件消融是否只改变目标条件。若四项 κ 均达到 0.8、整体结论高度一致，且 T3/T4 消融稳定地把案例推出成员集合，成员测试获得支持；若 T3 或 T4 的 κ 低于 0.6，或同一机制因任务长度、产品名称和审计解释反复翻转，论文最核心的“可操作工具”主张就被反驳。这个实验只需冻结版本、编写 codebook、构造近邻变体和盲编，不必复现性能 benchmark。
+
+### 如果要反驳，最强的反例长什么样
+
+可以构造一个“Aider 一致性陷阱”：真实的 edit–test–observe agent 具有自适应 loop、仓库写权限和 task-aware context，每次修改也自动写入 Git 历史；但 Git 不阻止危险命令、不自动回滚，也不决定任务何时成功。按论文的 Aider 判例，auditability 与 reversibility 足以通过 T4；按论文自己的 T4 阈值，机制必须独立于模型而包含或改变执行，单纯可追溯记录不够。
+
+若这个系统通过，T4 会把普通确定性记账也吸收为控制，与日志反例冲突；若它失败，表 4 中 Aider 正例的主要依据需要重写。这个反例迫使定义回答一个动作语义问题：可逆能力、事后审计和在线 enforcement 中，哪一个才是 T4 的最低门槛？
+
+### 顺着缺口，一个值得做的新方向
+
+“固定模型比较多个 harness”已经不是空白：Harness-Bench 研究了 model–harness configuration（arXiv:2605.27922），HarnessAudit 评估 harness 轨迹安全（arXiv:2605.14271），Agent Behavioral Contracts 则把部分运行时约束表达为可执行 contract（arXiv:2602.22302）。更进一步的方向，是把成员定义做成 **mutation-based executable conformance standard**。
+
+每个条件对应可观察契约和故障注入：冻结下一步路径测试 T1，撤销写权限测试 T2，把选择器替换为纯长度截断测试 T3，让模型主动违抗限制测试 T4。首个实验可从 2604.18071 的语料选 30 个系统，为每个系统建立原版与单条件变体，比较源码盲编、轨迹盲编和运行干预三种判定是否一致，并检查通过条件能否解释 Harness-Bench 与 HarnessAudit 中的过程可靠性。现有工作分别覆盖架构分布、性能、安全轨迹和行为契约；本次检索没有找到把概念成员资格转成 mutation-based conformance science 的工作，这只是检索结果，不是已证明的新颖性。
 
 ## User notes

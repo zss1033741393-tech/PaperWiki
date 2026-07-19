@@ -43,19 +43,27 @@
       "显式 registry 是工具系统众数，MCP 与插件生态正在形成",
       "中间强度隔离常见，但结构化和防篡改审计较少",
       "更深协调常与显式上下文服务共同出现，更强执行常与结构化治理共同出现",
-      "五种架构模式对应不同复杂度包络，不存在单一最佳架构"
+      "五种 dominant pattern 的分布为 15/18/22/8/7；该分配来自解释性综合，不是统计聚类",
+      "表 10—12 的部分 support 数值与表 6—7 的边际比例不相容，核心共现强度需要原始矩阵复核"
     ],
     "limitations": [
       "公开可观察语料偏向开源系统，不能覆盖完整商业和内部生态",
       "非 PRISMA 式语料构建只支持分析覆盖，不支持普查式外推",
       "五维编码含解释判断且不是穷尽本体",
+      "完整项目级编码矩阵、逐字段证据和横向综合材料仅称为 internal audit materials，论文没有给出公开下载位置",
+      "按 P(A∩B) 定义，MCP-first×discovery 的 0.62 与 container×policy 的 0.89 support 不可能超过 0.143 和 0.31 的边际比例",
+      "memory、tool discovery 和 security score 的数值量尺与聚合规则未在摘要 codebook 定义",
+      "语料含多个相关 claw 生态项目，未报告 fork/谱系去重或 cluster sensitivity",
+      "语料未按 T1—T4 做严格成员筛选，固定 pipeline、机械 context handling 或缺少独立控制的项目可能不属于严格 harness",
+      "claude-code-src 代表案例依赖 source-visible leaked snapshot，证据性质不同于公开仓库",
       "共现不能建立因果或证明架构结果优劣",
       "2026-03-23 的横断面快照会随生态快速过时"
     ],
     "reproducibility": [
-      "按论文第 3 节的五维 codebook 逐项目核对源码、配置和文档证据",
-      "保留字段级证据路径与编码置信信息",
-      "将模式视为解释性综合而非可直接复现的聚类标签"
+      "公开材料足以重建 corpus 名单、筛选条件和 nominal codebook，但不足以直接重算项目级分布与共现",
+      "完整复现需要冻结 commit、70×字段矩阵、数值评分量尺、逐字段 evidence trail 和 pattern assignment 规则",
+      "优先复核表 10—12 的 support/confidence/lift，并报告字段级 κ/α 与 fork-cluster sensitivity",
+      "将模式视为解释性综合而非统计聚类或硬边界"
     ],
     "concepts": [
       "Agent Harness",
@@ -83,21 +91,24 @@
     "open_questions": [
       "用 T1—T4 严格筛选后五维分布是否稳定？",
       "哪些架构组合与可维护性、安全或任务结果存在可复现关联？",
-      "项目在设计空间中的纵向迁移路径是什么？"
+      "项目在设计空间中的纵向迁移路径是什么？",
+      "表 10—12 的 0.62、0.73、0.89 实际对应 support、confidence 还是内部综合评分？",
+      "按项目血缘去重后共现与五种模式是否仍稳定？",
+      "能否用可替换架构组件的多因素实验把描述性共现推进为因果证据？"
     ],
     "evidence": [
-      "第 3 节研究方法",
-      "第 4 节表 4—9",
-      "第 5 节共现分析",
-      "第 6 节五种模式",
-      "第 7.3 节有效性威胁"
+      "第 3.2—3.4 节、表 1—3、附录 A—C（语料、协议与 codebook）",
+      "第 4.1—4.5 节、表 4—9（五维边际分布）",
+      "第 5.1—5.3 节、表 10—12（共现、非共现及指标冲突）",
+      "第 6.1—6.6 节、表 13—14（解释性模式综合与 dominant assignments）",
+      "第 7.3 节（corpus/construct/internal/temporal validity）"
     ],
     "topic_contribution": "在严格成员测试之外提供经验性的五维架构设计空间与五种权衡模式。",
     "relations": [
       {
         "target": "arxiv:2606.10106",
-        "relation": "complements",
-        "detail": "2606 回答是否为 harness，本文回答如何设计和选择"
+        "relation": "complements-and-scope-conflicts",
+        "detail": "2606 的 T1—T4 可能排除本文语料中的固定 pipeline、机械 context wrapper 或无独立控制项目，改变经验分母与模式稳定性"
       },
       {
         "target": "url:7659f727e260",

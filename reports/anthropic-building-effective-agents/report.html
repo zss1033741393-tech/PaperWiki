@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Anthropic《Building Effective Agents》来源报告</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]})"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script><script>mermaid.initialize({startOnLoad:true,theme:'neutral'})</script>
+<style>
+:root{--ink:#172033;--muted:#64748b;--accent:#2563eb;--line:#dbe4f0;--paper:#fff;--bg:#f4f7fb}
+*{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.85 -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC",sans-serif}
+article{max-width:920px;margin:32px auto;padding:56px 72px;background:var(--paper);box-shadow:0 12px 40px #1e3a5f18;border-radius:18px}
+h1{font-size:2.35rem;line-height:1.3;margin:0 0 2rem} h2{margin-top:3rem;padding-bottom:.5rem;border-bottom:1px solid var(--line);color:#174ea6} h3{margin-top:2rem}
+p{margin:1rem 0} blockquote{margin:1.5rem 0;padding:1rem 1.25rem;background:#eff6ff;border-left:4px solid var(--accent);border-radius:0 10px 10px 0}
+table{width:100%;border-collapse:collapse;margin:1.4rem 0;font-size:.93rem} th,td{padding:.7rem .8rem;border:1px solid var(--line);vertical-align:top} th{background:#f1f5f9}
+pre:not(.mermaid){overflow:auto;padding:1rem 1.2rem;background:#0f172a;color:#e2e8f0;border-radius:10px} code{font-family:"SFMono-Regular",Consolas,monospace}
+.katex-display{overflow-x:auto;overflow-y:hidden;padding:.5rem 0} a{color:var(--accent)}
+@media(max-width:760px){article{margin:0;padding:28px 20px;border-radius:0}h1{font-size:1.75rem}body{font-size:16px}}
+</style></head><body><article><h1>Anthropic《Building Effective Agents》来源报告</h1>
+<blockquote>
+<p><strong>一句话结论：</strong>应先区分固定代码路径的 workflow 与由模型动态决定过程的 agent，再根据任务开放度、反馈条件和风险选择最简单的可行架构。</p>
+</blockquote>
+<h2>来源信息与阅读范围</h2>
+<ul>
+<li>来源：Anthropic Engineering，2024-12-19。</li>
+<li>原始 URL：https://www.anthropic.com/research/building-effective-agents</li>
+<li>当前规范 URL：https://www.anthropic.com/engineering/building-effective-agents</li>
+<li>阅读范围：定义、适用性、构建模式、agents、客户支持与 coding agents 附录。</li>
+</ul>
+<h2>问题与背景</h2>
+<p>文章针对团队容易过早采用复杂 agent framework 的现象，试图给出一套由简单到复杂的架构选择方法。它把 prompt chaining、routing、parallelization、orchestrator-workers 和 evaluator-optimizer 视为 workflow 模式，再把无法预先硬编码路径的任务交给 agent。</p>
+<h2>论证结构</h2>
+<p>首先定义 workflow/agent 边界并强调复杂度权衡；随后介绍增强 LLM 和五种可组合 workflow；接着描述 agent 的环境反馈循环、停止方式和适用条件；最后用客服与 coding agents 说明“可行动、可反馈、成功标准清晰”的任务为什么适合 agent。</p>
+<h2>关键观点与证据</h2>
+<h3>1. Workflow 与 agent 的差别在控制路径</h3>
+<p><strong>来源观点：</strong>workflow 由代码预先规定模型和工具的运行路径；agent 则让模型动态决定过程与工具使用方式。二者都属于广义 agentic systems，但架构控制权不同。</p>
+<p>[定位：全文 H2 #1（工作流与智能体定义），第 1 个列表]</p>
+<h3>2. 复杂度必须由任务收益证明</h3>
+<p><strong>来源观点：</strong>作者建议先寻找最简单方案，仅在需要时增加 agentic complexity，因为更高自治通常以延迟和成本换取任务表现，并增加错误累积风险。</p>
+<p>[定位：全文 H2 #2（何时使用智能体），第 1—2 段]</p>
+<h3>3. Agent 依赖环境真值而不是自我叙述</h3>
+<p><strong>来源观点：</strong>agent 在执行期间需要从工具调用或代码执行获得 ground truth，以判断进度；它可以在 checkpoint 或阻碍处返回人类，并可设置最大迭代次数等停止条件。</p>
+<p>[定位：全文 H2 #4（构建模式）中 Agents 子节，第 2—3 段]</p>
+<h3>4. 开放任务适合 agent，但需要 sandbox 与 guardrails</h3>
+<p><strong>来源观点：</strong>当步骤数量和路径无法预先预测时，动态 agent 更有价值；同时，自治意味着更高成本和复合错误风险，因此需要 sandbox 测试与适当 guardrails。</p>
+<p>[定位：全文 H2 #4（构建模式）中 Agents 子节，第 4—5 段]</p>
+<h3>5. 编码任务适合反馈循环，但仍需要人类系统判断</h3>
+<p><strong>来源观点：</strong>代码能由自动测试验证，agent 可以用测试结果迭代，输出质量也较易客观测量；但自动测试不能替代对更广系统要求的人类审查。</p>
+<p>[定位：全文 H2 #7（Agents in practice）中 Coding agents 子节，第 1 个列表及其后第 1 段]</p>
+<h2>核心概念与方法</h2>
+<ul>
+<li><strong>Workflow：</strong>由预定代码路径编排模型与工具。</li>
+<li><strong>Agent：</strong>由模型根据当前观察动态决定下一步。</li>
+<li><strong>Environmental Ground Truth：</strong>来自工具和执行环境、可用于校准进度的外部事实。</li>
+<li><strong>Evaluator-optimizer：</strong>生成与评价形成迭代反馈，但仍可以是预定 workflow。</li>
+<li><strong>Orchestrator-workers：</strong>动态分解子任务与综合结果，适用于不可预知的复杂分工。</li>
+</ul>
+<h2>局限与适用边界</h2>
+<ul>
+<li>文章定义的是广义 agentic systems，不直接定义“agent harness”的构成边界。</li>
+<li>主要证据来自 Anthropic 客户和自身实践，缺少受控比较实验。</li>
+<li>human checkpoint、停止条件和 guardrail 是常见控制模式，不应被误读为每个 agent 的充分定义。</li>
+<li>“简单优先”是架构决策原则，不意味着简单系统一定满足可靠性要求。</li>
+</ul>
+<h2>对 Agent Harness 主题的贡献</h2>
+<p>本文提供上层架构边界：harness 中可以承载 workflow 或 agent，但只有动态 observation-driven loop 才体现 agent 行为。它还强调 harness 必须把环境反馈和停止控制接入运行过程，而不是只提供工具列表。</p>
+<h2>与其他来源的关系</h2>
+<ul>
+<li>为 [[reports/openai-codex-agent-loop/report|OpenAI Codex Agent Loop]] 提供抽象架构语言；OpenAI 文章则给出具体实现。</li>
+<li>与 [[reports/fowler-harness-engineering/report|Fowler Harness Engineering]] 一致地强调外部评价和模型外控制。</li>
+<li>对 [[reports/langchain-agent-harness-anatomy/report|LangChain Anatomy]] 的宽组件列表形成约束：组件数量不是目标，复杂度必须由任务证明。</li>
+<li>与 [[reports/what-makes-a-harness-a-harness/report|What Makes a Harness a Harness]] 的边界不同：本文区分 workflow/agent，论文进一步区分 harness/framework/SDK/eval harness。</li>
+</ul>
+<h2>User notes</h2></article></body></html>

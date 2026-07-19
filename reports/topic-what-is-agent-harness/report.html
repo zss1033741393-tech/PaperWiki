@@ -1,0 +1,246 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>什么是 Agent Harness？</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]})"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script><script>mermaid.initialize({startOnLoad:true,theme:'neutral'})</script>
+<style>
+:root{--ink:#172033;--muted:#64748b;--accent:#2563eb;--line:#dbe4f0;--paper:#fff;--bg:#f4f7fb}
+*{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.85 -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC",sans-serif}
+article{max-width:920px;margin:32px auto;padding:56px 72px;background:var(--paper);box-shadow:0 12px 40px #1e3a5f18;border-radius:18px}
+h1{font-size:2.35rem;line-height:1.3;margin:0 0 2rem} h2{margin-top:3rem;padding-bottom:.5rem;border-bottom:1px solid var(--line);color:#174ea6} h3{margin-top:2rem}
+p{margin:1rem 0} blockquote{margin:1.5rem 0;padding:1rem 1.25rem;background:#eff6ff;border-left:4px solid var(--accent);border-radius:0 10px 10px 0}
+table{width:100%;border-collapse:collapse;margin:1.4rem 0;font-size:.93rem} th,td{padding:.7rem .8rem;border:1px solid var(--line);vertical-align:top} th{background:#f1f5f9}
+pre:not(.mermaid){overflow:auto;padding:1rem 1.2rem;background:#0f172a;color:#e2e8f0;border-radius:10px} code{font-family:"SFMono-Regular",Consolas,monospace}
+.katex-display{overflow-x:auto;overflow-y:hidden;padding:.5rem 0} a{color:var(--accent)}
+@media(max-width:760px){article{margin:0;padding:28px 20px;border-radius:0}h1{font-size:1.75rem}body{font-size:16px}}
+</style></head><body><article><h1>什么是 Agent Harness？</h1>
+<blockquote>
+<p><strong>一句话定义：</strong>Agent harness 是包围模型的运行时控制层：它通过循环、工具接口、上下文管理和控制机制，把一次模型调用变成能够观察、行动、验证、恢复并受约束地完成任务的 agent 系统。</p>
+</blockquote>
+<h2>主题界定</h2>
+<p>Agent harness 至少有两种讨论尺度，不能混为同一个定义。</p>
+<p>第一种是<strong>构成性定义</strong>：判断某个运行时系统“是不是” harness。本文采用 arXiv:2606.10106 提出的四项纳入测试作为清晰的操作性边界：系统必须同时具有推理—行动—观察循环、可改变外部环境的工具接口、主动上下文管理，以及不依赖模型配合也能生效的控制机制（来源观点；定位：第 4 节，官方 PDF 页 6–8〔印刷页 5–7〕的框定定义与表 2，以及页 8〔印刷页 7〕表 2 后的纳入/排除测试段落）。这是该预印本提出的参考定义，不代表已经形成经验上验证过的行业共识。</p>
+<p>第二种是<strong>工程实践与架构选择</strong>：判断 harness 如何变得可用、可靠、可维护。OpenAI、LangChain 与 Fowler 的文章分别把范围扩展到仓库知识、执行环境、文件与 Git、反馈传感器、架构约束和熵管理；arXiv:2604.18071 则从 70 个公共系统中提炼子代理、上下文、工具、安全和编排五个经验维度。这些维度和组件可以增强四项核心功能，但不应被误写为额外的必要条件（综合判断；依据见后文七个来源的小节）。</p>
+<p>本文因此先回答“什么条件下它成立”，再回答“成立之后怎样把它工程化”。</p>
+<h2>Harness、Model、Agent 与 Framework</h2>
+<ul>
+<li><strong>Model</strong> 是推理引擎：它接收当前输入，生成自然语言输出或工具调用意图。单次推理本身不会自动拥有持续任务状态、执行权限或确定性验证。</li>
+<li><strong>Agent</strong> 是会根据观察选择后续行动的系统。Anthropic 将预定代码路径称为 workflow，将由 LLM 动态决定过程和工具使用的系统称为 agent（来源观点；[定位：全文 H2 #1（工作流与智能体的定义边界），第 1 个列表]）。</li>
+<li><strong>Harness</strong> 是运行时控制层：它承接模型的行动请求，执行工具，把结果作为新观察送回循环，并管理上下文与非模型控制。Codex 的运行 walkthrough 明确展示了“推理—工具执行—结果写回—再次推理”的闭环（来源观点；[定位：全文 H2 #1（智能体循环），第 2、5 段]）。</li>
+<li><strong>Framework</strong> 是复用这些能力的构建工具箱，可能提供模型适配、工具注册、编排、状态或中间件。是否形成完整 harness，仍要看具体实例在任务运行时是否满足四项构成判据；“使用了 agent framework”不能替代逐项检查（综合判断；四项门槛依据：arXiv:2606.10106 第 4 节，官方 PDF 页 8〔印刷页 7〕表 2 后的纳入/排除测试段落）。</li>
+</ul>
+<p>四者的关系可以简写为：模型负责提出下一步，agent 体现基于观察而改变行动的能力，harness 让这种能力在环境中持续而受控地运行，framework 则帮助工程师搭建这些部件。一个 framework 可以只提供其中一部分；一个 harness 也可以由项目自有代码、脚本和仓库约定组成。</p>
+<h2>四项构成判据</h2>
+<p>以下判据的“构成性”与阈值均来自 arXiv:2606.10106，而不是本文自行宣称的行业标准（来源观点；定位：第 4 节，官方 PDF 页 6–8〔印刷页 5–7〕的框定定义与表 2，以及页 8〔印刷页 7〕表 2 后的纳入/排除测试段落）。四项必须同时成立：</p>
+<ol>
+<li><strong>Agent Loop（推理—行动—观察循环）</strong>：模型根据当前状态决定行动，行动结果作为观察进入下一轮推理。只有一次问答或一次固定调用，不构成这个闭环。</li>
+<li><strong>Tool Interface（工具接口）</strong>：接口不仅能读取信息，还必须能改变外部环境。只读检索可以为模型补充知识，却未达到该论文对 T2 的阈值。</li>
+<li><strong>Context Management（主动上下文管理）</strong>：运行时应根据内容或任务选择、组织、保留或压缩上下文；仅按长度机械截断不达到该论文对 T3 的阈值。</li>
+<li><strong>Control Mechanisms（模型无关控制机制）</strong>：至少一种限制、验证或确定性动作即使模型不合作仍然有效，例如权限边界、步数限制或测试门禁。</li>
+</ol>
+<p>这四项回答的是成员资格，不是成熟度排名。多 agent、学习或微调、某个特定模型和用户界面都不是必要条件（来源观点；定位：arXiv:2606.10106 第 4 节，官方 PDF 页 7〔印刷页 6〕的非必要属性段落）。同理，日志、重试、规划文件和沙箱往往很有价值，但应先说明它们增强哪一项核心功能，而不是无限扩张定义。</p>
+<h2>从构成到工程：上下文、约束与熵管理</h2>
+<p>OpenAI 的实践把工程师角色描述为设计系统、脚手架、工具、抽象与反馈回路，并建议让短小的 <code>AGENTS.md</code> 充当结构化、版本化仓库知识的地图（来源观点；[定位：全文 H2 #2（工程师角色重定义），第 1—4 段；全文 H2 #4（仓库知识系统），第 1—4、7 段]）。同一文章还以自定义 linter 和结构测试机械执行架构不变量，并用周期性清理与“黄金原则”抵抗 agent 复制既有模式造成的漂移（来源观点；[定位：全文 H2 #6（架构约束），第 1—5 段；全文 H2 #10（熵与清理），第 1—5 段]）。</p>
+<p>Fowler 则把 coding-agent 用户的外层 harness 写成互补的 feedforward guides 与 feedback sensors：前者在行动前引导，后者在行动后提供可自我纠正的信号（来源观点；[定位：全文 H2 #3（前馈与反馈），第 1 个列表与第 2 段]）。这些控制既可以是计算式的，也可以是推断式的，具体例子包括脚本、codemod、结构测试、静态分析、<code>AGENTS.md</code>、skills 与 review agents（来源观点；[定位：全文 H2 #4（计算式与推断式控制），表格]）。</p>
+<p><strong>综合判断：</strong>可以把成熟 harness 理解为三个相互连接、但层级不同的工程回路：上下文工程让模型在当前任务中看到正确的信息；机械约束与可执行反馈限制当次行为并暴露错误；熵管理把重复出现的失败模式反写为规则、测试或清理任务，防止长期漂移。它们分别服务于认知可行性、运行时可控性和系统可维护性，不应都缩减为“写更长的 prompt”。这一组合是对 OpenAI 与 Fowler 实践框架的综合，而非任何单一来源给出的必要且充分定义。</p>
+<h2>从“是不是”到“怎么设计”：五维架构空间</h2>
+<p>arXiv:2604.18071 把 “agent harness” 用作非 LLM 工程层的宽泛工作标签，而不是严格本体定义（来源观点；定位：第 2 节开头）。因此本文采用两步法：先用 T1—T4 判断候选系统是否满足 harness 成员门槛，再用该论文的五维空间比较其架构位置。</p>
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>要回答的问题</th>
+<th>主要权衡</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>子代理架构</td>
+<td>是否拆分角色，怎样委派、递归与协调</td>
+<td>分解能力 vs. 协调成本与可理解性</td>
+</tr>
+<tr>
+<td>上下文管理</td>
+<td>怎样持久化、压缩、检索并分配 token</td>
+<td>连续性与召回 vs. 基础设施与上下文污染</td>
+</tr>
+<tr>
+<td>工具系统</td>
+<td>怎样注册、发现、路由和执行能力</td>
+<td>扩展性与互操作性 vs. 执行边界复杂度</td>
+</tr>
+<tr>
+<td>安全机制</td>
+<td>怎样审批、隔离、记录和追责</td>
+<td>执行自由度 vs. 保证与治理成本</td>
+</tr>
+<tr>
+<td>编排</td>
+<td>谁决定顺序、触发、并发和停止</td>
+<td>灵活性 vs. 可预测性与调试难度</td>
+</tr>
+</tbody>
+</table>
+<p>论文进一步综合出 lightweight tools、balanced CLI frameworks、multi-agent orchestrators、enterprise full-featured、scenario-verticalized/research-oriented 五种模式（来源观点；定位：第 6.2—6.6 节）。这些是人工解释性综合得到的设计组合中心，不是互斥类别、统计聚类或成熟度排行榜。表 14 的 dominant assignments 分别为：lightweight 15 个、balanced CLI 18 个、multi-agent 22 个、enterprise 7 个、scenario/research 8 个；但完整项目矩阵和分配证据没有公开下载位置，因此外部读者不能独立复算模式稳定性。对实际选型最有用的仍是问题框架：先确定目标的 complexity envelope——单步辅助、长时工作、多 agent 协调还是生产治理——再选一致的设计组合，而不是把这些比例当作行业基准（来源观点与精读校正；定位：第 3.4、6.1—6.6、7.1 节）。</p>
+<p>这也补强了“脚手架越多不一定越好”：论文报告更深协调常与更显式的上下文服务共同出现，更强执行常与结构化治理共同出现，并把它们限定为描述性共现而非因果律（来源观点；定位：第 5 节与第 7.2—7.3 节）。不过精读发现表 10—12 的部分 support 数值无法按正文定义成立：container isolation 的边际比例为 0.31，交集 support 却写成 0.89；MCP-first 的边际为 0.143，交集 support 却写成 0.62。因而这里保留架构问题和作者报告的方向，不把共现强度视为已复核事实（精读核验；定位：表 6、7、10、12）。</p>
+<h2>概念地图</h2>
+<pre class="mermaid">flowchart TD
+  M[Model] --&gt; L[Agent Loop]
+  L --&gt; T[Tool Interface]
+  L --&gt; C[Context Management]
+  L --&gt; K[Control Mechanisms]
+  T --&gt; F[Environment Feedback]
+  F --&gt; L
+  C --&gt; L
+  K --&gt; L
+  H[Agent Harness] --&gt; L
+  H --&gt; T
+  H --&gt; C
+  H --&gt; K
+  H --&gt; D[Architecture Design Space]
+  D --&gt; S[Subagent Architecture]
+  D --&gt; X[Tool Systems]
+  D --&gt; G[Safety Mechanisms]
+  D --&gt; O[Orchestration]
+  D -. reuses .-&gt; C
+</pre>
+<p>图中的闭环有直接的运行时依据：Codex walkthrough 描述工具结果被追加到下一次模型输入，循环直到模型输出 assistant message（来源观点；[定位：全文 H2 #1（智能体循环），第 6—7 段]）。四条从 Harness 指向核心部件的实线边采用 arXiv:2606.10106 的构成性拆分（来源观点；定位同前：第 4 节，官方 PDF 页 6–8〔印刷页 5–7〕表 2）；Architecture Design Space 及其五维分支来自 arXiv:2604.18071 第 3.3、4 节，用于比较实现而非增加成员条件。</p>
+<h2>最小对比案例：给 Python CLI 增加输入校验</h2>
+<p>这是一个<strong>有来源支撑的执行路径分析</strong>，不是模型对照实验；本文没有运行两个模型、没有报告性能数字，也不声称该路径必然提升正确率。场景假设是：给已有 Python CLI 增加参数校验，同时遵守仓库规则与测试门禁。</p>
+<h3>裸模型调用</h3>
+<p>用户把需求和少量代码片段一次性发给模型，模型返回建议补丁。没有运行时循环替模型读取仓库、编辑文件、执行测试或把失败结果送回下一轮；也没有独立权限、恢复点或完成门禁。它可以产出有用文本，但按四项测试并不是完整 agent harness（综合判断；判据依据：arXiv:2606.10106 第 4 节，官方 PDF 页 8〔印刷页 7〕表 2 后的纳入/排除测试段落）。</p>
+<h3>带 Harness 的 Agent</h3>
+<p>执行路径如下，每一步括号中标出主要的 harness 部件：</p>
+<ol>
+<li><strong>读取仓库规则与相关文件</strong>（Context Management + Tool Interface）：主动选择 <code>AGENTS.md</code>、CLI 入口和相关测试，而不是把整个仓库无差别塞入 prompt。仓库本地知识与渐进披露的依据见 OpenAI [定位：全文 H2 #4（仓库知识系统），第 1—4、7 段]。</li>
+<li><strong>建立任务状态</strong>（Context Management）：记录目标、约束、已读文件和待验证事项，让后续迭代能够延续。文件系统承担上下文窗外状态与中间结果的依据见 LangChain [定位：全文 H2 #5（持久存储与上下文管理），第 1 个列表与第 5 段]。</li>
+<li><strong>在隔离 worktree 中编辑</strong>（Tool Interface + Context Management）：工具在独立 checkout 中改变真实代码，Git 保存差异并支持比较或恢复。<strong>综合判断：</strong>worktree 是本案例对状态与工具工作流的工程适配，只分离 checkout，不执行文件系统或进程权限；真正的权限边界必须由沙箱或工具策略提供。文件/Git 的持久状态与回滚依据见 LangChain [定位：全文 H2 #5（持久存储与上下文管理），第 5 段]；沙箱隔离依据见 [定位：全文 H2 #7（安全执行与验证），第 3 段]。</li>
+<li><strong>运行聚焦测试</strong>（Tool Interface + Control Mechanisms）：测试运行器把可执行验证变成模型外部的确定性传感器。测试工具提供观察并支持自验证的依据见 LangChain [定位：全文 H2 #7（安全执行与验证），第 4—5 段]。</li>
+<li><strong>解释失败并迭代</strong>（Agent Loop + Environment Feedback）：把测试输出作为新观察，模型据此选择下一次读取、编辑或测试。工具结果进入下一轮推理的依据见 OpenAI Codex 文章 [定位：全文 H2 #1（智能体循环），第 5—7 段]。</li>
+<li><strong>运行完整验证</strong>（Control Mechanisms）：在局部修正后执行更广的门禁，避免模型仅凭自述宣布成功。模型无关验证及其独立生效阈值的依据见 arXiv:2606.10106 第 4 节表 2 与官方 PDF 页 8（印刷页 7）表后段落。</li>
+<li><strong>发出可审计结果</strong>（Context Management + Control Mechanisms）：报告改动、命令、结果和仍存疑点，使人能复核完成判据。Fowler 关于反馈传感器与持续改进的依据见 [定位：全文 H2 #3（前馈与反馈），第 1 个列表与第 2 段；全文 H2 #6（迭代维护），第 1 段]。</li>
+</ol>
+<h3>对照表</h3>
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>裸模型调用</th>
+<th>带 Harness 的 Agent</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>输入上下文</td>
+<td>用户一次性提供需求与片段</td>
+<td>主动读取规则、实现与测试，并按任务选择上下文（Context Management）</td>
+</tr>
+<tr>
+<td>迭代</td>
+<td>通常止于一次回答</td>
+<td>推理—行动—观察循环持续到满足停止条件（Agent Loop）</td>
+</tr>
+<tr>
+<td>工具反馈</td>
+<td>没有真实执行结果回流</td>
+<td>文件、测试与命令结果写回下一轮（Tool Interface + Environment Feedback）</td>
+</tr>
+<tr>
+<td>状态</td>
+<td>仅有当前请求中的临时文本</td>
+<td>任务记录、文件与 Git 保存中间状态（Context Management）</td>
+</tr>
+<tr>
+<td>权限</td>
+<td>没有独立的运行时边界</td>
+<td>沙箱或工具策略限制文件系统、进程及可调用能力；worktree 不承担权限隔离（Control Mechanisms）</td>
+</tr>
+<tr>
+<td>验证</td>
+<td>依赖模型自述或用户之后检查</td>
+<td>聚焦测试与完整门禁提供模型外验证（Control Mechanisms）</td>
+</tr>
+<tr>
+<td>恢复</td>
+<td>失败后由用户重新组织上下文</td>
+<td>从持久状态、版本记录与失败观察继续（Context Management + Agent Loop）</td>
+</tr>
+<tr>
+<td>完成判据</td>
+<td>“已经回答”即结束</td>
+<td>确定性检查通过并输出可审计结果（Control Mechanisms）</td>
+</tr>
+</tbody>
+</table>
+<p>表中“迭代”和“工具反馈”对应 OpenAI Codex 文章 [定位：全文 H2 #1（智能体循环），第 5—7 段]；“状态”和“恢复”对应 LangChain [定位：全文 H2 #5（持久存储与上下文管理），第 1 个列表与第 5 段]；“权限”和“验证”对应其 [定位：全文 H2 #7（安全执行与验证），第 3—5 段] 及 arXiv:2606.10106 的 T4。<strong>综合判断：</strong>差别不在模型是否更聪明，而在执行路径是否把环境观察、状态与独立控制接成一个闭环。</p>
+<h2>七份独立报告导航</h2>
+<ol>
+<li><strong>定义在工程组织中的落地：</strong><a href="../openai-harness-engineering/report.html">OpenAI Harness Engineering 来源报告</a>。它说明工程师怎样设计仓库知识、可观察性、架构约束和持续清理；关键依据见原文全文 H2 #2、#4、#6 与 #10。</li>
+<li><strong>运行时循环：</strong><a href="../openai-codex-agent-loop/report.html">OpenAI Codex Agent Loop 来源报告</a>。它逐步展示推理、工具执行、观察写回和 compaction；关键依据见原文全文 H2 #1 第 5—10 段及 H2 #2 性能考量末段。</li>
+<li><strong>架构边界：</strong><a href="../anthropic-building-effective-agents/report.html">Anthropic Building Effective Agents 来源报告</a>。它区分固定 workflow 与动态 agent，并说明环境反馈、停止条件和复杂度权衡；关键依据见原文全文 H2 #1 的定义列表和 H2 #4 Agents 子节。</li>
+<li><strong>组件解剖：</strong><a href="../langchain-agent-harness-anatomy/report.html">LangChain Agent Harness Anatomy 来源报告</a>。它从期望行为反推文件系统、Git、sandbox、验证和长时任务组件；关键依据见原文全文 H2 #2、#5、#7 与 #10。</li>
+<li><strong>工程控制系统：</strong><a href="../fowler-harness-engineering/report.html">Fowler Harness Engineering 来源报告</a>。它用 feedforward、feedback、计算式/推断式控制和 steering loop 描述用户外层 harness；关键依据见原文全文 H2 #3、#4、#6 与 #9。</li>
+<li><strong>构成性成员测试：</strong><a href="../what-makes-a-harness-a-harness/report.html">What Makes a Harness a Harness 论文报告</a>。它提出 T1—T4 并与 framework、SDK、IDE plugin、eval harness 和 orchestrator 分界；关键依据见论文第 4 节表 2、第 5 节和第 6 节表 4。</li>
+<li><strong>经验架构设计空间：</strong><a href="../architectural-design-decisions-agent-harnesses/report.html">Architectural Design Decisions in AI Agent Harnesses 论文报告</a>。它用 70 个公共系统归纳五维架构空间和五种设计组合；关键依据见论文第 3 节方法、第 4 节表 4—9、第 6 节模式与第 7.3 节局限。</li>
+</ol>
+<h2>跨来源综合：共识、分歧与互补</h2>
+<h3>三组共识</h3>
+<ol>
+<li><strong>模型本身不是完整 agent。</strong>OpenAI 的运行 walkthrough、Anthropic 的环境反馈循环、LangChain 的模型能力缺口和 arXiv 四项测试都要求模型外存在行动、观察和状态机制。</li>
+<li><strong>可靠完成不能只依赖模型自述。</strong>OpenAI 的测试与 lint、Fowler 的 feedback sensors、LangChain 的 verification hooks 以及 arXiv T4 都把外部验证视为可信执行的关键。</li>
+<li><strong>长时工作需要外部状态。</strong>OpenAI 的 compaction 与仓库知识、LangChain 的文件/Git、Fowler 的持续传感器共同表明，长期任务不能只靠无限增长的 prompt。</li>
+<li><strong>架构选择值得成组检查。</strong>70 项目论文报告深层协调、显式上下文服务、工具扩展边界和治理机制反复共同出现；这给出了有用的选型问题，但原始矩阵未公开且部分 support 算术不一致，尚不能把组合强度或因果性能当作确定结论。</li>
+</ol>
+<h3>两组边界差异</h3>
+<ol>
+<li><strong>harness 边界宽度不同。</strong>LangChain 倾向把模型之外的全部代码、配置和执行逻辑纳入 harness；arXiv 论文只把 loop、tools、context、control 当作成员条件，其余属于成熟度组件。本文采用后者判断“是不是”，采用前者说明“可以怎样实现”。</li>
+<li>
+<p><strong>讨论尺度不同。</strong>OpenAI Codex 文章描述单次运行内核；OpenAI Harness Engineering 与 Fowler 描述代码库和团队的长期控制系统。两者不是互斥定义，而是运行时核心与工程环境两个尺度。</p>
+</li>
+<li>
+<p><strong>“harness”一词的研究用途不同，而且会改变经验分母。</strong>arXiv:2606.10106 把它作为需要严格判定的概念，arXiv:2604.18071 只把它当作非 LLM 工程层的宽泛工作标签。后者的纳入条件只要求约 500 LOC 或等同架构足迹，并暴露至少一种 infrastructure capability。固定 pipeline、机械 context handling 或无独立控制的项目可能被 T1—T4 排除，所以严格筛选不仅增加标签，还可能改变五维比例、共现和模式分布。</p>
+</li>
+</ol>
+<h3>一组互补关系</h3>
+<p>七个来源可以连成“定义—比较—实现—维护”链：arXiv:2606.10106 给出成员测试，arXiv:2604.18071 提供五维设计空间和经验模式，OpenAI Codex 展示循环实现，Anthropic 约束何时需要动态 agent，LangChain 列出实现部件，OpenAI 工程实践说明怎样把仓库变得可工作，Fowler 则说明怎样用重复失败持续改进控制系统。</p>
+<h2>常见误区</h2>
+<ol>
+<li><strong>Prompt ≠ harness。</strong>系统提示可以作为 feedforward guide，但它本身没有行动—观察循环、可改变环境的工具、主动上下文管理和模型外控制。把 prompt 写长不会自动补齐这些部件（综合判断；四项门槛见 arXiv:2606.10106 第 4 节表 2）。</li>
+<li><strong>工具 wrapper ≠ harness。</strong>一次 API 包装即使能调用工具，也可能没有迭代、上下文选择或模型无关门禁；工具必须进入可观察、可纠正的运行时闭环（综合判断；循环依据见 OpenAI Codex 文章 [定位：全文 H2 #1（智能体循环），第 5—7 段]；T1–T4 全纳入测试见 arXiv:2606.10106 第 4 节表 2 后段落）。</li>
+<li><strong>Framework ≠ 自动获得完整 harness。</strong>framework 提供可复用原语，但具体配置可能只形成预定 workflow，或者缺少四项中的某一项（综合判断；workflow/agent 边界见 Anthropic [定位：全文 H2 #1（工作流与智能体的定义边界），第 1 个列表]；构成门槛见 arXiv:2606.10106 第 4 节表 2）。</li>
+<li><strong>脚手架越多 ≠ 总是越好。</strong>Anthropic 建议在简单方案足够时优先简单方案，并指出自治会增加成本和错误累积风险（来源观点；[定位：全文 H2 #4（构建模式中的智能体），第 23—24 段]）。额外机制应对应已识别的失败模式，并能说明它增强循环、工具、上下文还是控制中的哪一项（综合判断）。</li>
+<li><strong>70 个项目 ≠ 70 个严格成员正例。</strong>架构研究使用宽泛工作标签，语料还包含 3 个基于公开材料的比较案例；只有重新执行 T1—T4，才能判断每个系统是否满足构成门槛（综合判断；两篇论文的方法边界分别见 arXiv:2604.18071 第 2—3 节与 arXiv:2606.10106 第 4 节）。</li>
+</ol>
+<h2>实践启发</h2>
+<ul>
+<li>先画执行闭环，再选产品：列出模型何时决策、工具如何改变环境、观察如何回流、何时停止，然后逐项检查 T1–T4。</li>
+<li>通过成员测试后再做五维取舍：先明确目标是单步辅助、长时工作、多 agent 协调还是生产治理，再比较子代理、上下文、工具、安全和编排的组合；不要把 enterprise 模式当作默认终点（来源观点；arXiv:2604.18071 第 6—7 节）。</li>
+<li>把上下文做成可维护的信息架构：让短规则文件指向相关文档、代码和测试，避免单一巨型提示。该建议来自 OpenAI [定位：全文 H2 #4（仓库知识系统），第 1—4、7 段]。</li>
+<li>同时设计行动前约束和行动后传感器：规则、类型与接口说明负责 feedforward，测试、lint、日志和审查负责 feedback。该划分来自 Fowler [定位：全文 H2 #3（前馈与反馈），第 1 个列表与第 2 段；全文 H2 #4（计算式与推断式控制），表格]。</li>
+<li>让关键门禁独立于模型自觉：权限、测试、预算和停止条件若只写在提示中，模型不配合时就无法构成 T4 所要求的控制（来源观点；arXiv:2606.10106 第 4 节，官方 PDF 页 8〔印刷页 7〕表 2 后段落）。</li>
+<li>把重复失败转化为系统改进：更新规则、结构测试或周期性清理，而不只是修当前输出。该实践依据 OpenAI [定位：全文 H2 #10（熵与清理），第 1—5 段]，以及 Fowler [定位：全文 H2 #6（迭代维护），第 1 段]。</li>
+</ul>
+<h2>开放问题</h2>
+<ul>
+<li>arXiv:2606.10106 的四项条件能否在跨框架、跨任务的独立分类中获得稳定一致性？该论文是定义性预印本，本身没有做这种经验验证（来源观点与局限；定位：第 1 节官方 PDF 页 3〔印刷页 2〕的研究定位段）。</li>
+<li>上下文压缩怎样在节省 token 的同时保留长期任务的因果状态？Codex 的实现采用阈值触发的 compaction，LangChain 还列出工具输出卸载、skills、文件/Git 与规划等组合，70 项目研究观察到 hybrid、file-persistent 与 hierarchical 的多种实现，但七个来源没有给出统一最优策略（来源观点；OpenAI Codex [定位：全文 H2 #2（模型推理下的性能考量），第 11—14 段]；LangChain [定位：全文 H2 #9（上下文退化管理），第 4—6 段；全文 H2 #10（长时自治执行），第 2—7 段]；arXiv:2604.18071 第 4.2 节表 5）。</li>
+<li>用 T1—T4 重新筛选 70 项目语料后，五维分布和五种模式是否仍稳定？这是两篇论文组合后出现、但任一单篇都没有回答的问题（综合问题）。</li>
+<li>对 <code>claw-*</code> 等相关项目做谱系去重，并公开 70×字段矩阵后，表 10—12 的 support/confidence/lift 和表 14 的 dominant patterns 能否复算？这是 2604.18071 的复现门槛（精读问题；定位：第 3.4、5.1、6.1 节及附录 A）。</li>
+<li>哪些控制必须是计算式，哪些可以交给推断式 reviewer？Fowler 将二者并列，但其行为控制主题小节对 AI 生成测试的可信度保留疑问（来源观点；[定位：全文 H2 #4（计算式与推断式控制），表格；全文 H2 #8（控制类别中的行为控制），第 10—12 段]）。</li>
+<li>长期自治下，怎样验证架构一致性而不让人类重新逐项检查所有输出？OpenAI 在末尾学习中问题小节保留了长期架构连贯性与人类判断位置的问题（来源观点；[定位：全文 H2 #11（仍在探索的问题），第 2 段]）。</li>
+</ul>
+<h2>刻意未纳入</h2>
+<p>本报告只使用前述七个固定来源作为证据。阅读列表 Foundations 中其他条目没有进入论证；更专门的 compaction、eval、permissions 等章节也没有作为证据来源。这样做是为了维持明确的来源角色与可审计边界，而不是暗示那些材料不重要。本文也没有进行模型实验、benchmark 比较或性能数字汇总。</p>
+<h2>来源清单</h2>
+<ol>
+<li><code>url:f6b93302265d</code> — <a href="https://openai.com/index/harness-engineering/">原文</a> — <a href="../openai-harness-engineering/report.html">独立报告</a> — role: <code>definition</code></li>
+<li><code>url:ae10eb4597fe</code> — <a href="https://openai.com/index/unrolling-the-codex-agent-loop/">原文</a> — <a href="../openai-codex-agent-loop/report.html">独立报告</a> — role: <code>runtime-loop</code></li>
+<li><code>url:38c43325a50c</code> — <a href="https://www.anthropic.com/research/building-effective-agents">原文</a> — <a href="../anthropic-building-effective-agents/report.html">独立报告</a> — role: <code>architecture-boundary</code></li>
+<li><code>url:7659f727e260</code> — <a href="https://blog.langchain.com/the-anatomy-of-an-agent-harness/">原文</a> — <a href="../langchain-agent-harness-anatomy/report.html">独立报告</a> — role: <code>component-anatomy</code></li>
+<li><code>url:33f520c0c534</code> — <a href="https://martinfowler.com/articles/exploring-gen-ai/harness-engineering.html">原文</a> — <a href="../fowler-harness-engineering/report.html">独立报告</a> — role: <code>engineering-system</code></li>
+<li><code>arxiv:2606.10106</code> — <a href="https://arxiv.org/abs/2606.10106">原文</a> — <a href="../what-makes-a-harness-a-harness/report.html">独立报告</a> — role: <code>constitutive-test</code></li>
+<li><code>arxiv:2604.18071</code> — <a href="https://arxiv.org/abs/2604.18071">原文</a> — <a href="../architectural-design-decisions-agent-harnesses/report.html">独立报告</a> — role: <code>architectural-design-space</code></li>
+</ol>
+<h2>User notes</h2></article></body></html>

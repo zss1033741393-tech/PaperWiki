@@ -1,7 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "type": "object",
-  "required": ["research_question", "contributions", "method", "experiments", "findings", "limitations", "reproducibility", "concepts", "methods", "datasets", "topics", "open_questions"],
   "properties": {
     "tldr": {"type": "string"},
     "research_question": {"type": "string"},
@@ -15,8 +14,13 @@
     "methods": {"type": "array", "items": {"type": "string"}},
     "datasets": {"type": "array", "items": {"type": "string"}},
     "topics": {"type": "array", "items": {"type": "string"}},
+    "tools": {"type": "array", "items": {"type": "string"}},
     "open_questions": {"type": "array", "items": {"type": "string"}},
     "evidence": {"type": "array", "items": {"type": "string"}},
-    "mermaid": {"type": "string"}
-  }
+    "mermaid": {"type": "string"},
+    "source_type": {"enum": ["paper", "blog", "docs", "github", "other"], "description": "Non-paper sources (record kind: source) may omit experiments, reproducibility, and datasets; evidence locators are section/heading for blog+docs and file paths for github. The CLI enforces the relaxed gate."}
+  },
+  "if": {"properties": {"source_type": {"enum": ["blog", "docs", "github", "other"]}}, "required": ["source_type"]},
+  "then": {"required": ["research_question", "contributions", "method", "findings", "limitations", "concepts", "methods", "topics", "open_questions"]},
+  "else": {"required": ["research_question", "contributions", "method", "experiments", "findings", "limitations", "reproducibility", "concepts", "methods", "datasets", "topics", "open_questions"]}
 }

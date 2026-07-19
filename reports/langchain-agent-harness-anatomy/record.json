@@ -1,0 +1,98 @@
+{
+  "paper_id": "url:7659f727e260",
+  "title": "The Anatomy of an Agent Harness",
+  "kind": "source",
+  "source_type": "blog",
+  "source_url": "https://blog.langchain.com/the-anatomy-of-an-agent-harness/",
+  "resolved_url": "https://www.langchain.com/blog/the-anatomy-of-an-agent-harness",
+  "status": "deposited",
+  "authors": [
+    "Vivek Trivedy"
+  ],
+  "year": 2026,
+  "provenance": [
+    {
+      "provider": "langchain-blog",
+      "retrieved_at": "2026-07-19T00:00:00+08:00"
+    }
+  ],
+  "reading": {
+    "report_path": "reports/langchain-agent-harness-anatomy/report.md",
+    "analysis_status": "generated-awaiting-human-confirmation",
+    "source_type": "blog",
+    "tldr": "从期望 agent 行为反推模型之外的工具、状态、执行环境、编排和验证组件。",
+    "research_question": "模型之外需要哪些系统组件，才能把模型智能转化为可持续、可验证的 agent 工作？",
+    "contributions": [
+      "给出涵盖提示、工具、基础设施、编排和 hooks 的宽 harness 边界",
+      "从模型能力缺口反推文件系统、执行、记忆和搜索组件",
+      "说明 sandbox 与观察工具怎样支持安全执行和自验证",
+      "把长时任务拆为持久状态、规划、继续执行和验证的组合"
+    ],
+    "method": "从期望 agent 行为反向推导所需 harness 特性，并结合当前 coding-agent 组件说明。",
+    "argument_structure": "宽边界定义 → 模型能力缺口 → 持久状态与执行组件 → context/long-horizon → 训练耦合和未来方向。",
+    "findings": [
+      "文件系统是上下文窗外状态和协作的基础原语",
+      "sandbox 提供 worktree 或 Git 本身不具备的执行隔离",
+      "测试和观察工具把结果转化为自验证反馈",
+      "长时任务依赖外部持久状态而非无限增长的 prompt"
+    ],
+    "limitations": [
+      "采用比构成性定义更宽的模型外边界",
+      "供应商文章与 deepagents 产品方向相关",
+      "组件枚举不能证明必要性",
+      "缺少隔离 harness 变量的性能比较"
+    ],
+    "concepts": [
+      "Agent Harness",
+      "Durable State",
+      "Context Rot",
+      "Safe Execution"
+    ],
+    "methods": [
+      "Backward Design",
+      "Self-verification",
+      "Just-in-time Context Assembly"
+    ],
+    "topics": [
+      "Agent Harness",
+      "Long-running Agents"
+    ],
+    "tools": [
+      "Filesystem",
+      "Git",
+      "Sandbox",
+      "Browser",
+      "Test Runner",
+      "deepagents"
+    ],
+    "open_questions": [
+      "哪些组件会随着模型能力提升被吸收到模型内部？",
+      "怎样按任务动态组装最小工具与上下文集合？"
+    ],
+    "evidence": [
+      "全文 H2 #2，第 1—4 段及第 1 个列表",
+      "全文 H2 #5，第 1—5 段及第 1 个列表",
+      "全文 H2 #7，第 1—5 段",
+      "全文 H2 #10，第 1—5 段",
+      "全文 H2 #12，第 1 个列表"
+    ],
+    "topic_contribution": "提供 harness 组件解剖以及从期望行为反推系统能力的方法。",
+    "relations": [
+      {
+        "target": "url:ae10eb4597fe",
+        "relation": "extends",
+        "detail": "从运行循环扩展到持久状态和安全执行"
+      },
+      {
+        "target": "url:f6b93302265d",
+        "relation": "supports",
+        "detail": "共同强调文件、可观察性和验证环境"
+      },
+      {
+        "target": "arxiv:2606.10106",
+        "relation": "broader-than",
+        "detail": "模型外组件边界宽于四项构成条件"
+      }
+    ]
+  }
+}

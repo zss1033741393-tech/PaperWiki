@@ -3,10 +3,11 @@
 PaperWiki is a composable workflow for discovering worthwhile papers, reading a selected paper, and depositing reviewed knowledge into a durable Markdown wiki.
 
 ```text
-discover-papers -> read-paper -> deposit-paper-knowledge
-                      ^    \               ^
-                 URL/DOI/PDF  deepen-reading  existing report / notes
-                              (PaperForge 精读补充)
+discover-papers ─┐
+                 ├─> read-source ──> deepen-reading ──> deposit-paper-knowledge
+ingest-reading-list ──> study-topic ──────────^
+       ^                    ^                              ^
+  awesome list URL   URL / DOI / PDF / web       existing report / notes
 ```
 
 Every stage is independently invocable. See [docs/PROJECT_PLAN.md](docs/PROJECT_PLAN.md) for the implementation plan and [docs/WORKFLOW.md](docs/WORKFLOW.md) for the operating contract.
@@ -20,6 +21,8 @@ python paperwiki.py finalize reports/latentmas/report.md reports/latentmas/analy
 python paperwiki.py deposit reports/latentmas/report.md
 python paperwiki.py recommend --topic "agent memory"
 python scripts/render_report.py reports/latentmas/report.md reports/latentmas/report.html
+python paperwiki.py ingest https://github.com/ai-boost/awesome-harness-engineering --list-slug harness-engineering
+python paperwiki.py mark harness-engineering url:abc123def456 --status studied
 ```
 
 Each paper uses its official lowercase abbreviation under `reports/` (or a title-derived slug when no abbreviation is supplied). The versioned artifact contract is `report.md`, `report.html`, `analysis.json`, and `record.json` inside that directory.
@@ -37,9 +40,11 @@ Vendored integrations are pinned as Git submodules: Paper Craft, paper-search-mc
 ## Skills
 
 - `discover-papers`: search, normalize, deduplicate, and transparently rank candidates.
-- `read-paper`: create a structured learning report from a URL, DOI, arXiv ID, or PDF.
-- `deepen-reading`: a complementary reading pass over an already-read report, using PaperForge's angles the first pass skips — how the idea formed, the one load-bearing assumption, a one-week test of it, the strongest counter-case, and a non-incremental follow-up.
-- `deposit-paper-knowledge`: ingest a report or notes into an idempotent linked knowledge base.
+- `ingest-reading-list`: sync a curated awesome list into a re-runnable reading list with study states.
+- `read-source`: create a structured learning report from a URL, DOI, arXiv ID, PDF, blog post, docs page, or GitHub repo.
+- `deepen-reading`: a complementary PaperForge reading pass over an already-read report.
+- `study-topic`: read several sources on one topic and produce a single Chinese synthesis report.
+- `deposit-paper-knowledge`: ingest a report, topic synthesis, or notes into an idempotent linked knowledge base.
 
 ## Obsidian
 

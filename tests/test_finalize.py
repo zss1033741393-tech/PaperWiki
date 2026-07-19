@@ -44,6 +44,28 @@ def _seed_canonical(root, analysis):
     return report, ap
 
 
+SOURCE_ANALYSIS = {
+    "tldr": "one line", "research_question": "Q", "contributions": ["C"], "method": "M",
+    "findings": ["F"], "limitations": ["L"], "concepts": ["Context Rot"],
+    "methods": ["Compaction"], "topics": ["Context Engineering"], "open_questions": ["Q?"],
+}
+
+
+def _seed_source(root, analysis):
+    folder = root / "reports/ece"
+    folder.mkdir(parents=True, exist_ok=True)
+    report = folder / "report.md"
+    report.write_text("# draft", encoding="utf-8")
+    record = {"paper_id": "url:abcdef123456", "title": "Effective Context Engineering",
+              "kind": "source", "source_type": "blog",
+              "source_url": "https://www.anthropic.com/engineering/x",
+              "reading": {"report_path": str(report)}}
+    (folder / "record.json").write_text(json.dumps(record), encoding="utf-8")
+    ap = folder / "analysis.json"
+    ap.write_text(json.dumps(analysis), encoding="utf-8")
+    return report, ap
+
+
 class FinalizeTests(unittest.TestCase):
     def test_preserves_authored_report_body(self):
         with tempfile.TemporaryDirectory() as td:
@@ -171,6 +193,47 @@ class FinalizeTests(unittest.TestCase):
             report, ap = _seed(Path(td), dict(FULL_ANALYSIS))
             paperwiki.cmd_finalize(type("A", (), {"report": str(report), "analysis": str(ap)}))
             self.assertTrue(report.with_suffix(".html").exists())
+
+
+class FinalizeSourceTests(unittest.TestCase):
+    def test_source_analysis_passes_without_paper_only_fields(self):
+        with tempfile.TemporaryDirectory() as td:
+            report, ap = _seed_source(Path(td), dict(SOURCE_ANALYSIS))
+            paperwiki.cmd_finalize(type("A", (), {"report": str(report), "analysis": str(ap)}))
+            text = report.read_text(encoding="utf-8")
+            self.assertIn("status: reading", text)
+
+    def test_source_scaffold_uses_neutral_source_sections(self):
+        with tempfile.TemporaryDirectory() as td:
+            report, ap = _seed_source(Path(td), dict(SOURCE_ANALYSIS))
+
+            paperwiki.cmd_finalize(type("A", (), {"report": str(report), "analysis": str(ap)}))
+
+            text = report.read_text(encoding="utf-8")
+            self.assertIn("## 来源信息与阅读范围", text)
+            self.assertIn("## 关键观点与证据", text)
+            self.assertIn("## 局限与适用边界", text)
+            self.assertNotIn("## 论文信息", text)
+            self.assertNotIn("## 实验与证据", text)
+            self.assertNotIn("[!summary]", text)
+
+    def test_source_analysis_still_requires_core_fields(self):
+        with tempfile.TemporaryDirectory() as td:
+            incomplete = dict(SOURCE_ANALYSIS)
+            del incomplete["findings"]
+            report, ap = _seed_source(Path(td), incomplete)
+            with self.assertRaises(ValueError) as cm:
+                paperwiki.cmd_finalize(type("A", (), {"report": str(report), "analysis": str(ap)}))
+            self.assertIn("findings", str(cm.exception))
+
+    def test_paper_analysis_gate_is_unchanged(self):
+        with tempfile.TemporaryDirectory() as td:
+            incomplete = dict(FULL_ANALYSIS)
+            del incomplete["experiments"]
+            report, ap = _seed(Path(td), incomplete)
+            with self.assertRaises(ValueError) as cm:
+                paperwiki.cmd_finalize(type("A", (), {"report": str(report), "analysis": str(ap)}))
+            self.assertIn("experiments", str(cm.exception))
 
 
 if __name__ == "__main__":

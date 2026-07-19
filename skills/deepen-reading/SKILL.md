@@ -5,7 +5,7 @@ description: Use when the user wants to deepen or supplement an already-read Pap
 
 # Deepen Reading
 
-Read a paper the way `read-paper` did not. This skill is a **complementary reading channel**: `read-paper` produces the primary explanatory report; `deepen-reading` goes back over the same paper with PaperForge's reading lenses and adds the angles the first pass did not cover. It is "读它没想到的地方" — reading further, not grading the paper.
+Read a paper the way `read-source` did not. This skill is a **complementary reading channel**: `read-source` produces the primary explanatory report; `deepen-reading` goes back over the same paper with PaperForge's reading lenses and adds the angles the first pass did not cover. It is "读它没想到的地方" — reading further, not grading the paper.
 
 ## Dependency
 
@@ -16,7 +16,7 @@ This skill applies the PaperForge active-reading framework, vendored at `vendor/
 
 Read the matching-language file before writing. If `vendor/paperforge/` is absent, run `git submodule update --init vendor/paperforge` and report the missing dependency rather than reconstructing the framework from memory.
 
-`read-paper` already covers PaperForge §1, §2, §4–§8 (problem, prior work, intuition, method, math, experiments, takeaways). This skill adds the reading angles a first pass usually skips — see `references/complementary-sections.md` for what to write and the survey adaptation. Do not restate what the report already says; add what it missed.
+`read-source` already covers PaperForge §1, §2, §4–§8 (problem, prior work, intuition, method, math, experiments, takeaways). This skill adds the reading angles a first pass usually skips — see `references/complementary-sections.md` for what to write and the survey adaptation. Do not restate what the report already says; add what it missed.
 
 ## Voice
 
@@ -32,7 +32,7 @@ PaperForge's §1/§3/§12 are not armchair sections — they require searching, 
 
 ## Workflow
 
-1. Identify the target report directory `reports/<paper-slug>/`. Require an existing `report.md`, `analysis.json`, and `record.json`; if any is missing, run `read-paper` first.
+1. Identify the target report directory `reports/<paper-slug>/`. Require an existing `report.md`, `analysis.json`, and `record.json`; if any is missing, run `read-source` first.
 2. Re-read the full `report.md` and `analysis.json`, and re-open the paper's full text (or the archived PDF under `raw/`) when an added claim needs page/section/figure evidence. Do not deepen from the summary alone.
 3. Run the searches above: verify §3 anchors, calibrate the §12 follow-up against existing work, and collect the arXiv IDs / citations you will cite inline.
 4. Write the complementary sections in `references/complementary-sections.md` in the voice above, grounded in the paper and in what the searches returned, citing page/section/figure/equation and arXiv IDs where it helps.
@@ -56,10 +56,10 @@ For a survey, position paper, or benchmark, adapt rather than skip: the load-bea
 
 ## Completion Gate
 
-Follow `AGENTS.md` and `read-paper`'s gate. Before claiming the supplement complete or committing:
+Follow `AGENTS.md` and `read-source`'s gate. Before claiming the supplement complete or committing:
 
 1. Rebuild `report.html` from `report.md` via `finalize`; never hand-edit rendered HTML or formulas.
-2. Run `python skills/read-paper/scripts/verify_report.py reports/<paper-slug>/report.md`. Any nonzero exit blocks completion.
+2. Run `python skills/read-source/scripts/verify_report.py reports/<paper-slug>/report.md`. Any nonzero exit blocks completion.
 3. Run the relevant regression tests, then the full suite.
 4. Spot-check rendering in a browser (and Obsidian when available): no `.katex-error`, no leftover raw `$`, no stray italics from leaked math, no horizontal overflow the added content introduced.
 

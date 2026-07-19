@@ -1,13 +1,15 @@
 #!/usr/bin/env python3
 """PaperWiki v1 CLI: discover, acquire, and deposit papers using stdlib only."""
 
-import argparse, concurrent.futures, datetime as dt, hashlib, json, math, re, sys, urllib.error, urllib.parse, urllib.request
+import argparse, concurrent.futures, datetime as dt, hashlib, html, json, math, re, sys, urllib.error, urllib.parse, urllib.request
 from pathlib import Path
 from xml.etree import ElementTree as ET
 
 UA = "PaperWiki/0.1 (+https://github.com/zss1033741393-tech/PaperWiki)"
 WEIGHTS = {"relevance":.30,"venue":.20,"citations":.15,"recency":.15,"reproducibility":.10,"author_continuity":.05,"novelty":.05}
 TOP_VENUES=("neurips","icml","iclr","acl","emnlp","cvpr","iccv","eccv","aaai","nature","science","jmlr")
+REQUIRED_PAPER_ANALYSIS=["research_question","contributions","method","experiments","findings","limitations","reproducibility","concepts","methods","datasets","topics","open_questions"]
+REQUIRED_SOURCE_ANALYSIS=["research_question","contributions","method","findings","limitations","concepts","methods","topics","open_questions"]
 
 def fetch(url, binary=False):
     req=urllib.request.Request(url,headers={"User-Agent":UA,"Accept":"application/json, application/atom+xml;q=.9, */*;q=.8"})
@@ -23,6 +25,83 @@ def paper_id(p):
     if p.get("arxiv_id"): return "arxiv:"+re.sub(r"v\d+$","",p["arxiv_id"],flags=re.I)
     title=re.sub(r"\W+"," ",p["title"].lower()).strip()
     return "title:"+hashlib.sha256(title.encode()).hexdigest()[:16]
+
+DOCS_HOST_PREFIXES=("docs.","platform.","developers.")
+DOCS_HOSTS=("modelcontextprotocol.io",)
+
+def norm_url(url):
+    """Canonical URL for identity: https, lowercase host, no trailing slash, no tracking params, no fragment."""
+    s=urllib.parse.urlsplit(url.strip())
+    pairs=[(k,v) for k,v in urllib.parse.parse_qsl(s.query,keep_blank_values=True) if not (k.lower().startswith("utm_") or k.lower()=="ref")]
+    return urllib.parse.urlunsplit(("https",s.netloc.lower(),s.path.rstrip("/"),urllib.parse.urlencode(pairs),""))
+
+def url_source_id(url):
+    """Stable source identity: arXiv > DOI > hash of the normalized URL (spec §4.1)."""
+    host=urllib.parse.urlsplit(url).netloc.lower()
+    if host.endswith("arxiv.org"):
+        aid=norm_arxiv(url)
+        if aid: return "arxiv:"+aid
+    m=re.search(r"doi\.org/(10\.\d{4,9}/[^\s?#]+)",url,re.I)
+    if m: return "doi:"+m.group(1).rstrip("/").lower()
+    return "url:"+hashlib.sha256(norm_url(url).encode()).hexdigest()[:12]
+
+def classify_source(url):
+    """Host heuristic: paper | github | docs | blog | other (spec §4.1)."""
+    host=urllib.parse.urlsplit(url).netloc.lower()
+    if not host: return "other"
+    if host.endswith("arxiv.org") or host.endswith("doi.org"): return "paper"
+    if host=="github.com" or host.endswith(".github.com"): return "github"
+    if host.startswith(DOCS_HOST_PREFIXES) or host in DOCS_HOSTS: return "docs"
+    if url.startswith(("http://","https://")): return "blog"
+    return "other"
+
+ENTRY_RE=re.compile(r"^\s*-\s+\[([^\]]+)\]\((https?://[^)\s]+)\)(.*)$")
+
+def parse_awesome_readme(text):
+    """Parse an awesome-list README into normalized entries. Returns (entries, unparsed_lines)."""
+    entries=[]; by_id={}; unparsed=[]; section=[]
+    for line in text.splitlines():
+        h=re.match(r"^(#{2,3})\s+(.*?)\s*$",line)
+        if h:
+            title=re.sub(r"^[^\w&]+","",h.group(2)).strip()
+            section=[title] if len(h.group(1))==2 else (section[:1] or [""])+[title]
+            continue
+        if section and section[0].lower()=="contents": continue
+        if not line.lstrip().startswith("- ["): continue
+        m=ENTRY_RE.match(line)
+        if not m: unparsed.append(line.strip()); continue
+        title,url,rest=m.group(1).strip(),m.group(2),m.group(3)
+        desc=" ".join(re.sub(r"^\s*[—–-]\s*","",re.sub(r"!\[[^\]]*\]\([^)]*\)","",rest).strip()).split())
+        sid=url_source_id(url)
+        if sid in by_id: by_id[sid].setdefault("also_in",[]).append(list(section)); continue
+        entry={"source_id":sid,"title":title,"url":url,"source_type":classify_source(url),"section_path":list(section),"description":desc}
+        by_id[sid]=entry; entries.append(entry)
+    return entries,unparsed
+
+LIST_STATUSES=("unread","queued","skimmed","studied","deposited","blocked")
+LIST_SYNC_KEYS=("title","url","source_type","section_path","description")
+
+def merge_reading_list(existing,parsed,now):
+    """Re-runnable sync: upstream metadata refreshes, local study state never overwritten (spec §4.1)."""
+    old={e["source_id"]:e for e in existing}; merged=[]; added=[]; changed=[]
+    for e in parsed:
+        prev=old.pop(e["source_id"],None)
+        if prev is None:
+            entry=dict(e); entry.update({"status":"unread","added_at":now,"status_updated_at":now}); added.append(e["source_id"])
+        else:
+            entry=dict(prev)
+            if any(prev.get(k)!=e.get(k) for k in LIST_SYNC_KEYS+("also_in",)): changed.append(e["source_id"])
+            for k in LIST_SYNC_KEYS: entry[k]=e[k]
+            if "also_in" in e: entry["also_in"]=e["also_in"]
+            else: entry.pop("also_in",None)
+            entry.pop("removed_upstream",None)
+        merged.append(entry)
+    removed=[]
+    for prev in old.values():
+        entry=dict(prev)
+        if not prev.get("removed_upstream"): removed.append(prev["source_id"])
+        entry["removed_upstream"]=True; merged.append(entry)
+    return merged,{"added":added,"removed":removed,"changed":changed}
 
 def arxiv_search(query,limit):
     search='all:"'+query.replace('"','')+'"' if query else "all:*"
@@ -159,6 +238,53 @@ def cmd_discover(a):
     result=sorted((score(p,a.query) for p in normalized),key=lambda x:x["discovery"]["score"],reverse=True)[:a.limit]
     payload={"query":a.query,"papers":result,"errors":errors}; Path(a.output).parent.mkdir(parents=True,exist_ok=True); Path(a.output).write_text(json.dumps(payload,ensure_ascii=False,indent=2),encoding="utf-8"); print(a.output)
 
+def readme_source(value):
+    """Resolve a local path / GitHub repo URL / raw URL to README text."""
+    p=Path(value)
+    if p.is_file(): return p.read_text(encoding="utf-8")
+    m=re.match(r"https?://github\.com/([^/]+)/([^/#?]+)",value)
+    if m: return fetch(f"https://raw.githubusercontent.com/{m.group(1)}/{m.group(2).removesuffix('.git')}/HEAD/README.md")
+    if value.startswith(("http://","https://")): return fetch(value)
+    raise ValueError("Provide a GitHub repo URL, a raw README URL, or a local README path")
+
+def cmd_ingest(a):
+    text=readme_source(a.source)
+    list_slug=a.list_slug or slug(Path(urllib.parse.urlsplit(a.source).path or a.source).name.removesuffix(".git").removesuffix(".md"))
+    out=Path(a.root)/"reading-lists"/f"{list_slug}.json"
+    existing=json.loads(out.read_text(encoding="utf-8")).get("entries",[]) if out.exists() else []
+    parsed,unparsed=parse_awesome_readme(text); now=dt.datetime.now(dt.timezone.utc).isoformat()
+    entries,diff=merge_reading_list(existing,parsed,now)
+    payload={"list_slug":list_slug,"source_repo":a.source,"retrieved_at":now,"entries":entries}
+    out.parent.mkdir(parents=True,exist_ok=True); out.write_text(json.dumps(payload,ensure_ascii=False,indent=2),encoding="utf-8")
+    status_counts={}; section_counts={}
+    for e in entries:
+        status_counts[e["status"]]=status_counts.get(e["status"],0)+1
+        top=(e.get("section_path") or ["(none)"])[0]; section_counts[top]=section_counts.get(top,0)+1
+    print(json.dumps({"list":str(out),"total":len(entries),"status_counts":status_counts,"section_counts":section_counts,"diff":diff,"unparsed_lines":unparsed},ensure_ascii=False,indent=2))
+
+def mark_list_entries(list_path,source_ids,status,reason=None):
+    """Move reading-list entries through the study state machine (spec §4.1)."""
+    if status not in LIST_STATUSES: raise ValueError(f"status must be one of {LIST_STATUSES}")
+    if status=="blocked" and not reason: raise ValueError("blocked requires a --reason")
+    if reason and status!="blocked": raise ValueError("reason only applies to blocked status")
+    path=Path(list_path); data=json.loads(path.read_text(encoding="utf-8")); now=dt.datetime.now(dt.timezone.utc).isoformat(); hit=0
+    for e in data.get("entries",[]):
+        if e.get("source_id") in source_ids:
+            e["status"]=status; e["status_updated_at"]=now
+            if status=="blocked": e["blocked_reason"]=reason
+            else: e.pop("blocked_reason",None)
+            hit+=1
+    path.write_text(json.dumps(data,ensure_ascii=False,indent=2),encoding="utf-8"); return hit
+
+def cmd_mark(a):
+    path=Path(a.list) if Path(a.list).is_file() else Path(a.root)/"reading-lists"/f"{a.list}.json"
+    if not path.exists(): raise FileNotFoundError(f"Reading list not found: {path}")
+    requested=set(a.source_ids); existing={e.get("source_id") for e in json.loads(path.read_text(encoding="utf-8")).get("entries",[])}
+    missing=sorted(requested-existing)
+    if missing: raise ValueError("source IDs not found: "+", ".join(missing))
+    hit=mark_list_entries(path,requested,a.status,getattr(a,"reason",None))
+    print(f"{hit}/{len(requested)} entries -> {a.status} in {path}")
+
 def resolve_arxiv(value):
     aid=norm_arxiv(value)
     if not aid: raise ValueError("Only arXiv IDs/URLs are supported by the dependency-free resolver")
@@ -169,8 +295,11 @@ def resolve_arxiv(value):
     return rows[0]
 
 def cmd_read(a):
-    aid=norm_arxiv(a.paper); local=Path(a.paper); doi=None; pdf_bytes=None
-    doi_match=re.search(r"(?:doi\.org/)?(10\.\d{4,9}/\S+)",a.paper,re.I)
+    local=Path(a.paper); doi=None; pdf_bytes=None
+    doi_match=re.search(r"(?:doi\.org/)?\b(10\.\d{4,9}/\S+)",a.paper,re.I)
+    arxiv_doi_match=re.search(r"10\.48550/arxiv\.(\d{4}\.\d{4,5})(?:v\d+)?",a.paper,re.I)
+    is_url=a.paper.startswith(("http://","https://"))
+    aid=arxiv_doi_match.group(1) if arxiv_doi_match else (norm_arxiv(a.paper) if not doi_match and (not is_url or "arxiv.org" in a.paper.lower()) else None)
     if aid:
         root=ET.fromstring(fetch(f"https://export.arxiv.org/api/query?id_list={aid}")); ns={"a":"http://www.w3.org/2005/Atom"}; e=root.find("a:entry",ns)
         if e is None: raise RuntimeError("Paper not found")
@@ -183,18 +312,102 @@ def cmd_read(a):
         p={"title":next(iter(x.get("title") or []),doi),"authors":[" ".join(filter(None,[v.get("given"),v.get("family")])) for v in x.get("author",[])],"abstract":re.sub(r"<[^>]+>"," ",x.get("abstract") or ""),"year":parts[0][0] if parts and parts[0] else None,"venue":next(iter(x.get("container-title") or []),None),"doi":doi,"source_url":x.get("URL") or "https://doi.org/"+doi,"provenance":[{"provider":"crossref","retrieved_at":dt.datetime.now(dt.timezone.utc).isoformat()}]}
     elif a.paper.startswith(("http://","https://")) and ".pdf" in a.paper.lower():
         p={"title":Path(urllib.parse.urlparse(a.paper).path).stem,"authors":[],"source_url":a.paper,"provenance":[{"provider":"direct-pdf","retrieved_at":dt.datetime.now(dt.timezone.utc).isoformat()}]}; pdf_bytes=fetch(a.paper,binary=True)
+    elif re.match(r"https?://github\.com/[^/]+/[^/#?]+",a.paper):
+        m=re.match(r"https?://github\.com/([^/]+)/([^/#?]+)",a.paper); owner,repo=m.group(1),m.group(2).removesuffix(".git")
+        try: readme=fetch(f"https://raw.githubusercontent.com/{owner}/{repo}/HEAD/README.md")
+        except Exception: readme=""
+        p={"title":f"{owner}/{repo}","authors":[],"abstract":" ".join(readme.split())[:600] or None,"source_url":a.paper,"kind":"source","source_type":"github","provenance":[{"provider":"github-readme","retrieved_at":dt.datetime.now(dt.timezone.utc).isoformat()}]}
+    elif is_url:
+        page=fetch(a.paper); tm=re.search(r"<title[^>]*>(.*?)</title>",page,re.S|re.I)
+        p={"title":html.unescape(" ".join(tm.group(1).split())) if tm else norm_url(a.paper),"authors":[],"source_url":a.paper,"kind":"source","source_type":classify_source(a.paper),"provenance":[{"provider":"web-page","retrieved_at":dt.datetime.now(dt.timezone.utc).isoformat()}]}
     else: raise ValueError("Provide an arXiv URL/ID, DOI, direct PDF URL, or local PDF")
-    p["paper_id"]=paper_id(p); p["status"]="reading"
+    p["paper_id"]=url_source_id(p["source_url"]) if p.get("kind")=="source" else paper_id(p); p["status"]="reading"
     raw=Path(a.root)/"raw/papers"; raw.mkdir(parents=True,exist_ok=True)
     stem=slug(p["paper_id"]); pdf=raw/f"{stem}.pdf"
     if pdf_bytes: pdf.write_bytes(pdf_bytes); p["pdf_path"]=str(pdf)
     paths=report_paths(a.root,getattr(a,"report_slug",None) or p["title"]); ensure_report_destination(paths,p["paper_id"]); paths["folder"].mkdir(parents=True,exist_ok=True); report=paths["report"]
-    report.write_text(f"---\npaper_id: {p['paper_id']}\nstatus: reading\nsource: {p.get('source_url') or str(local)}\n---\n\n# {p['title']}\n\n## Abstract\n\n{p.get('abstract') or 'Metadata source did not provide an abstract.'}\n\n## Paper Craft analysis\n\n> Run `$paper-analyzer` from `vendor/paper-craft-skills` against `{p.get('pdf_path') or p.get('source_url')}` and replace this block with the reviewed analysis.\n\n## User notes\n\n",encoding="utf-8"); p["reading"]={"report_path":str(report),"paper_craft_skill":"paper-analyzer","analysis_status":"pending-agent-review","full_text_available":bool(pdf_bytes)}; paths["record"].write_text(json.dumps(p,ensure_ascii=False,indent=2),encoding="utf-8"); print(report)
+    if p.get("kind")=="source": section,guidance="## Deep-read analysis",f"> Deep-read {p.get('source_url')} following `skills/read-source/SKILL.md`; cite section/heading (blog, docs) or file-path (repo) locators, write `analysis.json` beside this report, then run finalize."
+    else: section,guidance="## Paper Craft analysis",f"> Run `$paper-analyzer` from `vendor/paper-craft-skills` against `{p.get('pdf_path') or p.get('source_url')}` and replace this block with the reviewed analysis."
+    report.write_text(f"---\npaper_id: {p['paper_id']}\nstatus: reading\nsource: {p.get('source_url') or str(local)}\n---\n\n# {p['title']}\n\n## Abstract\n\n{p.get('abstract') or 'Metadata source did not provide an abstract.'}\n\n{section}\n\n{guidance}\n\n## User notes\n\n",encoding="utf-8"); p["reading"]={"report_path":str(report),"paper_craft_skill":"paper-analyzer" if p.get("kind")!="source" else None,"analysis_status":"pending-agent-review","full_text_available":bool(pdf_bytes)}; paths["record"].write_text(json.dumps(p,ensure_ascii=False,indent=2),encoding="utf-8"); print(report)
 
 def bullets(values): return "\n".join(f"- {v}" for v in values) if values else "- Not established from the available paper."
 
 SCAFFOLD_MARKER = "Run `$paper-analyzer`"
 FRONTMATTER_FIELDS = ("paper_id", "status", "source", "generated", "human_confirmed")
+
+def source_bullets(values):
+    if not values: return "- 当前来源未建立该项。"
+    rendered=[]
+    for value in values:
+        if isinstance(value,dict):
+            target=value.get("target") or value.get("source_id") or "其他来源"
+            relation=value.get("relation") or value.get("type") or "相关"
+            detail=value.get("detail") or value.get("note")
+            rendered.append(f"- {target}：{relation}"+(f"；{detail}" if detail else ""))
+        else: rendered.append(f"- {value}")
+    return "\n".join(rendered)
+
+def generated_source_report_body(p,analysis):
+    src=p.get("source_url") or p.get("pdf_path")
+    return f'''# {p['title']}
+
+> **一句话结论：**{analysis.get('tldr','')}
+
+## 来源信息与阅读范围
+
+- 来源类型：{p.get('source_type') or 'other'}
+- 原文：{src}
+- 阅读范围：{analysis.get('reading_scope') or '完整可访问正文'}
+
+## 问题与背景
+
+{analysis['research_question']}
+
+## 论证结构
+
+{analysis.get('argument_structure') or analysis['method']}
+
+## 关键观点与证据
+
+{source_bullets(analysis.get('contributions'))}
+
+### 主要发现
+
+{source_bullets(analysis.get('findings'))}
+
+### 证据定位
+
+{source_bullets(analysis.get('evidence'))}
+
+## 核心概念与方法
+
+### 概念
+
+{source_bullets(analysis.get('concepts'))}
+
+### 方法
+
+{source_bullets(analysis.get('methods'))}
+
+## 局限与适用边界
+
+{source_bullets(analysis.get('limitations'))}
+
+## 对主题的贡献
+
+{analysis.get('topic_contribution') or '尚未绑定到具体主题。'}
+
+## 与其他来源的关系
+
+{source_bullets(analysis.get('relations'))}
+
+## 开放问题
+
+{source_bullets(analysis.get('open_questions'))}
+
+## User notes
+
+'''
 
 def split_report_frontmatter(text):
     match=re.match(r"^---\r?\n(.*?)\r?\n---(?:\r?\n|$)",text,re.S)
@@ -254,7 +467,7 @@ def generated_report_body(p,analysis):
 
 ## 实验与证据
 
-{bullets(analysis['experiments'])}
+{bullets(analysis.get('experiments',[]))}
 
 ## 主要发现
 
@@ -266,7 +479,7 @@ def generated_report_body(p,analysis):
 
 ## 复现条件
 
-{bullets(analysis['reproducibility'])}
+{bullets(analysis.get('reproducibility',[]))}
 
 ## 关键概念
 
@@ -289,7 +502,7 @@ def cmd_finalize(a):
     if not side.exists(): raise FileNotFoundError(f"Missing reading record: {side}")
     analysis_path=Path(a.analysis); analysis_text=analysis_path.read_text(encoding="utf-8")
     p=json.loads(side.read_text(encoding="utf-8")); analysis=json.loads(analysis_text)
-    required=["research_question","contributions","method","experiments","findings","limitations","reproducibility","concepts","methods","datasets","topics","open_questions"]
+    required=REQUIRED_SOURCE_ANALYSIS if p.get("kind")=="source" else REQUIRED_PAPER_ANALYSIS
     missing=[k for k in required if k not in analysis]
     if missing: raise ValueError("Analysis is missing fields: "+", ".join(missing))
     if report.name == "report.md":
@@ -298,7 +511,8 @@ def cmd_finalize(a):
     existing=report.read_text(encoding="utf-8")
     _,body,_=split_report_frontmatter(existing)
     is_scaffold=SCAFFOLD_MARKER in existing or body.strip()=="# draft"
-    content=normalize_report_frontmatter(generated_report_body(p,analysis) if is_scaffold else existing,p)
+    generated=generated_source_report_body(p,analysis) if p.get("kind")=="source" else generated_report_body(p,analysis)
+    content=normalize_report_frontmatter(generated if is_scaffold else existing,p)
     report.write_text(content,encoding="utf-8")
     p["status"]="reading"; p.setdefault("reading",{}).update(analysis); p["reading"]["analysis_status"]="generated-awaiting-human-confirmation"
     side.write_text(json.dumps(p,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
@@ -343,6 +557,93 @@ def is_canonical_report(report, root, record, text, paper):
     fields,_,had_frontmatter=split_report_frontmatter(text)
     return report.name=="report.md" and len(relative.parts)==2 and record.resolve()==(report.parent/"record.json").resolve() and had_frontmatter and fields.get("paper_id")==paper["paper_id"]
 
+def report_content_sha256(report):
+    """Hash UTF-8 report content with checkout-specific line endings normalized to LF."""
+    text=Path(report).read_text(encoding="utf-8")
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+def validate_topic_bundle(topic_report, root):
+    """Validate a topic synthesis whose sources must have canonical standalone reports."""
+    root=Path(root).resolve(); topic_report=Path(topic_report).resolve()
+    try: topic_report.relative_to(root)
+    except ValueError: raise ValueError("Topic report must be inside the PaperWiki root")
+    topic_record=topic_report.parent/"record.json"
+    topic_html=topic_report.parent/"report.html"
+    if not topic_report.exists(): raise ValueError(f"Missing topic report: {topic_report}")
+    if not topic_record.exists(): raise ValueError(f"Missing topic record: {topic_record}")
+    if not topic_html.exists(): raise ValueError(f"Missing topic HTML: {topic_html}")
+    topic=json.loads(topic_record.read_text(encoding="utf-8"))
+    if topic.get("kind")!="topic": raise ValueError("Topic record must use kind: topic")
+    if topic.get("source_reports_required") is not True:
+        raise ValueError("Topic record does not require standalone source reports")
+    topic_fields,_,topic_frontmatter=split_report_frontmatter(topic_report.read_text(encoding="utf-8"))
+    if not topic_frontmatter: raise ValueError("Topic report is missing frontmatter")
+    if str(topic_fields.get("human_confirmed","")).lower()!="false":
+        raise ValueError("Topic report must remain human_confirmed: false until explicit confirmation")
+    sources=topic.get("sources") or []
+    if not sources: raise ValueError("Topic record has no sources")
+    seen_ids=set(); seen_paths=set(); kind_counts={}
+    required_topic_analysis=("evidence","topic_contribution","relations")
+    for source in sources:
+        source_id=str(source.get("source_id") or "")
+        if not source_id: raise ValueError("Topic source is missing source_id")
+        if source_id in seen_ids: raise ValueError(f"Duplicate source identity: {source_id}")
+        seen_ids.add(source_id)
+        relative=Path(str(source.get("report_path") or ""))
+        if not relative.parts or relative.is_absolute() or ".." in relative.parts:
+            raise ValueError(f"Invalid source report path for {source_id}")
+        report=(root/relative).resolve()
+        try: canonical_relative=report.relative_to((root/"reports").resolve())
+        except ValueError: raise ValueError(f"Source report must be under reports/: {relative.as_posix()}")
+        if report.name!="report.md" or len(canonical_relative.parts)!=2:
+            raise ValueError(f"Source report is not canonical: {relative.as_posix()}")
+        normalized_path=report.as_posix().casefold()
+        if normalized_path in seen_paths:
+            raise ValueError(f"Duplicate source report path: {relative.as_posix()}")
+        seen_paths.add(normalized_path)
+        if not report.exists(): raise ValueError(f"Missing source report: {relative.as_posix()}")
+        artifacts={
+            "report.html":report.with_suffix(".html"),
+            "analysis.json":report.parent/"analysis.json",
+            "record.json":report.parent/"record.json",
+        }
+        for label,path in artifacts.items():
+            if not path.exists(): raise ValueError(f"Missing source artifact {label}: {path.relative_to(root).as_posix()}")
+        record=json.loads(artifacts["record.json"].read_text(encoding="utf-8"))
+        analysis=json.loads(artifacts["analysis.json"].read_text(encoding="utf-8"))
+        if record.get("paper_id")!=source_id:
+            raise ValueError(f"Source identity mismatch for {source_id}: {record.get('paper_id')}")
+        report_kind=str(source.get("report_kind") or "")
+        if report_kind not in ("source","paper") or record.get("kind")!=report_kind:
+            raise ValueError(f"Source kind mismatch for {source_id}")
+        if str(record.get("title") or "")!=str(source.get("title") or ""):
+            raise ValueError(f"Source title mismatch for {source_id}")
+        if str(record.get("source_type") or "")!=str(source.get("source_type") or ""):
+            raise ValueError(f"Source type mismatch for {source_id}")
+        if norm_url(str(record.get("source_url") or ""))!=norm_url(str(source.get("url") or "")):
+            raise ValueError(f"Source URL mismatch for {source_id}")
+        digest=report_content_sha256(report)
+        if source.get("report_sha256")!=digest:
+            raise ValueError(f"Source report digest mismatch for {source_id}")
+        fields,body,had_frontmatter=split_report_frontmatter(report.read_text(encoding="utf-8"))
+        if not had_frontmatter: raise ValueError(f"Source report is missing frontmatter: {source_id}")
+        if fields.get("paper_id")!=source_id: raise ValueError(f"Source report frontmatter identity mismatch for {source_id}")
+        if str(fields.get("human_confirmed","")).lower()!="false":
+            raise ValueError(f"Source report must remain human_confirmed: false: {source_id}")
+        if SCAFFOLD_MARKER in body or body.strip()=="# draft":
+            raise ValueError(f"Source report is still a scaffold: {source_id}")
+        missing_analysis=[key for key in required_topic_analysis if not analysis.get(key)]
+        if missing_analysis:
+            raise ValueError(f"Source analysis missing topic fields for {source_id}: {', '.join(missing_analysis)}")
+        if str(record.get("status") or "")!="deposited" or str(source.get("status") or "")!="deposited":
+            raise ValueError(f"Source is not deposited: {source_id}")
+        kind_counts[report_kind]=kind_counts.get(report_kind,0)+1
+    return {"topic":topic.get("topic_slug"),"source_count":len(sources),"source_kinds":kind_counts}
+
+def cmd_validate_topic(a):
+    result=validate_topic_bundle(a.report,a.root)
+    print(json.dumps(result,ensure_ascii=False,sort_keys=True))
+
 def entity_path(root, collection, name):
     return root/"wiki"/collection/(slug(name)+".md")
 
@@ -359,29 +660,135 @@ def colliding_entity_stems(root, entity_specs):
 def entity_wikilink_target(root, target, colliding_stems):
     return target.relative_to(root).with_suffix("").as_posix() if target.stem in colliding_stems else target.stem
 
-def link_entity(root, collection, name, paper_title, paper_target, colliding_stems):
+def move_heading_before_trailing_user_notes(text,heading):
+    """Migrate a generated relationship section that legacy deposits appended after User notes."""
+    pattern=rf"^## {re.escape(heading)}[ \t]*\n(?:[ \t]*\n)?(?:- \[\[.*\n)*"
+    section=re.search(pattern,text,re.M)
+    notes=list(re.finditer(r"^## User notes[ \t]*$",text,re.M))
+    if not section or not notes or section.start()<notes[-1].start(): return text
+    block=section.group(0).strip("\n")
+    remaining=(text[:section.start()]+text[section.end():]).rstrip("\n")
+    trailing_notes=list(re.finditer(r"^## User notes[ \t]*$",remaining,re.M))
+    at=trailing_notes[-1].start()
+    moved=remaining[:at].rstrip("\n")+"\n\n"+block+"\n\n"+remaining[at:]
+    return moved.rstrip("\n")+("\n" if text.endswith("\n") else "")
+
+def insert_link_under_heading(old,heading,link):
+    """Insert a wikilink under a heading while keeping the trailing User notes section last."""
+    if link not in old:
+        m=re.search(rf"^## {re.escape(heading)}[ \t]*\n(?:[ \t]*\n)?((?:- \[\[.*\n)*)",old,re.M)
+        if m: old=old[:m.end()]+link+old[m.end():]
+        else:
+            # ``link`` already carries its terminating newline.  Adding another
+            # one here leaves a blank line at EOF when this is the final section.
+            section=f"## {heading}\n\n{link}"
+            notes=list(re.finditer(r"^## User notes[ \t]*$",old,re.M))
+            if notes:
+                at=notes[-1].start()
+                old=old[:at].rstrip("\n")+"\n\n"+section+old[at:]
+            else: old=old.rstrip("\n")+"\n\n"+section
+    return move_heading_before_trailing_user_notes(old,heading)
+
+def insert_canonical_page_link(old,heading,page_target,page_title):
+    """Replace a legacy short backlink when a vault-qualified target is required."""
+    short_target=Path(page_target).name
+    if short_target!=page_target:
+        old=old.replace(f"- [[{short_target}|{page_title}]]\n","")
+    link=f"- [[{page_target}|{page_title}]]\n"
+    if link in old:
+        empty=rf"\n## {re.escape(heading)}[ \t]*\n(?:[ \t]*\n)*(?=## |\Z)"
+        old=re.sub(empty,"\n\n",old)
+        return move_heading_before_trailing_user_notes(old,heading)
+    return insert_link_under_heading(old,heading,link)
+
+def remove_duplicate_related_links(related_pages, entity_links):
+    """Drop legacy Related pages links already emitted under Related knowledge."""
+    known=set(entity_links); kept=[]
+    for line in related_pages.splitlines():
+        match=re.fullmatch(r"-\s+(\[\[.*\]\])\s*",line)
+        if match and match.group(1) in known: continue
+        kept.append(line)
+    return "\n".join(kept).strip()
+
+def link_entity(root, collection, name, page_title, page_target, colliding_stems, heading="Related papers"):
     folder=root/"wiki"/collection; folder.mkdir(parents=True,exist_ok=True); target=entity_path(root,collection,name)
-    link=f"- [[{paper_target}|{paper_title}]]\n"; old=target.read_text(encoding="utf-8") if target.exists() else f"---\ntitle: \"{name.replace(chr(34),chr(39))}\"\ntype: {collection.rstrip('s')}\n---\n\n# {name}\n\n## Related papers\n\n"
-    target.write_text(old if link in old else old+link,encoding="utf-8"); link_target=entity_wikilink_target(root,target,colliding_stems); return f"[[{link_target}|{name}]]"
+    old=target.read_text(encoding="utf-8") if target.exists() else f"---\ntitle: \"{name.replace(chr(34),chr(39))}\"\ntype: {collection.rstrip('s')}\n---\n\n# {name}\n\n## {heading}\n\n"
+    target.write_text(insert_canonical_page_link(old,heading,page_target,page_title),encoding="utf-8"); link_target=entity_wikilink_target(root,target,colliding_stems); return f"[[{link_target}|{name}]]"
 
 def strip_leading_frontmatter(text):
     match=re.match(r"\A---[ \t]*\r?\n.*?\r?\n---[ \t]*(?:\r?\n(?:[ \t]*\r?\n)?)?",text,re.S)
     return text[match.end():] if match else text
 
+def link_source_page(root,source,page_title,page_target):
+    """Create or update a wiki/sources stub for a studied source; append the backlink idempotently. Files are keyed by source identity (like wiki/papers), titles stay readable aliases."""
+    folder=root/"wiki/sources"; folder.mkdir(parents=True,exist_ok=True)
+    name=str(source.get("title") or source.get("url") or source.get("source_id") or "source")
+    target=folder/(slug(str(source.get("source_id") or name))+".md")
+    old=target.read_text(encoding="utf-8") if target.exists() else f"---\ntitle: \"{name.replace(chr(34),chr(39))}\"\ntype: source\nsource_type: {source.get('source_type','other')}\nurl: {source.get('url','')}\nsource_id: {source.get('source_id','')}\n---\n\n# {name}\n\n## Related pages\n\n"
+    target.write_text(insert_canonical_page_link(old,"Related pages",page_target,page_title),encoding="utf-8"); return f"[[{target.stem}|{name}]]"
+
+def link_bound_topic_source(root,source,page_title,page_target):
+    """Link a validated standalone source/paper page without creating a fallback stub."""
+    kind=source.get("report_kind"); collection="sources" if kind=="source" else "papers" if kind=="paper" else None
+    if collection is None: raise ValueError(f"Unsupported topic report kind for {source.get('source_id')}: {kind}")
+    name=str(source.get("title") or source.get("url") or source.get("source_id") or "source")
+    target=root/"wiki"/collection/(slug(str(source.get("source_id") or name))+".md")
+    if not target.exists(): raise ValueError(f"Deposit standalone report before topic: {source.get('source_id')}")
+    old=target.read_text(encoding="utf-8")
+    target.write_text(insert_canonical_page_link(old,"Related pages",page_target,page_title),encoding="utf-8")
+    return f"[[{target.stem}|{name}]]"
+
+def deposit_topic(a,src,p):
+    """Deposit a topic synthesis record: short English graph page linking the Chinese report (spec §4.4)."""
+    root=Path(a.root); tslug=slug(p.get("topic_slug") or p["title"]); folder=root/"wiki/topics"; folder.mkdir(parents=True,exist_ok=True)
+    if p.get("source_reports_required") is True: validate_topic_bundle(src,root)
+    target=folder/(tslug+".md"); existing=target.read_text(encoding="utf-8") if target.exists() else ""; human=""
+    m=re.search(r"## User notes\s*(.*?)(?=\n## |\Z)",existing,re.S)
+    if m: human=m.group(1).strip()
+    rp=re.search(r"## Related papers\s*(.*?)(?=\n## |\Z)",existing,re.S); related_papers=rp.group(1).strip() if rp else ""
+    ent=p.get("entities") or {}; entity_specs=[]
+    for key,coll in [("concepts","concepts"),("methods","methods"),("tools","tools")]:
+        for name in ent.get(key,[]) or []: entity_specs.append((coll,str(name)))
+    collisions=colliding_entity_stems(root,entity_specs+[("topics",p["title"])])
+    topic_target=entity_wikilink_target(root,target,collisions)
+    entities=[link_entity(root,coll,name,p["title"],topic_target,collisions,heading="Related pages") for coll,name in entity_specs]
+    sources=[link_bound_topic_source(root,s_,p["title"],topic_target) if p.get("source_reports_required") is True else link_source_page(root,s_,p["title"],topic_target) for s_ in p.get("sources") or []]
+    report_target=report_wikilink_target(src,root)
+    ref=f"[[{report_target}|{p['title']} 综述]]" if report_target else f"`{src.resolve()}`"
+    papers_block=f"\n\n## Related papers\n\n{related_papers}" if related_papers else ""
+    body=(f"---\ntitle: \"{p['title'].replace(chr(34),chr(39))}\"\ntype: topic\nstatus: deposited\n---\n\n# {p['title']}\n\n## Synthesis report\n\n{ref}\n\n## Sources\n\n"+("\n".join(f"- {x}" for x in sources) if sources else "- None recorded.")+"\n\n## Related knowledge\n\n"+("\n".join(f"- {x}" for x in entities) if entities else "- No structured entities confirmed yet.")+papers_block+f"\n\n## User notes\n\n{human}\n").rstrip()+"\n"
+    target.write_text(body,encoding="utf-8")
+    idx=root/"index.md"; line=f"- [[{target.stem}|{p['title']}]]\n"; old=idx.read_text(encoding="utf-8") if idx.exists() else "# PaperWiki Index\n\n"; idx.write_text(old if line in old else old+line,encoding="utf-8")
+    log=root/"log.md"; old=log.read_text(encoding="utf-8") if log.exists() else "# Operation Log\n\n"; log.write_text(old+f"- {dt.datetime.now(dt.timezone.utc).isoformat()} deposit topic:{tslug}\n",encoding="utf-8")
+    lp=root/"reading-lists"/f"{p.get('list_slug') or ''}.json"
+    if p.get("list_slug") and lp.exists():
+        live=json.loads(lp.read_text(encoding="utf-8")); studied={e.get("source_id") for e in live.get("entries",[]) if e.get("status")=="studied"}
+        record_ids={s_.get("source_id") for s_ in p.get("sources") or [] if s_.get("source_id")}
+        mark_list_entries(lp,studied & record_ids,"deposited")
+    print(target)
+
 def cmd_deposit(a):
     src=Path(a.input); text=src.read_text(encoding="utf-8"); side=resolve_record_path(src,diagnose=True); p=json.loads(side.read_text(encoding="utf-8")) if side.exists() else {"title":re.search(r"^#\s+(.+)$",text,re.M).group(1),"provenance":[{"provider":"user-notes","path":str(src)}]}
-    p["paper_id"]=p.get("paper_id") or paper_id(p); root=Path(a.root); papers=root/"wiki/papers"; papers.mkdir(parents=True,exist_ok=True)
-    target=papers/(slug(p["paper_id"])+".md"); existing=target.read_text(encoding="utf-8") if target.exists() else ""; human=""
+    kind=p.get("kind") or "paper"; root=Path(a.root)
+    if kind=="topic": return deposit_topic(a,src,p)
+    p["paper_id"]=p.get("paper_id") or paper_id(p)
+    collection="sources" if kind=="source" else "papers"; heading="Related pages" if kind=="source" else "Related papers"
+    pages=root/"wiki"/collection; pages.mkdir(parents=True,exist_ok=True)
+    target=pages/(slug(p["paper_id"])+".md"); existing=target.read_text(encoding="utf-8") if target.exists() else ""; human=""
     note_sections=list(re.finditer(r"^## User notes[ \t]*\r?\n(.*?)(?=^## |\Z)",existing,re.M|re.S))
     if note_sections: human=note_sections[-1].group(1).strip()
+    rp=re.search(r"## Related pages\s*(.*?)(?=\n## |\Z)",existing,re.S) if kind=="source" else None; related_pages=rp.group(1).strip() if rp else ""
     reading=p.get("reading") or {}; entity_specs=[]
-    for key,collection in [("concepts","concepts"),("methods","methods"),("datasets","datasets"),("topics","topics")]:
-        for name in reading.get(key,[]) or []: entity_specs.append((collection,str(name)))
-    collisions=colliding_entity_stems(root,entity_specs); entities=[link_entity(root,collection,name,p["title"],target.stem,collisions) for collection,name in entity_specs]
+    for key,entity_collection in [("concepts","concepts"),("methods","methods"),("datasets","datasets"),("topics","topics"),("tools","tools")]:
+        for name in reading.get(key,[]) or []: entity_specs.append((entity_collection,str(name)))
+    collisions=colliding_entity_stems(root,entity_specs); entities=[link_entity(root,entity_collection,name,p["title"],target.stem,collisions,heading=heading) for entity_collection,name in entity_specs]
     source_target=report_wikilink_target(src,root)
     source_reference=f"[[{source_target}|{p['title']} report]]" if source_target else f"`{src.resolve()}`"
     synthesis_text=strip_leading_frontmatter(text)
-    body=(f"---\npaper_id: {p['paper_id']}\ntitle: \"{p['title'].replace(chr(34),chr(39))}\"\nstatus: deposited\n---\n\n# {p['title']}\n\n## Source report\n\n{source_reference}\n\n## Related knowledge\n\n"+("\n".join(f"- {x}" for x in entities) if entities else "- No structured entities confirmed yet.")+f"\n\n## Generated synthesis (draft)\n\n{synthesis_text}\n\n## User notes\n\n{human}").rstrip()+"\n"
+    extra=f"\ntype: source\nsource_type: {p.get('source_type','other')}\nurl: {p.get('source_url','')}\nsource_id: {p['paper_id']}" if kind=="source" else ""
+    related_pages=remove_duplicate_related_links(related_pages,entities)
+    pages_block=f"\n\n## Related pages\n\n{related_pages}" if related_pages else ""
+    body=(f"---\npaper_id: {p['paper_id']}\ntitle: \"{p['title'].replace(chr(34),chr(39))}\"\nstatus: deposited{extra}\n---\n\n# {p['title']}\n\n## Source report\n\n{source_reference}\n\n## Related knowledge\n\n"+("\n".join(f"- {x}" for x in entities) if entities else "- No structured entities confirmed yet.")+pages_block+f"\n\n## Generated synthesis (draft)\n\n{synthesis_text}\n\n## User notes\n\n{human}").rstrip()+"\n"
     target.write_text(body,encoding="utf-8"); (root/"index.md").parent.mkdir(parents=True,exist_ok=True); idx=root/"index.md"; line=f"- [[{target.stem}|{p['title']}]]\n"; old=idx.read_text(encoding="utf-8") if idx.exists() else "# PaperWiki Index\n\n"; idx.write_text(old if line in old else old+line,encoding="utf-8")
     log=root/"log.md"; old=log.read_text(encoding="utf-8") if log.exists() else "# Operation Log\n\n"; log.write_text(old+f"- {dt.datetime.now(dt.timezone.utc).isoformat()} deposit {p['paper_id']}\n",encoding="utf-8")
     if is_canonical_report(src,root,side,text,p):
@@ -411,6 +818,9 @@ def main():
     f=sub.add_parser("finalize"); f.add_argument("report"); f.add_argument("analysis"); f.set_defaults(func=cmd_finalize)
     k=sub.add_parser("deposit"); k.add_argument("input"); k.add_argument("--root",default="."); k.set_defaults(func=cmd_deposit)
     n=sub.add_parser("recommend"); n.add_argument("--topic"); n.add_argument("--limit",type=int,default=5); n.add_argument("--root",default="."); n.add_argument("--output",default="reading-lists/recommended-next.json"); n.set_defaults(func=cmd_recommend)
+    i=sub.add_parser("ingest"); i.add_argument("source",help="Awesome-list GitHub URL, raw README URL, or local README path"); i.add_argument("--list-slug",default=None); i.add_argument("--root",default="."); i.set_defaults(func=cmd_ingest)
+    mk=sub.add_parser("mark"); mk.add_argument("list",help="Reading-list slug or path"); mk.add_argument("source_ids",nargs="+"); mk.add_argument("--status",required=True,choices=LIST_STATUSES); mk.add_argument("--reason"); mk.add_argument("--root",default="."); mk.set_defaults(func=cmd_mark)
+    vt=sub.add_parser("validate-topic"); vt.add_argument("report"); vt.add_argument("--root",default="."); vt.set_defaults(func=cmd_validate_topic)
     a=ap.parse_args()
     try: a.func(a)
     except Exception as e:

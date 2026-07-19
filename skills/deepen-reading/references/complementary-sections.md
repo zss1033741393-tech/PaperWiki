@@ -1,6 +1,6 @@
 # Complementary reading sections: PaperForge § mapping
 
-`read-paper` produces the primary explanatory report. `deepen-reading` adds only the reading angles that report usually skips — the ones PaperForge is distinctive for. The block appended to `report.md`:
+`read-source` produces the primary explanatory report. `deepen-reading` adds only the reading angles that report usually skips — the ones PaperForge is distinctive for. The block appended to `report.md`:
 
 ```
 ## 精读补充（PaperForge 视角）
@@ -19,7 +19,7 @@ Use natural, descriptive Chinese headings (like above) rather than "R1/R2" or "�
 
 ## Why these five and not all twelve
 
-| PaperForge § | Covered by read-paper's report? | In this supplement |
+| PaperForge § | Covered by read-source's report? | In this supplement |
 |---|---|---|
 | §1 problem / §2 prior work | yes | no |
 | §4 intuition / §5 pipeline / §6 math | yes | no |

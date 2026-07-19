@@ -3,6 +3,8 @@
   "topic_slug": "agent-harness",
   "title": "Agent Harness",
   "list_slug": "harness-engineering",
+  "status": "deposited",
+  "source_reports_required": true,
   "sources": [
     {
       "source_id": "url:f6b93302265d",
@@ -10,7 +12,10 @@
       "url": "https://openai.com/index/harness-engineering/",
       "source_type": "blog",
       "role": "definition",
-      "status": "studied"
+      "status": "deposited",
+      "report_path": "reports/openai-harness-engineering/report.md",
+      "report_kind": "source",
+      "report_sha256": "2c2ac75ba6236dab7aaa718221f2bb48d16bfe54e32f87d7751788dc2251d793"
     },
     {
       "source_id": "url:ae10eb4597fe",
@@ -18,7 +23,10 @@
       "url": "https://openai.com/index/unrolling-the-codex-agent-loop/",
       "source_type": "blog",
       "role": "runtime-loop",
-      "status": "studied"
+      "status": "deposited",
+      "report_path": "reports/openai-codex-agent-loop/report.md",
+      "report_kind": "source",
+      "report_sha256": "8185d652b9e7d38327fa8d78f07d13a248c70c8646653d8b7b7ea95aefbada80"
     },
     {
       "source_id": "url:38c43325a50c",
@@ -26,7 +34,10 @@
       "url": "https://www.anthropic.com/research/building-effective-agents",
       "source_type": "blog",
       "role": "architecture-boundary",
-      "status": "studied"
+      "status": "deposited",
+      "report_path": "reports/anthropic-building-effective-agents/report.md",
+      "report_kind": "source",
+      "report_sha256": "b4c1973b35c22f69325f9dc3eb0705d9e25eaaae2040c4441dd8ff9ba537701c"
     },
     {
       "source_id": "url:7659f727e260",
@@ -34,7 +45,10 @@
       "url": "https://blog.langchain.com/the-anatomy-of-an-agent-harness/",
       "source_type": "blog",
       "role": "component-anatomy",
-      "status": "studied"
+      "status": "deposited",
+      "report_path": "reports/langchain-agent-harness-anatomy/report.md",
+      "report_kind": "source",
+      "report_sha256": "b69424958fe126aff974e5df650e3873117e77b54dab6cd0b6cda3bcd6248a9d"
     },
     {
       "source_id": "url:33f520c0c534",
@@ -42,7 +56,10 @@
       "url": "https://martinfowler.com/articles/exploring-gen-ai/harness-engineering.html",
       "source_type": "blog",
       "role": "engineering-system",
-      "status": "studied"
+      "status": "deposited",
+      "report_path": "reports/fowler-harness-engineering/report.md",
+      "report_kind": "source",
+      "report_sha256": "643afb8bd9987d3435629d33a43d08a70d9b8b8c9601087f7d73b8fc51551a6e"
     },
     {
       "source_id": "arxiv:2606.10106",
@@ -50,7 +67,10 @@
       "url": "https://arxiv.org/abs/2606.10106",
       "source_type": "paper",
       "role": "constitutive-test",
-      "status": "studied"
+      "status": "deposited",
+      "report_path": "reports/what-makes-a-harness-a-harness/report.md",
+      "report_kind": "paper",
+      "report_sha256": "8c17d735dc53ebb8fd52647dda525fc6ea96b8207dbcc87b971b24ecfc68e657"
     }
   ],
   "entities": {

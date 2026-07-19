@@ -1,0 +1,94 @@
+{
+  "paper_id": "url:f6b93302265d",
+  "title": "Harness Engineering",
+  "kind": "source",
+  "source_type": "blog",
+  "source_url": "https://openai.com/index/harness-engineering/",
+  "status": "deposited",
+  "authors": [
+    "Ryan Lopopolo"
+  ],
+  "year": 2026,
+  "provenance": [
+    {
+      "provider": "openai-engineering",
+      "retrieved_at": "2026-07-19T00:00:00+08:00"
+    }
+  ],
+  "reading": {
+    "report_path": "reports/openai-harness-engineering/report.md",
+    "analysis_status": "generated-awaiting-human-confirmation",
+    "source_type": "blog",
+    "tldr": "当 agent 成为主要编码者，工程师转向设计仓库环境、机械约束、反馈回路与持续熵管理。",
+    "research_question": "全 agent 生成的软件团队需要怎样改变工程环境，才能可靠地构建和维护真实产品？",
+    "contributions": [
+      "重新定义工程师为 agent 能力、环境与反馈回路的设计者",
+      "提出仓库本地、渐进披露且可机械验证的知识系统",
+      "展示可观察性、结构测试和自定义 lint 如何让 agent 自我验证",
+      "把重复失败与模式漂移转化为持续垃圾回收机制"
+    ],
+    "method": "基于一个从空仓库开始、由 Codex 生成全部代码的内部产品进行第一方工程经验总结。",
+    "argument_structure": "角色重定义 → 环境和知识可理解性 → 架构机械约束 → 自治扩展 → 熵管理与开放问题。",
+    "findings": [
+      "环境欠规范会成为 agent 进展的主要瓶颈",
+      "短入口文件加结构化仓库知识优于巨型说明书",
+      "规则只有升级为模型外检查才能稳定约束高吞吐生成",
+      "自治扩大后需要持续清理，避免 agent 复制不良模式"
+    ],
+    "limitations": [
+      "单一 OpenAI 团队和新建仓库的第一方经验",
+      "长期架构一致性尚无多年期证据",
+      "吞吐量与合并策略不能直接推广到低吞吐或高风险环境"
+    ],
+    "concepts": [
+      "Agent Legibility",
+      "Context Engineering",
+      "Entropy Management",
+      "Repository Knowledge"
+    ],
+    "methods": [
+      "Deterministic Feedback",
+      "Structural Tests",
+      "Documentation Gardening"
+    ],
+    "topics": [
+      "Agent Harness",
+      "Agent-first Software Engineering"
+    ],
+    "tools": [
+      "Codex CLI",
+      "AGENTS.md",
+      "Git Worktree",
+      "Chrome DevTools Protocol"
+    ],
+    "open_questions": [
+      "全 agent 代码库的架构一致性在多年尺度如何变化？",
+      "哪些人类判断最值得编码为可复用的控制机制？"
+    ],
+    "evidence": [
+      "全文 H2 #2，第 1—4 段",
+      "全文 H2 #3，第 1—6 段",
+      "全文 H2 #4，第 1—4、7—10 段",
+      "全文 H2 #6，第 1—8 段",
+      "全文 H2 #10，第 1—6 段"
+    ],
+    "topic_contribution": "提供 harness 的组织工程与长期维护视角：知识、可观察性、机械约束和熵管理如何共同支持 agent 工作。",
+    "relations": [
+      {
+        "target": "url:ae10eb4597fe",
+        "relation": "complements",
+        "detail": "从仓库环境层补充运行时 agent loop"
+      },
+      {
+        "target": "url:33f520c0c534",
+        "relation": "supports",
+        "detail": "实例化前馈与反馈控制"
+      },
+      {
+        "target": "arxiv:2606.10106",
+        "relation": "bounded-by",
+        "detail": "工程实践由四项构成判据区分核心与成熟度"
+      }
+    ]
+  }
+}

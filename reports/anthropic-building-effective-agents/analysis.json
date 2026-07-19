@@ -1,0 +1,44 @@
+{
+  "source_type": "blog",
+  "tldr": "先区分固定 workflow 与动态 agent，并按任务开放度、反馈条件和风险选择最简单架构。",
+  "research_question": "团队应如何选择、组合并控制有效的 LLM workflow 与 agent 架构？",
+  "contributions": [
+    "给出 workflow 与 agent 的架构边界",
+    "整理五种简单可组合的 workflow 模式",
+    "说明 agent 对环境真值、停止条件和工具设计的依赖",
+    "提出简单优先以及成本、延迟和复合错误权衡"
+  ],
+  "method": "基于 Anthropic 与多个行业客户的工程经验进行模式归纳和实践指导。",
+  "argument_structure": "定义边界 → 复杂度选择 → 基础模块与 workflow 模式 → agents → 应用案例与工具设计。",
+  "findings": [
+    "固定路径 workflow 与动态 agent 的控制权不同",
+    "环境反馈是 agent 校准进度的关键",
+    "开放且步骤不可预知的任务更适合 agent",
+    "编码任务因自动测试而适合反馈循环，但仍需系统级人类判断"
+  ],
+  "limitations": [
+    "不是 agent harness 的形式定义",
+    "经验性建议缺少受控比较实验",
+    "常见停止和 guardrail 模式不等于必要充分条件"
+  ],
+  "concepts": ["Agent", "Workflow", "Environmental Feedback", "Guardrails"],
+  "methods": ["Prompt Chaining", "Routing", "Parallelization", "Orchestrator-workers", "Evaluator-optimizer"],
+  "topics": ["Agent Architecture", "Agent Harness"],
+  "tools": [],
+  "open_questions": [
+    "如何量化从 workflow 升级为 agent 的收益阈值？",
+    "怎样把人类系统判断转换为可执行而不过度僵化的控制？"
+  ],
+  "evidence": [
+    "全文 H2 #1，第 1 个列表",
+    "全文 H2 #2，第 1—2 段",
+    "全文 H2 #4 的 Agents 子节，第 2—5 段",
+    "全文 H2 #7 的 Coding agents 子节，第 1 个列表"
+  ],
+  "topic_contribution": "提供 workflow/agent 架构边界，并强调环境反馈、停止控制和复杂度权衡。",
+  "relations": [
+    {"target": "url:ae10eb4597fe", "relation": "abstracts", "detail": "为具体 agent loop 提供架构分类"},
+    {"target": "url:7659f727e260", "relation": "constrains", "detail": "提醒组件丰富度必须由任务收益证明"},
+    {"target": "arxiv:2606.10106", "relation": "distinguished-from", "detail": "workflow/agent 边界不同于 harness 成员边界"}
+  ]
+}

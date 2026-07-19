@@ -1,0 +1,42 @@
+{
+  "source_type": "blog",
+  "tldr": "Codex harness 通过模型推理、工具执行、观察写回和上下文压缩组成可持续的运行时循环。",
+  "research_question": "Codex CLI 如何在用户、模型、工具和上下文之间运行一个完整 agent turn？",
+  "contributions": [
+    "拆解模型返回最终消息或请求工具的两条运行路径",
+    "说明工具结果如何成为下一轮推理的观察",
+    "区分环境变更与 assistant message 两类输出",
+    "解释 context window 增长与自动 compaction"
+  ],
+  "method": "基于 Codex CLI 与 Responses API 的实现 walkthrough，逐项解释输入、输出和循环状态。",
+  "argument_structure": "抽象 agent loop → Responses API item 构造 → 多轮工具交互 → context window 与 compaction。",
+  "findings": [
+    "一次 turn 可以包含多次模型推理和工具调用",
+    "工具结果必须写回上下文才能改变后续行动",
+    "软件修改可以是主要输出，最终消息只是协议终点",
+    "上下文增长要求 harness 主动压缩和选择状态"
+  ],
+  "limitations": [
+    "只描述 Codex CLI 与 Responses API",
+    "未展开工具权限、sandbox 和完整控制机制",
+    "不能单独给出 agent harness 的必要充分定义"
+  ],
+  "concepts": ["Agent Loop", "Context Window", "Tool Observation", "Conversation Turn"],
+  "methods": ["Context Compaction", "Tool Result Injection"],
+  "topics": ["Agent Harness", "Codex Runtime"],
+  "tools": ["Codex CLI", "Responses API"],
+  "open_questions": [
+    "压缩怎样验证长期任务中关键因果状态没有丢失？",
+    "终止消息与外部任务验收应如何连接？"
+  ],
+  "evidence": [
+    "全文 H2 #1，第 2、5—10 段",
+    "全文 H2 #2 的性能考量部分，第 11—14 段"
+  ],
+  "topic_contribution": "提供 harness 的运行时闭环实例，连接模型推理、工具接口、环境观察和上下文管理。",
+  "relations": [
+    {"target": "url:f6b93302265d", "relation": "complements", "detail": "运行时循环与仓库工程环境互补"},
+    {"target": "url:38c43325a50c", "relation": "implements", "detail": "具体化环境反馈驱动的 agent loop"},
+    {"target": "arxiv:2606.10106", "relation": "instantiates", "detail": "主要实例化 T1、T2、T3"}
+  ]
+}

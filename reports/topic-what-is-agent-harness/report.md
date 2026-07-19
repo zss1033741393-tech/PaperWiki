@@ -9,15 +9,14 @@ sources:
   - url:7659f727e260
   - url:33f520c0c534
   - arxiv:2606.10106
-status: studied
+status: deposited
 generated: true
 human_confirmed: false
 ---
 
 # 什么是 Agent Harness？
 
-> [!summary] 一句话定义
-> Agent harness 是包围模型的运行时控制层：它通过循环、工具接口、上下文管理和控制机制，把一次模型调用变成能够观察、行动、验证、恢复并受约束地完成任务的 agent 系统。
+> **一句话定义：**Agent harness 是包围模型的运行时控制层：它通过循环、工具接口、上下文管理和控制机制，把一次模型调用变成能够观察、行动、验证、恢复并受约束地完成任务的 agent 系统。
 
 ## 主题界定
 
@@ -112,49 +111,31 @@ flowchart TD
 
 表中“迭代”和“工具反馈”对应 OpenAI Codex 文章 [定位：全文 H2 #1（智能体循环），第 5—7 段]；“状态”和“恢复”对应 LangChain [定位：全文 H2 #5（持久存储与上下文管理），第 1 个列表与第 5 段]；“权限”和“验证”对应其 [定位：全文 H2 #7（安全执行与验证），第 3—5 段] 及 arXiv:2606.10106 的 T4。**综合判断：**差别不在模型是否更聪明，而在执行路径是否把环境观察、状态与独立控制接成一个闭环。
 
-## 六个来源的观点与证据
+## 六份独立报告导航
 
-### 1. OpenAI：Harness engineering: leveraging Codex in an agent-first world（`url:f6b93302265d`，definition）
+1. **定义在工程组织中的落地：**[OpenAI Harness Engineering 来源报告](../openai-harness-engineering/report.html)。它说明工程师怎样设计仓库知识、可观察性、架构约束和持续清理；关键依据见原文全文 H2 #2、#4、#6 与 #10。
+2. **运行时循环：**[OpenAI Codex Agent Loop 来源报告](../openai-codex-agent-loop/report.html)。它逐步展示推理、工具执行、观察写回和 compaction；关键依据见原文全文 H2 #1 第 5—10 段及 H2 #2 性能考量末段。
+3. **架构边界：**[Anthropic Building Effective Agents 来源报告](../anthropic-building-effective-agents/report.html)。它区分固定 workflow 与动态 agent，并说明环境反馈、停止条件和复杂度权衡；关键依据见原文全文 H2 #1 的定义列表和 H2 #4 Agents 子节。
+4. **组件解剖：**[LangChain Agent Harness Anatomy 来源报告](../langchain-agent-harness-anatomy/report.html)。它从期望行为反推文件系统、Git、sandbox、验证和长时任务组件；关键依据见原文全文 H2 #2、#5、#7 与 #10。
+5. **工程控制系统：**[Fowler Harness Engineering 来源报告](../fowler-harness-engineering/report.html)。它用 feedforward、feedback、计算式/推断式控制和 steering loop 描述用户外层 harness；关键依据见原文全文 H2 #3、#4、#6 与 #9。
+6. **构成性成员测试：**[What Makes a Harness a Harness 论文报告](../what-makes-a-harness-a-harness/report.html)。它提出 T1—T4 并与 framework、SDK、IDE plugin、eval harness 和 orchestrator 分界；关键依据见论文第 4 节表 2、第 5 节和第 6 节表 4。
 
-- **来源观点 1：**工程师的工作从亲自写每一行代码，转向设计系统、脚手架、工具、抽象与反馈回路，使 agent 的工作可执行、可约束（[定位：全文 H2 #2（工程师角色重定义），第 1—4 段]）。
-- **来源观点 2：**上下文应仓库本地化并渐进披露，短 `AGENTS.md` 应作为结构化、版本化知识库的地图，而不是巨型说明书（[定位：全文 H2 #4（仓库知识系统），第 1—4、7 段]）。
-- **来源观点 3：**自定义 linter 与结构测试机械执行架构边界；周期性清理与编码后的原则用于抑制 agent 复制旧模式带来的熵积累（[定位：全文 H2 #6（架构约束），第 1—5 段；全文 H2 #10（熵与清理），第 1—5 段]）。
-- **局限：**这是一个 OpenAI 团队和一个仓库的第一方经验；[定位：全文 H2 #9（自治层级），第 3 段；全文 H2 #11（仍在探索的问题），第 2 段] 限制了对经验数字或做法的普遍因果推广。
+## 跨来源综合：共识、分歧与互补
 
-### 2. OpenAI：Unrolling the Codex Agent Loop（`url:ae10eb4597fe`，runtime-loop）
+### 三组共识
 
-- **来源观点 1：**核心循环在用户、模型与工具之间编排：推理要么给出最终响应，要么请求工具；harness 执行工具、追加结果并再次请求模型（[定位：全文 H2 #1（智能体循环），第 2、5 段]）。
-- **来源观点 2：**工具结果是改变下一轮推理的观察，循环直到模型发出 assistant message；实际成果也可能是代码已经在环境中被修改（[定位：全文 H2 #1（智能体循环），第 6—7 段]）。
-- **来源观点 3：**不断增长的上下文需要运行时管理；Codex 到达 token 阈值后会压缩为较小、具有代表性的 item 列表以继续工作（[定位：全文 H2 #2（模型推理下的性能考量），第 11—14 段]）。
-- **局限：**这是 Codex CLI 与 Responses API 的实现 walkthrough，不是技术中立规范；文章把工具实现与沙箱留给后续内容，因此不能单独证明所有 harness 的完整解剖或安全属性。
+1. **模型本身不是完整 agent。**OpenAI 的运行 walkthrough、Anthropic 的环境反馈循环、LangChain 的模型能力缺口和 arXiv 四项测试都要求模型外存在行动、观察和状态机制。
+2. **可靠完成不能只依赖模型自述。**OpenAI 的测试与 lint、Fowler 的 feedback sensors、LangChain 的 verification hooks 以及 arXiv T4 都把外部验证视为可信执行的关键。
+3. **长时工作需要外部状态。**OpenAI 的 compaction 与仓库知识、LangChain 的文件/Git、Fowler 的持续传感器共同表明，长期任务不能只靠无限增长的 prompt。
 
-### 3. Anthropic：Building Effective Agents（`url:38c43325a50c`，architecture-boundary）
+### 两组边界差异
 
-- **来源观点 1：**workflow 让 LLM 与工具沿预定代码路径运行；agent 则由 LLM 动态决定过程和工具使用（[定位：全文 H2 #1（工作流与智能体的定义边界），第 1 个列表]）。
-- **来源观点 2：**agent 反复使用工具并以环境结果校准进展；人类检查点或确定性停止条件是可采用的常见模式，而不是该文要求每个 agent 必须同时具备的定义条件（[定位：全文 H2 #4（构建模式中的智能体），第 21 段]）。
-- **来源观点 3：**开放式、路径和步数难以预先硬编码的任务更适合 agent；自治也增加成本与错误累积风险，因此文章建议在沙箱中测试并采用适当 guardrails（[定位：全文 H2 #4（构建模式中的智能体），第 23—24 段]）。
-- **局限：**文章使用广义的 agent 系统作为总称，没有给出 agent harness 的形式定义；这些是经验性工程建议，并且文章明确主张简单方案足够时不必使用 agent。
+1. **harness 边界宽度不同。**LangChain 倾向把模型之外的全部代码、配置和执行逻辑纳入 harness；arXiv 论文只把 loop、tools、context、control 当作成员条件，其余属于成熟度组件。本文采用后者判断“是不是”，采用前者说明“可以怎样实现”。
+2. **讨论尺度不同。**OpenAI Codex 文章描述单次运行内核；OpenAI Harness Engineering 与 Fowler 描述代码库和团队的长期控制系统。两者不是互斥定义，而是运行时核心与工程环境两个尺度。
 
-### 4. LangChain：The Anatomy of an Agent Harness（`url:7659f727e260`，component-anatomy）
+### 一组互补关系
 
-- **来源观点 1：**作者采用宽边界，把模型之外的代码、配置和执行逻辑纳入 harness，包括系统提示、工具/skills/MCP、基础设施、编排与确定性 hooks 或 middleware（[定位：全文 H2 #2（harness 边界），第 1—4 段与第 1 个列表]）。
-- **来源观点 2：**文件系统可暴露工作数据、把状态移出上下文窗并跨 session 保存中间结果；Git 进一步提供协作、版本和回滚（[定位：全文 H2 #5（持久存储与上下文管理），第 1 个列表与第 5 段]）。
-- **来源观点 3：**沙箱隔离 agent 生成代码，浏览器、日志和测试运行器等工具提供观察，从而支持自验证循环（[定位：全文 H2 #7（安全执行与验证），第 3—5 段]）。
-- **局限：**把边界扩展到模型外的全部代码、配置与执行逻辑，是作者偏好的宽泛切分，比本文采用的四项运行时成员测试更宽；这是 vendor 工程文章，不是关于哪些组件必要的比较实验。
-
-### 5. Martin Fowler：Harness Engineering（`url:33f520c0c534`，engineering-system）
-
-- **来源观点 1：**coding-agent 用户的外层 harness 同时需要行动前的 feedforward guides 与行动后的 feedback sensors；只依赖一个方向会失去另一方向的控制能力（[定位：全文 H2 #3（前馈与反馈），第 1 个列表与第 2 段]）。
-- **来源观点 2：**控制可以是计算式或推断式，实例从脚本、codemod、结构测试和静态分析，到 `AGENTS.md`、skills 与 review agents（[定位：全文 H2 #4（计算式与推断式控制），表格]）。
-- **来源观点 3：**harness engineering 是持续维护：失败重复出现时，人类改进 guides 与 sensors；代码库的类型、显式模块边界、framework 等 ambient affordances 又决定能构建哪些控制（[定位：全文 H2 #6（迭代维护），第 1 段；全文 H2 #9（代码库可约束性），第 1 段；全文 H2 #10（环境基础条件），第 1—2 段]）。
-- **局限：**文章有意聚焦 coding-agent 用户的外层 harness，不是完整产品级解剖；[定位：全文 H2 #8（控制类别中的行为控制），第 10—12 段] 指出当前方法可能过度相信 AI 生成测试，降低监督所需的置信度仍未解决。
-
-### 6. What makes a harness a harness（`arxiv:2606.10106`，constitutive-test）
-
-- **来源观点 1：**论文提出四个构成条件：推理—行动—观察循环、能感知并改变外部环境的工具接口、主动上下文管理，以及至少一种模型无关控制机制（定位：第 4 节，官方 PDF 页 6–8〔印刷页 5–7〕的框定定义、表 2，以及官方 HTML 第 4 节定义与候选系统测试两段）。
-- **来源观点 2：**成员资格要求 T1–T4 全为 yes；T2 不能只读，T3 不能只是按大小截断，T4 必须不依赖模型合作仍能生效（定位：第 4 节，官方 PDF 页 8〔印刷页 7〕表 2 后的纳入/排除测试段落）。
-- **来源观点 3：**agent harness 在任务运行时控制、限制、验证和纠正，而 eval harness 从外部在执行后衡量；multi-agent、学习/微调、特定模型和 UI 均非必要条件（定位：第 3 节，官方 PDF 页 5〔印刷页 4〕表 1 及后续段落；第 5 节的 eval-harness 对照与表 3；第 4 节，官方 PDF 页 7〔印刷页 6〕的非必要属性段落）。
-- **局限：**这是 2026-06-08 提交的 arXiv v1、单作者概念分析。第 1 节官方 PDF 页 3（印刷页 2）的研究定位段明确说明工作是定义性的，不衡量 benchmark 性能，也不是调查或用量统计；四项测试应视为提议的参考定义，而非经实证确立的共识。
+六个来源可以连成“定义—实现—维护”链：arXiv 给出成员测试，OpenAI Codex 展示循环实现，Anthropic约束何时需要动态 agent，LangChain列出实现部件，OpenAI 工程实践说明怎样把仓库变得可工作，Fowler则说明怎样用重复失败持续改进控制系统。
 
 ## 常见误区
 
@@ -184,11 +165,11 @@ flowchart TD
 
 ## 来源清单
 
-1. `url:f6b93302265d` — *Harness Engineering* — OpenAI — role: `definition` — https://openai.com/index/harness-engineering/
-2. `url:ae10eb4597fe` — *Unrolling the Codex Agent Loop* — OpenAI — role: `runtime-loop` — https://openai.com/index/unrolling-the-codex-agent-loop/
-3. `url:38c43325a50c` — *Building Effective Agents* — Anthropic — role: `architecture-boundary` — https://www.anthropic.com/research/building-effective-agents
-4. `url:7659f727e260` — *The Anatomy of an Agent Harness* — LangChain — role: `component-anatomy` — https://blog.langchain.com/the-anatomy-of-an-agent-harness/
-5. `url:33f520c0c534` — *Harness Engineering* — Martin Fowler — role: `engineering-system` — https://martinfowler.com/articles/exploring-gen-ai/harness-engineering.html
-6. `arxiv:2606.10106` — *What makes a harness a harness: necessary and sufficient conditions for an agent harness* — role: `constitutive-test` — https://arxiv.org/abs/2606.10106
+1. `url:f6b93302265d` — [原文](https://openai.com/index/harness-engineering/) — [独立报告](../openai-harness-engineering/report.html) — role: `definition`
+2. `url:ae10eb4597fe` — [原文](https://openai.com/index/unrolling-the-codex-agent-loop/) — [独立报告](../openai-codex-agent-loop/report.html) — role: `runtime-loop`
+3. `url:38c43325a50c` — [原文](https://www.anthropic.com/research/building-effective-agents) — [独立报告](../anthropic-building-effective-agents/report.html) — role: `architecture-boundary`
+4. `url:7659f727e260` — [原文](https://blog.langchain.com/the-anatomy-of-an-agent-harness/) — [独立报告](../langchain-agent-harness-anatomy/report.html) — role: `component-anatomy`
+5. `url:33f520c0c534` — [原文](https://martinfowler.com/articles/exploring-gen-ai/harness-engineering.html) — [独立报告](../fowler-harness-engineering/report.html) — role: `engineering-system`
+6. `arxiv:2606.10106` — [原文](https://arxiv.org/abs/2606.10106) — [独立报告](../what-makes-a-harness-a-harness/report.html) — role: `constitutive-test`
 
 ## User notes

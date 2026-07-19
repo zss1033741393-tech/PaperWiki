@@ -1,0 +1,45 @@
+{
+  "source_type": "blog",
+  "tldr": "外层 harness 通过前馈引导、反馈传感器和持续 steering loop 调节 coding agent 与代码库。",
+  "research_question": "coding-agent 用户如何构建并持续改进外层控制系统，以提高对生成代码的信任？",
+  "contributions": [
+    "用 feedforward 与 feedback 区分控制方向",
+    "用 computational 与 inferential 区分控制实现",
+    "提出把重复失败写回 guides 和 sensors 的 steering loop",
+    "分析生命周期时机、调节类别和代码库 harnessability"
+  ],
+  "method": "把控制论、持续交付和 AI 辅助开发实践组合成 coding-agent 用户的工程心智模型。",
+  "argument_structure": "控制方向 → 控制实现 → steering loop → 生命周期时机 → 调节目标 → harnessability 与开放问题。",
+  "findings": [
+    "可靠外层 harness 同时需要事前引导与事后传感",
+    "确定性和推断式控制具有不同失败模式，应组合使用",
+    "重复失败应升级控制系统而非只修一次输出",
+    "代码库结构本身决定可建立哪些控制"
+  ],
+  "limitations": [
+    "聚焦 coding-agent 用户外层而非完整产品运行时",
+    "行为正确性和 AI 生成测试仍难获得独立置信度",
+    "属于工程模型而非受控实验或形式成员测试"
+  ],
+  "concepts": ["Feedforward", "Feedback", "Harnessability", "Ambient Affordances"],
+  "methods": ["Deterministic Feedback", "Inferential Review", "Steering Loop", "Quality Left"],
+  "topics": ["Harness Engineering", "Agent Harness"],
+  "tools": ["AGENTS.md", "Skills", "Static Analysis", "Structural Tests", "Review Agents"],
+  "open_questions": [
+    "怎样验证 inferential reviewer 没有复现生成模型的盲点？",
+    "怎样统一配置分散在交付生命周期中的 guides 与 sensors？"
+  ],
+  "evidence": [
+    "全文 H2 #3，第 1 个列表及第 2 段",
+    "全文 H2 #4，表格",
+    "全文 H2 #6，第 1—2 段",
+    "全文 H2 #7，第 1—5 段及两个列表",
+    "全文 H2 #9，第 1 段；H2 #10，第 1—2 段"
+  ],
+  "topic_contribution": "提供前馈、反馈、计算式/推断式控制和持续 steering loop 的工程框架。",
+  "relations": [
+    {"target": "url:f6b93302265d", "relation": "generalizes", "detail": "把 OpenAI 实践抽象为控制方向和演化回路"},
+    {"target": "url:7659f727e260", "relation": "reclassifies", "detail": "按控制功能重组 hooks、tests 和 rules"},
+    {"target": "arxiv:2606.10106", "relation": "deepens", "detail": "展开 T4 控制机制的成熟度和时机"}
+  ]
+}

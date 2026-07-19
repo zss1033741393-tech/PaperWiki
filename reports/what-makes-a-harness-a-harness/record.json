@@ -1,0 +1,101 @@
+{
+  "paper_id": "arxiv:2606.10106",
+  "arxiv_id": "2606.10106",
+  "title": "What makes a harness a harness: necessary and sufficient conditions for an agent harness",
+  "kind": "paper",
+  "source_type": "paper",
+  "source_url": "https://arxiv.org/abs/2606.10106",
+  "status": "deposited",
+  "authors": [
+    "Sanderson Oliveira de Macedo"
+  ],
+  "year": 2026,
+  "venue": "arXiv",
+  "provenance": [
+    {
+      "provider": "arxiv",
+      "retrieved_at": "2026-07-19T00:00:00+08:00"
+    }
+  ],
+  "reading": {
+    "report_path": "reports/what-makes-a-harness-a-harness/report.md",
+    "analysis_status": "generated-awaiting-human-confirmation",
+    "source_type": "paper",
+    "tldr": "以 agent loop、工具接口、主动上下文管理和模型独立控制四项条件定义 agent harness。",
+    "research_question": "什么是 agent harness 的参考定义，以及怎样把定义变成可稳定纳入和排除具体系统的工具？",
+    "contributions": [
+      "重建 harness 从挽具、测试与评测脚手架到 agent runtime 的术语谱系",
+      "提出 T1—T4 四项必要充分条件",
+      "将定义操作化为纳入和排除测试",
+      "与 framework、SDK、IDE plugin、eval harness 和 orchestrator 分界",
+      "应用于六个正例与两个边缘案例并提出研究议程"
+    ],
+    "method": "概念分析结合持久标识学术文献和官方文档等一手灰色文献，并用案例分类检查定义。",
+    "argument_structure": "术语谱系 → 构成性定义 → 边界划分 → 案例应用 → 设计张力与研究议程。",
+    "experiments": [],
+    "findings": [
+      "agent harness 的区分性特征是控制在单个任务运行时发生",
+      "T1—T4 共同决定成员资格",
+      "成员资格是二元的，机制成熟度是渐进的",
+      "六个真实产品主要在 T4 控制形式上分化",
+      "边缘案例比预选正例更能展示测试区分力"
+    ],
+    "limitations": [
+      "正例选择存在近似同义反复",
+      "必要充分性尚未经过大样本和多编码者经验检验",
+      "T3 与 T4 在复杂实现中存在阈值判断空间",
+      "没有隔离模型与 harness 的性能贡献"
+    ],
+    "reproducibility": [
+      "按第 4 节表 2 依次检查 T1—T4",
+      "对照第 5 节邻近概念失败条件",
+      "记录成员资格与成熟度判断分离"
+    ],
+    "concepts": [
+      "Agent Harness",
+      "Agent Loop",
+      "Tool Interface",
+      "Context Management",
+      "Control Mechanisms"
+    ],
+    "methods": [
+      "Harness Decomposition",
+      "Inclusion and Exclusion Test",
+      "Conceptual Analysis"
+    ],
+    "datasets": [],
+    "topics": [
+      "Agent Harness",
+      "Software Engineering Agents"
+    ],
+    "open_questions": [
+      "如何控制模型变量测量 harness 独立贡献？",
+      "怎样把 T3 与 T4 阈值转化为跨研究者可复现规则？"
+    ],
+    "evidence": [
+      "第 3 节，表 1",
+      "第 4 节，官方 PDF 页 6—8（印刷页 5—7），表 2",
+      "第 5 节五类邻近概念边界",
+      "第 6 节，图 4 与表 4",
+      "第 8 节结论"
+    ],
+    "topic_contribution": "提供整个主题的构成性定义锚点和可操作成员测试。",
+    "relations": [
+      {
+        "target": "url:ae10eb4597fe",
+        "relation": "formalizes",
+        "detail": "将具体运行循环抽象为 T1—T3"
+      },
+      {
+        "target": "url:7659f727e260",
+        "relation": "narrows",
+        "detail": "把宽组件边界压缩为四项核心"
+      },
+      {
+        "target": "url:33f520c0c534",
+        "relation": "anchors",
+        "detail": "将外围控制系统定位为 T4 成熟度"
+      }
+    ]
+  }
+}

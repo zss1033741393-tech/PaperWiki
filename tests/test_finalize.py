@@ -203,6 +203,20 @@ class FinalizeSourceTests(unittest.TestCase):
             text = report.read_text(encoding="utf-8")
             self.assertIn("status: reading", text)
 
+    def test_source_scaffold_uses_neutral_source_sections(self):
+        with tempfile.TemporaryDirectory() as td:
+            report, ap = _seed_source(Path(td), dict(SOURCE_ANALYSIS))
+
+            paperwiki.cmd_finalize(type("A", (), {"report": str(report), "analysis": str(ap)}))
+
+            text = report.read_text(encoding="utf-8")
+            self.assertIn("## 来源信息与阅读范围", text)
+            self.assertIn("## 关键观点与证据", text)
+            self.assertIn("## 局限与适用边界", text)
+            self.assertNotIn("## 论文信息", text)
+            self.assertNotIn("## 实验与证据", text)
+            self.assertNotIn("[!summary]", text)
+
     def test_source_analysis_still_requires_core_fields(self):
         with tempfile.TemporaryDirectory() as td:
             incomplete = dict(SOURCE_ANALYSIS)

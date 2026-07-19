@@ -335,6 +335,80 @@ def bullets(values): return "\n".join(f"- {v}" for v in values) if values else "
 SCAFFOLD_MARKER = "Run `$paper-analyzer`"
 FRONTMATTER_FIELDS = ("paper_id", "status", "source", "generated", "human_confirmed")
 
+def source_bullets(values):
+    if not values: return "- 当前来源未建立该项。"
+    rendered=[]
+    for value in values:
+        if isinstance(value,dict):
+            target=value.get("target") or value.get("source_id") or "其他来源"
+            relation=value.get("relation") or value.get("type") or "相关"
+            detail=value.get("detail") or value.get("note")
+            rendered.append(f"- {target}：{relation}"+(f"；{detail}" if detail else ""))
+        else: rendered.append(f"- {value}")
+    return "\n".join(rendered)
+
+def generated_source_report_body(p,analysis):
+    src=p.get("source_url") or p.get("pdf_path")
+    return f'''# {p['title']}
+
+> **一句话结论：**{analysis.get('tldr','')}
+
+## 来源信息与阅读范围
+
+- 来源类型：{p.get('source_type') or 'other'}
+- 原文：{src}
+- 阅读范围：{analysis.get('reading_scope') or '完整可访问正文'}
+
+## 问题与背景
+
+{analysis['research_question']}
+
+## 论证结构
+
+{analysis.get('argument_structure') or analysis['method']}
+
+## 关键观点与证据
+
+{source_bullets(analysis.get('contributions'))}
+
+### 主要发现
+
+{source_bullets(analysis.get('findings'))}
+
+### 证据定位
+
+{source_bullets(analysis.get('evidence'))}
+
+## 核心概念与方法
+
+### 概念
+
+{source_bullets(analysis.get('concepts'))}
+
+### 方法
+
+{source_bullets(analysis.get('methods'))}
+
+## 局限与适用边界
+
+{source_bullets(analysis.get('limitations'))}
+
+## 对主题的贡献
+
+{analysis.get('topic_contribution') or '尚未绑定到具体主题。'}
+
+## 与其他来源的关系
+
+{source_bullets(analysis.get('relations'))}
+
+## 开放问题
+
+{source_bullets(analysis.get('open_questions'))}
+
+## User notes
+
+'''
+
 def split_report_frontmatter(text):
     match=re.match(r"^---\r?\n(.*?)\r?\n---(?:\r?\n|$)",text,re.S)
     if not match: return {},text,False
@@ -437,7 +511,8 @@ def cmd_finalize(a):
     existing=report.read_text(encoding="utf-8")
     _,body,_=split_report_frontmatter(existing)
     is_scaffold=SCAFFOLD_MARKER in existing or body.strip()=="# draft"
-    content=normalize_report_frontmatter(generated_report_body(p,analysis) if is_scaffold else existing,p)
+    generated=generated_source_report_body(p,analysis) if p.get("kind")=="source" else generated_report_body(p,analysis)
+    content=normalize_report_frontmatter(generated if is_scaffold else existing,p)
     report.write_text(content,encoding="utf-8")
     p["status"]="reading"; p.setdefault("reading",{}).update(analysis); p["reading"]["analysis_status"]="generated-awaiting-human-confirmation"
     side.write_text(json.dumps(p,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
@@ -482,6 +557,88 @@ def is_canonical_report(report, root, record, text, paper):
     fields,_,had_frontmatter=split_report_frontmatter(text)
     return report.name=="report.md" and len(relative.parts)==2 and record.resolve()==(report.parent/"record.json").resolve() and had_frontmatter and fields.get("paper_id")==paper["paper_id"]
 
+def validate_topic_bundle(topic_report, root):
+    """Validate a topic synthesis whose sources must have canonical standalone reports."""
+    root=Path(root).resolve(); topic_report=Path(topic_report).resolve()
+    try: topic_report.relative_to(root)
+    except ValueError: raise ValueError("Topic report must be inside the PaperWiki root")
+    topic_record=topic_report.parent/"record.json"
+    topic_html=topic_report.parent/"report.html"
+    if not topic_report.exists(): raise ValueError(f"Missing topic report: {topic_report}")
+    if not topic_record.exists(): raise ValueError(f"Missing topic record: {topic_record}")
+    if not topic_html.exists(): raise ValueError(f"Missing topic HTML: {topic_html}")
+    topic=json.loads(topic_record.read_text(encoding="utf-8"))
+    if topic.get("kind")!="topic": raise ValueError("Topic record must use kind: topic")
+    if topic.get("source_reports_required") is not True:
+        raise ValueError("Topic record does not require standalone source reports")
+    topic_fields,_,topic_frontmatter=split_report_frontmatter(topic_report.read_text(encoding="utf-8"))
+    if not topic_frontmatter: raise ValueError("Topic report is missing frontmatter")
+    if str(topic_fields.get("human_confirmed","")).lower()!="false":
+        raise ValueError("Topic report must remain human_confirmed: false until explicit confirmation")
+    sources=topic.get("sources") or []
+    if not sources: raise ValueError("Topic record has no sources")
+    seen_ids=set(); seen_paths=set(); kind_counts={}
+    required_topic_analysis=("evidence","topic_contribution","relations")
+    for source in sources:
+        source_id=str(source.get("source_id") or "")
+        if not source_id: raise ValueError("Topic source is missing source_id")
+        if source_id in seen_ids: raise ValueError(f"Duplicate source identity: {source_id}")
+        seen_ids.add(source_id)
+        relative=Path(str(source.get("report_path") or ""))
+        if not relative.parts or relative.is_absolute() or ".." in relative.parts:
+            raise ValueError(f"Invalid source report path for {source_id}")
+        report=(root/relative).resolve()
+        try: canonical_relative=report.relative_to((root/"reports").resolve())
+        except ValueError: raise ValueError(f"Source report must be under reports/: {relative.as_posix()}")
+        if report.name!="report.md" or len(canonical_relative.parts)!=2:
+            raise ValueError(f"Source report is not canonical: {relative.as_posix()}")
+        normalized_path=report.as_posix().casefold()
+        if normalized_path in seen_paths:
+            raise ValueError(f"Duplicate source report path: {relative.as_posix()}")
+        seen_paths.add(normalized_path)
+        if not report.exists(): raise ValueError(f"Missing source report: {relative.as_posix()}")
+        artifacts={
+            "report.html":report.with_suffix(".html"),
+            "analysis.json":report.parent/"analysis.json",
+            "record.json":report.parent/"record.json",
+        }
+        for label,path in artifacts.items():
+            if not path.exists(): raise ValueError(f"Missing source artifact {label}: {path.relative_to(root).as_posix()}")
+        record=json.loads(artifacts["record.json"].read_text(encoding="utf-8"))
+        analysis=json.loads(artifacts["analysis.json"].read_text(encoding="utf-8"))
+        if record.get("paper_id")!=source_id:
+            raise ValueError(f"Source identity mismatch for {source_id}: {record.get('paper_id')}")
+        report_kind=str(source.get("report_kind") or "")
+        if report_kind not in ("source","paper") or record.get("kind")!=report_kind:
+            raise ValueError(f"Source kind mismatch for {source_id}")
+        if str(record.get("title") or "")!=str(source.get("title") or ""):
+            raise ValueError(f"Source title mismatch for {source_id}")
+        if str(record.get("source_type") or "")!=str(source.get("source_type") or ""):
+            raise ValueError(f"Source type mismatch for {source_id}")
+        if norm_url(str(record.get("source_url") or ""))!=norm_url(str(source.get("url") or "")):
+            raise ValueError(f"Source URL mismatch for {source_id}")
+        digest=hashlib.sha256(report.read_bytes()).hexdigest()
+        if source.get("report_sha256")!=digest:
+            raise ValueError(f"Source report digest mismatch for {source_id}")
+        fields,body,had_frontmatter=split_report_frontmatter(report.read_text(encoding="utf-8"))
+        if not had_frontmatter: raise ValueError(f"Source report is missing frontmatter: {source_id}")
+        if fields.get("paper_id")!=source_id: raise ValueError(f"Source report frontmatter identity mismatch for {source_id}")
+        if str(fields.get("human_confirmed","")).lower()!="false":
+            raise ValueError(f"Source report must remain human_confirmed: false: {source_id}")
+        if SCAFFOLD_MARKER in body or body.strip()=="# draft":
+            raise ValueError(f"Source report is still a scaffold: {source_id}")
+        missing_analysis=[key for key in required_topic_analysis if not analysis.get(key)]
+        if missing_analysis:
+            raise ValueError(f"Source analysis missing topic fields for {source_id}: {', '.join(missing_analysis)}")
+        if str(record.get("status") or "")!="deposited" or str(source.get("status") or "")!="deposited":
+            raise ValueError(f"Source is not deposited: {source_id}")
+        kind_counts[report_kind]=kind_counts.get(report_kind,0)+1
+    return {"topic":topic.get("topic_slug"),"source_count":len(sources),"source_kinds":kind_counts}
+
+def cmd_validate_topic(a):
+    result=validate_topic_bundle(a.report,a.root)
+    print(json.dumps(result,ensure_ascii=False,sort_keys=True))
+
 def entity_path(root, collection, name):
     return root/"wiki"/collection/(slug(name)+".md")
 
@@ -504,6 +661,15 @@ def insert_link_under_heading(old,heading,link):
     m=re.search(rf"^## {re.escape(heading)}[ \t]*\n(?:[ \t]*\n)?((?:- \[\[.*\n)*)",old,re.M)
     return old[:m.end()]+link+old[m.end():] if m else old.rstrip("\n")+f"\n\n## {heading}\n\n{link}"
 
+def remove_duplicate_related_links(related_pages, entity_links):
+    """Drop legacy Related pages links already emitted under Related knowledge."""
+    known=set(entity_links); kept=[]
+    for line in related_pages.splitlines():
+        match=re.fullmatch(r"-\s+(\[\[.*\]\])\s*",line)
+        if match and match.group(1) in known: continue
+        kept.append(line)
+    return "\n".join(kept).strip()
+
 def link_entity(root, collection, name, page_title, page_target, colliding_stems, heading="Related papers"):
     folder=root/"wiki"/collection; folder.mkdir(parents=True,exist_ok=True); target=entity_path(root,collection,name)
     link=f"- [[{page_target}|{page_title}]]\n"; old=target.read_text(encoding="utf-8") if target.exists() else f"---\ntitle: \"{name.replace(chr(34),chr(39))}\"\ntype: {collection.rstrip('s')}\n---\n\n# {name}\n\n## {heading}\n\n"
@@ -521,9 +687,21 @@ def link_source_page(root,source,page_title,page_target):
     old=target.read_text(encoding="utf-8") if target.exists() else f"---\ntitle: \"{name.replace(chr(34),chr(39))}\"\ntype: source\nsource_type: {source.get('source_type','other')}\nurl: {source.get('url','')}\nsource_id: {source.get('source_id','')}\n---\n\n# {name}\n\n## Related pages\n\n"
     target.write_text(insert_link_under_heading(old,"Related pages",link),encoding="utf-8"); return f"[[{target.stem}|{name}]]"
 
+def link_bound_topic_source(root,source,page_title,page_target):
+    """Link a validated standalone source/paper page without creating a fallback stub."""
+    kind=source.get("report_kind"); collection="sources" if kind=="source" else "papers" if kind=="paper" else None
+    if collection is None: raise ValueError(f"Unsupported topic report kind for {source.get('source_id')}: {kind}")
+    name=str(source.get("title") or source.get("url") or source.get("source_id") or "source")
+    target=root/"wiki"/collection/(slug(str(source.get("source_id") or name))+".md")
+    if not target.exists(): raise ValueError(f"Deposit standalone report before topic: {source.get('source_id')}")
+    link=f"- [[{page_target}|{page_title}]]\n"
+    target.write_text(insert_link_under_heading(target.read_text(encoding="utf-8"),"Related pages",link),encoding="utf-8")
+    return f"[[{target.stem}|{name}]]"
+
 def deposit_topic(a,src,p):
     """Deposit a topic synthesis record: short English graph page linking the Chinese report (spec §4.4)."""
     root=Path(a.root); tslug=slug(p.get("topic_slug") or p["title"]); folder=root/"wiki/topics"; folder.mkdir(parents=True,exist_ok=True)
+    if p.get("source_reports_required") is True: validate_topic_bundle(src,root)
     target=folder/(tslug+".md"); existing=target.read_text(encoding="utf-8") if target.exists() else ""; human=""
     m=re.search(r"## User notes\s*(.*?)(?=\n## |\Z)",existing,re.S)
     if m: human=m.group(1).strip()
@@ -533,7 +711,7 @@ def deposit_topic(a,src,p):
         for name in ent.get(key,[]) or []: entity_specs.append((coll,str(name)))
     collisions=colliding_entity_stems(root,entity_specs)
     entities=[link_entity(root,coll,name,p["title"],target.stem,collisions,heading="Related pages") for coll,name in entity_specs]
-    sources=[link_source_page(root,s_,p["title"],target.stem) for s_ in p.get("sources") or []]
+    sources=[link_bound_topic_source(root,s_,p["title"],target.stem) if p.get("source_reports_required") is True else link_source_page(root,s_,p["title"],target.stem) for s_ in p.get("sources") or []]
     report_target=report_wikilink_target(src,root)
     ref=f"[[{report_target}|{p['title']} 综述]]" if report_target else f"`{src.resolve()}`"
     papers_block=f"\n\n## Related papers\n\n{related_papers}" if related_papers else ""
@@ -567,6 +745,7 @@ def cmd_deposit(a):
     source_reference=f"[[{source_target}|{p['title']} report]]" if source_target else f"`{src.resolve()}`"
     synthesis_text=strip_leading_frontmatter(text)
     extra=f"\ntype: source\nsource_type: {p.get('source_type','other')}\nurl: {p.get('source_url','')}\nsource_id: {p['paper_id']}" if kind=="source" else ""
+    related_pages=remove_duplicate_related_links(related_pages,entities)
     pages_block=f"\n\n## Related pages\n\n{related_pages}" if related_pages else ""
     body=(f"---\npaper_id: {p['paper_id']}\ntitle: \"{p['title'].replace(chr(34),chr(39))}\"\nstatus: deposited{extra}\n---\n\n# {p['title']}\n\n## Source report\n\n{source_reference}\n\n## Related knowledge\n\n"+("\n".join(f"- {x}" for x in entities) if entities else "- No structured entities confirmed yet.")+pages_block+f"\n\n## Generated synthesis (draft)\n\n{synthesis_text}\n\n## User notes\n\n{human}").rstrip()+"\n"
     target.write_text(body,encoding="utf-8"); (root/"index.md").parent.mkdir(parents=True,exist_ok=True); idx=root/"index.md"; line=f"- [[{target.stem}|{p['title']}]]\n"; old=idx.read_text(encoding="utf-8") if idx.exists() else "# PaperWiki Index\n\n"; idx.write_text(old if line in old else old+line,encoding="utf-8")
@@ -600,6 +779,7 @@ def main():
     n=sub.add_parser("recommend"); n.add_argument("--topic"); n.add_argument("--limit",type=int,default=5); n.add_argument("--root",default="."); n.add_argument("--output",default="reading-lists/recommended-next.json"); n.set_defaults(func=cmd_recommend)
     i=sub.add_parser("ingest"); i.add_argument("source",help="Awesome-list GitHub URL, raw README URL, or local README path"); i.add_argument("--list-slug",default=None); i.add_argument("--root",default="."); i.set_defaults(func=cmd_ingest)
     mk=sub.add_parser("mark"); mk.add_argument("list",help="Reading-list slug or path"); mk.add_argument("source_ids",nargs="+"); mk.add_argument("--status",required=True,choices=LIST_STATUSES); mk.add_argument("--reason"); mk.add_argument("--root",default="."); mk.set_defaults(func=cmd_mark)
+    vt=sub.add_parser("validate-topic"); vt.add_argument("report"); vt.add_argument("--root",default="."); vt.set_defaults(func=cmd_validate_topic)
     a=ap.parse_args()
     try: a.func(a)
     except Exception as e:

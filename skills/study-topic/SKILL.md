@@ -1,23 +1,70 @@
 ---
 name: study-topic
-description: Use when the user asks to study, learn, survey, or synthesize a topic from a PaperWiki reading list (for example a section of an awesome list) or an ad-hoc set of sources, producing one Chinese synthesis report across several sources.
+description: Use when the user asks to study, survey, or synthesize a topic from a PaperWiki reading list or an ad-hoc source set, producing standalone reports for every selected source before one Chinese cross-source synthesis.
 ---
 
 # Study Topic
 
+## Required output model
+
+A completed topic study is a report bundle, not one large summary:
+
+1. One canonical standalone report for every selected source.
+2. One topic synthesis that compares and connects those reports.
+3. One topic record that binds source identity, report path, report kind, and report SHA-256.
+
+Do not treat standalone reports as an optional flagship follow-up. If a selected source cannot be read, mark it `blocked` with the reason and keep the topic incomplete; never substitute a thin source stub for a required report.
+
 ## Workflow
 
-1. Accept a reading-list section (e.g. "Context Delivery & Compaction" in `reading-lists/harness-engineering.json`) or a hand-picked set of entries. Confirm scope with the user when the section holds more than ~10 entries.
-2. Select 5–8 core sources: foundational essays first, then one representative per `source_type`. Record the selection rationale in the report; list what was deliberately left out.
-3. Fetch and read each source (GitHub repos to README + docs depth). Keep source claims and personal interpretation in separate sentences; never invent content. A source that cannot be fetched is marked `blocked` with a reason via `python paperwiki.py mark <list> <source_id> --status blocked --reason <why>`, and the synthesis states the evidence gap.
-4. Write the Chinese synthesis to `reports/topic-<slug>/report.md` with sections: 主题界定 → 核心问题 → 模式对比 → 各来源观点与证据 → 工具盘点 → 开放问题与实践启发 → 来源清单. Follow Obsidian-safe conventions: no inline `$` math inside list items, no bare `*`, no 【】 source tags.
-5. Report frontmatter: `topic_id`, `kind: topic`, `list_slug`, `sources` (source_id list), `status`, `generated: true`, `human_confirmed: false`.
-6. Write `record.json` beside the report: `{kind: "topic", topic_slug, title, list_slug, sources: [{source_id, title, url, source_type, role: core|flagship|referenced, status}], entities: {concepts, methods, tools}, created, updated}`. Topic reports do NOT get an `analysis.json` and do NOT run `finalize`; render HTML with `python scripts/render_report.py reports/topic-<slug>/report.md reports/topic-<slug>/report.html` when asked.
-7. Mark studied entries: `python paperwiki.py mark <list> <source_id ...> --status studied`.
-8. When a flagship source deserves a standalone deep read, recommend `read-source` for it — do not run it automatically, and do not auto-deposit.
+1. Accept a reading-list section or a hand-picked set. Confirm scope when it contains more than about ten entries.
+2. Select 5–8 core sources: foundational definitions first, then representative architecture, runtime, engineering, and empirical perspectives. Record selection roles and explicit exclusions.
+3. For each selected source, follow `skills/read-source/SKILL.md` and create the canonical four-file set under `reports/<source-slug>/`: `report.md`, `report.html`, `analysis.json`, and `record.json`.
+4. Verify each standalone report before starting synthesis. A report must contain deterministic evidence locators, limitations, `topic_contribution`, and `relations` to other selected sources.
+5. Write the Chinese synthesis to `reports/topic-<slug>/report.md`. It must focus on topic definition, cross-source agreements and disagreements, pattern comparison, concept map, practical case, open questions, and a source-report navigation section. Do not repeat each standalone report in full.
+6. Topic frontmatter: `topic_id`, `kind: topic`, `list_slug`, `sources`, `status`, `generated: true`, `human_confirmed: false`.
+7. Write `record.json` with `source_reports_required: true`. Every `sources[]` item must include `source_id`, title, URL, source type, role, status, `report_path`, `report_kind`, and `report_sha256`.
+8. Render topic HTML from Markdown with `python scripts/render_report.py <report.md> <report.html>`.
+9. Run `python paperwiki.py validate-topic <topic-report.md> --root .`. Any nonzero result blocks deposit.
+10. Deposit standalone reports first, then deposit the topic report. Do not auto-deposit before all report and bundle gates pass.
 
-## Guardrails
+## Standalone report contract
 
-- Separate 来源观点 from 我的解读 in every synthesis section.
-- Cite locators: section/heading for blogs and docs, file paths for repos, page/figure for papers.
-- Record failures as recoverable state; a blocked source never silently disappears from the 来源清单.
+Each report must include:
+
+- source information and reading scope;
+- problem and background;
+- argument structure;
+- at least three key claims with deterministic locators;
+- concepts and methods;
+- limitations and applicability boundaries;
+- contribution to the topic;
+- relationships to other selected sources;
+- `## User notes`.
+
+Blogs and docs cite document-absolute H2 order plus paragraph/list/table positions. Repositories cite paths and symbols. Papers cite sections, figures, tables, and PDF pages. Separate source claims, synthesis, and open inference explicitly.
+
+## Topic synthesis contract
+
+The synthesis keeps source-specific prose short: role, report link, unique contribution, and only the primary locator needed for the cross-source claim. It must contain at least:
+
+- three cross-source agreements;
+- two boundary or terminology differences;
+- one complementary relationship;
+- one concept map;
+- one minimal practical comparison.
+
+Facts remain traceable to the original source even when the synthesis links through a standalone report.
+
+## Completion gate
+
+Before claiming completion:
+
+1. Rebuild all changed HTML from matching Markdown.
+2. Run `python skills/read-source/scripts/verify_report.py <report.md>` for every changed report.
+3. Run `python paperwiki.py validate-topic <topic-report.md> --root .`.
+4. Run focused regressions, then the full test suite.
+5. In a browser, check representative source, paper, and synthesis pages for Mermaid rendering, `.katex-error`, visible raw `$$`, and horizontal overflow.
+6. Repeat deposit and prove material artifacts are byte-identical except for truthful operation-log entries.
+
+Never set `reviewed` or `human_confirmed: true` without explicit human confirmation.

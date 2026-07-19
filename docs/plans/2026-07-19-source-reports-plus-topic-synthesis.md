@@ -115,7 +115,7 @@
 - `source_id` 必须与来源报告 `record.json` 的 `paper_id` 完全相同。
 - `report_kind` 必须与来源报告类型一致。
 - `report_path` 必须位于仓库 `reports/<slug>/report.md`。
-- `report_sha256` 绑定主题综合时使用的来源报告版本；来源报告改变后必须重新综合或重新确认绑定。
+- `report_sha256` 绑定主题综合时使用的来源报告版本；摘要按 UTF-8 文本并将 checkout 换行规范为 LF 后计算，保证 Windows/Linux 一致。来源报告改变后必须重新综合或重新确认绑定。
 - 六个 `report_path` 必须唯一，避免同名文章发生目录碰撞。
 
 ## 4. 代码实施

@@ -1,6 +1,5 @@
 """Validation tests for topic syntheses backed by standalone source reports."""
 
-import hashlib
 import json
 import tempfile
 import unittest
@@ -8,9 +7,11 @@ from pathlib import Path
 
 import paperwiki
 
+REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
+
 
 def _sha256(path):
-    return hashlib.sha256(path.read_bytes()).hexdigest()
+    return paperwiki.report_content_sha256(path)
 
 
 def _seed_standalone_report(root, slug, source_id, *, kind="source",
@@ -85,12 +86,12 @@ def _topic_source(report, source_id, *, kind="source", title="Source",
     }
 
 
-def _seed_topic(root, sources):
-    folder = root / "reports" / "topic-harness"
+def _seed_topic(root, sources, topic_slug="harness"):
+    folder = root / "reports" / f"topic-{topic_slug}"
     folder.mkdir(parents=True)
     report = folder / "report.md"
     report.write_text(
-        "---\ntopic_id: harness\nkind: topic\nstatus: deposited\n"
+        f"---\ntopic_id: {topic_slug}\nkind: topic\nstatus: deposited\n"
         "generated: true\nhuman_confirmed: false\n---\n\n"
         "# Agent Harness\n\n## 来源导航\n\nBody\n",
         encoding="utf-8",
@@ -98,7 +99,7 @@ def _seed_topic(root, sources):
     (folder / "report.html").write_text("<html><body>topic</body></html>\n", encoding="utf-8")
     record = {
         "kind": "topic",
-        "topic_slug": "harness",
+        "topic_slug": topic_slug,
         "title": "Agent Harness",
         "source_reports_required": True,
         "sources": sources,
@@ -111,6 +112,28 @@ def _seed_topic(root, sources):
 
 
 class TopicBundleValidationTests(unittest.TestCase):
+    def test_report_digest_is_independent_of_checkout_line_endings(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            lf = root / "lf.md"
+            crlf = root / "crlf.md"
+            lf.write_bytes(b"# Report\n\nBody\n")
+            crlf.write_bytes(b"# Report\r\n\r\nBody\r\n")
+
+            self.assertEqual(
+                paperwiki.report_content_sha256(lf),
+                paperwiki.report_content_sha256(crlf),
+            )
+
+    def test_repository_agent_harness_bundle_is_valid(self):
+        result = paperwiki.validate_topic_bundle(
+            REPOSITORY_ROOT / "reports/topic-what-is-agent-harness/report.md",
+            REPOSITORY_ROOT,
+        )
+
+        self.assertEqual(result["source_count"], 6)
+        self.assertEqual(result["source_kinds"], {"source": 5, "paper": 1})
+
     def test_rejects_missing_standalone_report(self):
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)
@@ -273,6 +296,107 @@ class TopicBundleDepositTests(unittest.TestCase):
 
             text = source_page.read_text(encoding="utf-8")
             self.assertEqual(text.count("[[agent-harness|Agent Harness]]"), 1)
+
+    def test_bound_topic_backlink_is_qualified_when_stem_collides(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            source_report = _seed_standalone_report(
+                root, "web", "url:aaa111aaa111", title="Web Source"
+            )
+            topic = _seed_topic(
+                root,
+                [_topic_source(source_report, "url:aaa111aaa111", title="Web Source")],
+                topic_slug="agent-harness",
+            )
+            topic_record_path = topic.parent / "record.json"
+            topic_record = json.loads(topic_record_path.read_text(encoding="utf-8"))
+            topic_record["entities"] = {
+                "concepts": ["Control Mechanisms"], "methods": [], "tools": []
+            }
+            topic_record_path.write_text(
+                json.dumps(topic_record, ensure_ascii=False), encoding="utf-8"
+            )
+            paperwiki.cmd_deposit(self._args(source_report, root))
+            source_page = root / "wiki/sources/url-aaa111aaa111.md"
+            source_page.write_text(
+                source_page.read_text(encoding="utf-8").rstrip()
+                + "\n\n## Related pages\n\n- [[agent-harness|Agent Harness]]\n",
+                encoding="utf-8",
+            )
+            concept_page = root / "wiki/concepts/control-mechanisms.md"
+            concept_page.write_text(
+                "# Control Mechanisms\n\n## Related pages\n\n"
+                "- [[agent-harness|Agent Harness]]\n",
+                encoding="utf-8",
+            )
+
+            paperwiki.cmd_deposit(self._args(topic, root))
+
+            text = source_page.read_text(encoding="utf-8")
+            self.assertIn("[[wiki/topics/agent-harness|Agent Harness]]", text)
+            self.assertNotIn("[[agent-harness|Agent Harness]]", text)
+            self.assertNotIn("## Related pages", text)
+            concept_text = concept_page.read_text(encoding="utf-8")
+            self.assertEqual(
+                concept_text.count("[[wiki/topics/agent-harness|Agent Harness]]"), 1
+            )
+            self.assertNotIn("[[agent-harness|Agent Harness]]", concept_text)
+
+    def test_missing_related_pages_is_inserted_before_trailing_user_notes(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            paper_report = _seed_standalone_report(
+                root, "paper", "arxiv:2606.10106", kind="paper",
+                title="Harness Conditions", source_type="paper",
+                url="https://arxiv.org/abs/2606.10106",
+            )
+            topic = _seed_topic(
+                root,
+                [_topic_source(
+                    paper_report, "arxiv:2606.10106", kind="paper",
+                    title="Harness Conditions", source_type="paper",
+                    url="https://arxiv.org/abs/2606.10106",
+                )],
+            )
+            paperwiki.cmd_deposit(self._args(paper_report, root))
+
+            paperwiki.cmd_deposit(self._args(topic, root))
+
+            text = (root / "wiki/papers/arxiv-2606-10106.md").read_text(
+                encoding="utf-8"
+            )
+            self.assertLess(text.rfind("## Related pages"), text.rfind("## User notes"))
+            self.assertTrue(text.rstrip().endswith("## User notes"))
+
+    def test_redeposit_moves_legacy_related_pages_before_user_notes(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            paper_report = _seed_standalone_report(
+                root, "paper", "arxiv:2606.10106", kind="paper",
+                title="Harness Conditions", source_type="paper",
+                url="https://arxiv.org/abs/2606.10106",
+            )
+            topic = _seed_topic(
+                root,
+                [_topic_source(
+                    paper_report, "arxiv:2606.10106", kind="paper",
+                    title="Harness Conditions", source_type="paper",
+                    url="https://arxiv.org/abs/2606.10106",
+                )],
+            )
+            paperwiki.cmd_deposit(self._args(paper_report, root))
+            page = root / "wiki/papers/arxiv-2606-10106.md"
+            page.write_text(
+                page.read_text(encoding="utf-8").rstrip()
+                + "\n\n## Related pages\n\n- [[harness|Agent Harness]]\n",
+                encoding="utf-8",
+            )
+
+            paperwiki.cmd_deposit(self._args(topic, root))
+
+            text = page.read_text(encoding="utf-8")
+            self.assertLess(text.rfind("## Related pages"), text.rfind("## User notes"))
+            self.assertTrue(text.rstrip().endswith("## User notes"))
 
     def test_required_bundle_refuses_topic_deposit_before_source_pages_exist(self):
         with tempfile.TemporaryDirectory() as td:

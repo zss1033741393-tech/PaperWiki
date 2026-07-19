@@ -15,7 +15,7 @@
       "status": "deposited",
       "report_path": "reports/openai-harness-engineering/report.md",
       "report_kind": "source",
-      "report_sha256": "2c2ac75ba6236dab7aaa718221f2bb48d16bfe54e32f87d7751788dc2251d793"
+      "report_sha256": "3479895d703e3a53a2f61380aed9c656bb90dbdb47ada1b13680ea6189614aca"
     },
     {
       "source_id": "url:ae10eb4597fe",
@@ -26,7 +26,7 @@
       "status": "deposited",
       "report_path": "reports/openai-codex-agent-loop/report.md",
       "report_kind": "source",
-      "report_sha256": "8185d652b9e7d38327fa8d78f07d13a248c70c8646653d8b7b7ea95aefbada80"
+      "report_sha256": "e85dd31e9b03aeaa6c6647f8ad9a9521d1f1ac0593d8c68d56023382c4cc6ff3"
     },
     {
       "source_id": "url:38c43325a50c",
@@ -37,7 +37,7 @@
       "status": "deposited",
       "report_path": "reports/anthropic-building-effective-agents/report.md",
       "report_kind": "source",
-      "report_sha256": "b4c1973b35c22f69325f9dc3eb0705d9e25eaaae2040c4441dd8ff9ba537701c"
+      "report_sha256": "fc98eba9a9d20dfad90ae9122b40caceb7964f5f9b032a6ae681ccd73eddd241"
     },
     {
       "source_id": "url:7659f727e260",
@@ -48,7 +48,7 @@
       "status": "deposited",
       "report_path": "reports/langchain-agent-harness-anatomy/report.md",
       "report_kind": "source",
-      "report_sha256": "b69424958fe126aff974e5df650e3873117e77b54dab6cd0b6cda3bcd6248a9d"
+      "report_sha256": "bd2694a89e0c2081d92696e6be35d43b6e3ed62b5e8c89e20b4ed0bdf92272de"
     },
     {
       "source_id": "url:33f520c0c534",
@@ -59,7 +59,7 @@
       "status": "deposited",
       "report_path": "reports/fowler-harness-engineering/report.md",
       "report_kind": "source",
-      "report_sha256": "643afb8bd9987d3435629d33a43d08a70d9b8b8c9601087f7d73b8fc51551a6e"
+      "report_sha256": "c64e35cc5e4aa99270dbf04fcbb561a00ef9816d4bb94f1e95d6d72627229f90"
     },
     {
       "source_id": "arxiv:2606.10106",
@@ -70,7 +70,7 @@
       "status": "deposited",
       "report_path": "reports/what-makes-a-harness-a-harness/report.md",
       "report_kind": "paper",
-      "report_sha256": "8c17d735dc53ebb8fd52647dda525fc6ea96b8207dbcc87b971b24ecfc68e657"
+      "report_sha256": "b26910643d1c8dd78db1ca8c69bc08d7f24a1da9c0be25e666d575c81bca81e4"
     }
   ],
   "entities": {

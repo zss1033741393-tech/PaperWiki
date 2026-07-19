@@ -7,7 +7,7 @@ type: concept
 
 ## Related pages
 
-- [[agent-harness|Agent Harness]]
+- [[wiki/topics/agent-harness|Agent Harness]]
 
 ## Related papers
 

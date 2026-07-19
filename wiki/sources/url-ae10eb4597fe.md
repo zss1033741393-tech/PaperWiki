@@ -27,9 +27,6 @@ source_id: url:ae10eb4597fe
 - [[codex-cli|Codex CLI]]
 - [[responses-api|Responses API]]
 
-## Related pages
-
-- [[agent-harness|Agent Harness]]
 
 ## Generated synthesis (draft)
 

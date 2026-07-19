@@ -557,6 +557,11 @@ def is_canonical_report(report, root, record, text, paper):
     fields,_,had_frontmatter=split_report_frontmatter(text)
     return report.name=="report.md" and len(relative.parts)==2 and record.resolve()==(report.parent/"record.json").resolve() and had_frontmatter and fields.get("paper_id")==paper["paper_id"]
 
+def report_content_sha256(report):
+    """Hash UTF-8 report content with checkout-specific line endings normalized to LF."""
+    text=Path(report).read_text(encoding="utf-8")
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()
+
 def validate_topic_bundle(topic_report, root):
     """Validate a topic synthesis whose sources must have canonical standalone reports."""
     root=Path(root).resolve(); topic_report=Path(topic_report).resolve()
@@ -617,7 +622,7 @@ def validate_topic_bundle(topic_report, root):
             raise ValueError(f"Source type mismatch for {source_id}")
         if norm_url(str(record.get("source_url") or ""))!=norm_url(str(source.get("url") or "")):
             raise ValueError(f"Source URL mismatch for {source_id}")
-        digest=hashlib.sha256(report.read_bytes()).hexdigest()
+        digest=report_content_sha256(report)
         if source.get("report_sha256")!=digest:
             raise ValueError(f"Source report digest mismatch for {source_id}")
         fields,body,had_frontmatter=split_report_frontmatter(report.read_text(encoding="utf-8"))
@@ -655,11 +660,44 @@ def colliding_entity_stems(root, entity_specs):
 def entity_wikilink_target(root, target, colliding_stems):
     return target.relative_to(root).with_suffix("").as_posix() if target.stem in colliding_stems else target.stem
 
+def move_heading_before_trailing_user_notes(text,heading):
+    """Migrate a generated relationship section that legacy deposits appended after User notes."""
+    pattern=rf"^## {re.escape(heading)}[ \t]*\n(?:[ \t]*\n)?(?:- \[\[.*\n)*"
+    section=re.search(pattern,text,re.M)
+    notes=list(re.finditer(r"^## User notes[ \t]*$",text,re.M))
+    if not section or not notes or section.start()<notes[-1].start(): return text
+    block=section.group(0).strip("\n")
+    remaining=(text[:section.start()]+text[section.end():]).rstrip("\n")
+    trailing_notes=list(re.finditer(r"^## User notes[ \t]*$",remaining,re.M))
+    at=trailing_notes[-1].start()
+    moved=remaining[:at].rstrip("\n")+"\n\n"+block+"\n\n"+remaining[at:]
+    return moved.rstrip("\n")+("\n" if text.endswith("\n") else "")
+
 def insert_link_under_heading(old,heading,link):
-    """Insert a wikilink at the end of the heading's link list; append the heading section at EOF when absent."""
-    if link in old: return old
-    m=re.search(rf"^## {re.escape(heading)}[ \t]*\n(?:[ \t]*\n)?((?:- \[\[.*\n)*)",old,re.M)
-    return old[:m.end()]+link+old[m.end():] if m else old.rstrip("\n")+f"\n\n## {heading}\n\n{link}"
+    """Insert a wikilink under a heading while keeping the trailing User notes section last."""
+    if link not in old:
+        m=re.search(rf"^## {re.escape(heading)}[ \t]*\n(?:[ \t]*\n)?((?:- \[\[.*\n)*)",old,re.M)
+        if m: old=old[:m.end()]+link+old[m.end():]
+        else:
+            section=f"## {heading}\n\n{link}\n"
+            notes=list(re.finditer(r"^## User notes[ \t]*$",old,re.M))
+            if notes:
+                at=notes[-1].start()
+                old=old[:at].rstrip("\n")+"\n\n"+section+old[at:]
+            else: old=old.rstrip("\n")+"\n\n"+section
+    return move_heading_before_trailing_user_notes(old,heading)
+
+def insert_canonical_page_link(old,heading,page_target,page_title):
+    """Replace a legacy short backlink when a vault-qualified target is required."""
+    short_target=Path(page_target).name
+    if short_target!=page_target:
+        old=old.replace(f"- [[{short_target}|{page_title}]]\n","")
+    link=f"- [[{page_target}|{page_title}]]\n"
+    if link in old:
+        empty=rf"\n## {re.escape(heading)}[ \t]*\n(?:[ \t]*\n)*(?=## |\Z)"
+        old=re.sub(empty,"\n\n",old)
+        return move_heading_before_trailing_user_notes(old,heading)
+    return insert_link_under_heading(old,heading,link)
 
 def remove_duplicate_related_links(related_pages, entity_links):
     """Drop legacy Related pages links already emitted under Related knowledge."""
@@ -672,8 +710,8 @@ def remove_duplicate_related_links(related_pages, entity_links):
 
 def link_entity(root, collection, name, page_title, page_target, colliding_stems, heading="Related papers"):
     folder=root/"wiki"/collection; folder.mkdir(parents=True,exist_ok=True); target=entity_path(root,collection,name)
-    link=f"- [[{page_target}|{page_title}]]\n"; old=target.read_text(encoding="utf-8") if target.exists() else f"---\ntitle: \"{name.replace(chr(34),chr(39))}\"\ntype: {collection.rstrip('s')}\n---\n\n# {name}\n\n## {heading}\n\n"
-    target.write_text(insert_link_under_heading(old,heading,link),encoding="utf-8"); link_target=entity_wikilink_target(root,target,colliding_stems); return f"[[{link_target}|{name}]]"
+    old=target.read_text(encoding="utf-8") if target.exists() else f"---\ntitle: \"{name.replace(chr(34),chr(39))}\"\ntype: {collection.rstrip('s')}\n---\n\n# {name}\n\n## {heading}\n\n"
+    target.write_text(insert_canonical_page_link(old,heading,page_target,page_title),encoding="utf-8"); link_target=entity_wikilink_target(root,target,colliding_stems); return f"[[{link_target}|{name}]]"
 
 def strip_leading_frontmatter(text):
     match=re.match(r"\A---[ \t]*\r?\n.*?\r?\n---[ \t]*(?:\r?\n(?:[ \t]*\r?\n)?)?",text,re.S)
@@ -683,9 +721,9 @@ def link_source_page(root,source,page_title,page_target):
     """Create or update a wiki/sources stub for a studied source; append the backlink idempotently. Files are keyed by source identity (like wiki/papers), titles stay readable aliases."""
     folder=root/"wiki/sources"; folder.mkdir(parents=True,exist_ok=True)
     name=str(source.get("title") or source.get("url") or source.get("source_id") or "source")
-    target=folder/(slug(str(source.get("source_id") or name))+".md"); link=f"- [[{page_target}|{page_title}]]\n"
+    target=folder/(slug(str(source.get("source_id") or name))+".md")
     old=target.read_text(encoding="utf-8") if target.exists() else f"---\ntitle: \"{name.replace(chr(34),chr(39))}\"\ntype: source\nsource_type: {source.get('source_type','other')}\nurl: {source.get('url','')}\nsource_id: {source.get('source_id','')}\n---\n\n# {name}\n\n## Related pages\n\n"
-    target.write_text(insert_link_under_heading(old,"Related pages",link),encoding="utf-8"); return f"[[{target.stem}|{name}]]"
+    target.write_text(insert_canonical_page_link(old,"Related pages",page_target,page_title),encoding="utf-8"); return f"[[{target.stem}|{name}]]"
 
 def link_bound_topic_source(root,source,page_title,page_target):
     """Link a validated standalone source/paper page without creating a fallback stub."""
@@ -694,8 +732,8 @@ def link_bound_topic_source(root,source,page_title,page_target):
     name=str(source.get("title") or source.get("url") or source.get("source_id") or "source")
     target=root/"wiki"/collection/(slug(str(source.get("source_id") or name))+".md")
     if not target.exists(): raise ValueError(f"Deposit standalone report before topic: {source.get('source_id')}")
-    link=f"- [[{page_target}|{page_title}]]\n"
-    target.write_text(insert_link_under_heading(target.read_text(encoding="utf-8"),"Related pages",link),encoding="utf-8")
+    old=target.read_text(encoding="utf-8")
+    target.write_text(insert_canonical_page_link(old,"Related pages",page_target,page_title),encoding="utf-8")
     return f"[[{target.stem}|{name}]]"
 
 def deposit_topic(a,src,p):
@@ -709,9 +747,10 @@ def deposit_topic(a,src,p):
     ent=p.get("entities") or {}; entity_specs=[]
     for key,coll in [("concepts","concepts"),("methods","methods"),("tools","tools")]:
         for name in ent.get(key,[]) or []: entity_specs.append((coll,str(name)))
-    collisions=colliding_entity_stems(root,entity_specs)
-    entities=[link_entity(root,coll,name,p["title"],target.stem,collisions,heading="Related pages") for coll,name in entity_specs]
-    sources=[link_bound_topic_source(root,s_,p["title"],target.stem) if p.get("source_reports_required") is True else link_source_page(root,s_,p["title"],target.stem) for s_ in p.get("sources") or []]
+    collisions=colliding_entity_stems(root,entity_specs+[("topics",p["title"])])
+    topic_target=entity_wikilink_target(root,target,collisions)
+    entities=[link_entity(root,coll,name,p["title"],topic_target,collisions,heading="Related pages") for coll,name in entity_specs]
+    sources=[link_bound_topic_source(root,s_,p["title"],topic_target) if p.get("source_reports_required") is True else link_source_page(root,s_,p["title"],topic_target) for s_ in p.get("sources") or []]
     report_target=report_wikilink_target(src,root)
     ref=f"[[{report_target}|{p['title']} 综述]]" if report_target else f"`{src.resolve()}`"
     papers_block=f"\n\n## Related papers\n\n{related_papers}" if related_papers else ""

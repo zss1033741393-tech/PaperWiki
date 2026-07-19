@@ -11,7 +11,7 @@ A completed topic study is a report bundle, not one large summary:
 
 1. One canonical standalone report for every selected source.
 2. One topic synthesis that compares and connects those reports.
-3. One topic record that binds source identity, report path, report kind, and report SHA-256.
+3. One topic record that binds source identity, report path, report kind, and report SHA-256. Compute the digest from UTF-8 report text after normalizing checkout line endings to LF so Windows and Linux validate the same bundle.
 
 Do not treat standalone reports as an optional flagship follow-up. If a selected source cannot be read, mark it `blocked` with the reason and keep the topic incomplete; never substitute a thin source stub for a required report.
 

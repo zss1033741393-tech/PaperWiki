@@ -7,8 +7,8 @@ type: concept
 
 ## Related pages
 
-- [[agent-harness|Agent Harness]]
 - [[url-ae10eb4597fe|Unrolling the Codex Agent Loop]]
+- [[wiki/topics/agent-harness|Agent Harness]]
 
 ## Related papers
 

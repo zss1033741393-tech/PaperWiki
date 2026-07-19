@@ -95,6 +95,11 @@
         "target": "url:33f520c0c534",
         "relation": "anchors",
         "detail": "将外围控制系统定位为 T4 成熟度"
+      },
+      {
+        "target": "arxiv:2604.18071",
+        "relation": "precedes",
+        "detail": "先判断成员资格，再进入五维架构设计空间"
       }
     ]
   }

@@ -421,9 +421,9 @@
         "Foundations"
       ],
       "description": "April 2026 empirical study of 70 public agent systems across five recurring dimensions (subagent architecture, context management, tool systems, safety mechanisms, orchestration) that synthesizes five architectural patterns. The comparative research package turns harness selection from a framework popularity contest into a reasoned comparison of design trade-offs.",
-      "status": "unread",
+      "status": "deposited",
       "added_at": "2026-07-17T07:22:14.125237+00:00",
-      "status_updated_at": "2026-07-17T07:22:14.125237+00:00"
+      "status_updated_at": "2026-07-19T03:28:14.853996+00:00"
     },
     {
       "source_id": "url:088bce78c721",

@@ -131,8 +131,8 @@ class TopicBundleValidationTests(unittest.TestCase):
             REPOSITORY_ROOT,
         )
 
-        self.assertEqual(result["source_count"], 6)
-        self.assertEqual(result["source_kinds"], {"source": 5, "paper": 1})
+        self.assertEqual(result["source_count"], 7)
+        self.assertEqual(result["source_kinds"], {"source": 5, "paper": 2})
 
     def test_rejects_missing_standalone_report(self):
         with tempfile.TemporaryDirectory() as td:
@@ -268,6 +268,9 @@ class TopicBundleDepositTests(unittest.TestCase):
             self.assertFalse(duplicate.exists())
             self.assertEqual(source_page.read_text(encoding="utf-8").count("[[harness|Agent Harness]]"), 1)
             self.assertEqual(paper_page.read_text(encoding="utf-8").count("[[harness|Agent Harness]]"), 1)
+            paper_bytes = paper_page.read_bytes().replace(b"\r\n", b"\n")
+            self.assertTrue(paper_bytes.endswith(b"\n"))
+            self.assertFalse(paper_bytes.endswith(b"\n\n"))
             topic_page = (root / "wiki/topics/harness.md").read_text(encoding="utf-8")
             self.assertIn("[[url-aaa111aaa111|Web Source]]", topic_page)
             self.assertIn("[[arxiv-2606-10106|Harness Conditions]]", topic_page)

@@ -49,6 +49,7 @@
   "relations": [
     {"target": "url:ae10eb4597fe", "relation": "formalizes", "detail": "将具体运行循环抽象为 T1—T3"},
     {"target": "url:7659f727e260", "relation": "narrows", "detail": "把宽组件边界压缩为四项核心"},
-    {"target": "url:33f520c0c534", "relation": "anchors", "detail": "将外围控制系统定位为 T4 成熟度"}
+    {"target": "url:33f520c0c534", "relation": "anchors", "detail": "将外围控制系统定位为 T4 成熟度"},
+    {"target": "arxiv:2604.18071", "relation": "precedes", "detail": "先判断成员资格，再进入五维架构设计空间"}
   ]
 }

@@ -679,7 +679,9 @@ def insert_link_under_heading(old,heading,link):
         m=re.search(rf"^## {re.escape(heading)}[ \t]*\n(?:[ \t]*\n)?((?:- \[\[.*\n)*)",old,re.M)
         if m: old=old[:m.end()]+link+old[m.end():]
         else:
-            section=f"## {heading}\n\n{link}\n"
+            # ``link`` already carries its terminating newline.  Adding another
+            # one here leaves a blank line at EOF when this is the final section.
+            section=f"## {heading}\n\n{link}"
             notes=list(re.finditer(r"^## User notes[ \t]*$",old,re.M))
             if notes:
                 at=notes[-1].start()

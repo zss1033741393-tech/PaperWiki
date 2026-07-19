@@ -1,0 +1,114 @@
+{
+  "paper_id": "arxiv:2604.18071",
+  "arxiv_id": "2604.18071",
+  "title": "Architectural Design Decisions in AI Agent Harnesses",
+  "kind": "paper",
+  "source_type": "paper",
+  "source_url": "https://arxiv.org/abs/2604.18071",
+  "status": "deposited",
+  "authors": [
+    "Hu Wei"
+  ],
+  "year": 2026,
+  "venue": "arXiv",
+  "provenance": [
+    {
+      "provider": "arxiv",
+      "retrieved_at": "2026-07-19T00:00:00+08:00"
+    }
+  ],
+  "reading": {
+    "report_path": "reports/architectural-design-decisions-agent-harnesses/report.md",
+    "analysis_status": "generated-awaiting-human-confirmation",
+    "source_type": "paper",
+    "tldr": "基于 70 个公共 agent 系统，将 harness 工程层拆成五个架构维度并综合出五种常见设计组合，用复杂度包络与权衡替代框架流行度排名。",
+    "research_question": "公共 agent 系统反复出现哪些非 LLM 架构决策，这些决策如何共同出现，以及怎样把它们综合成可用于设计和选择 harness 的模式？",
+    "contributions": [
+      "建立覆盖子代理、上下文、工具、安全和编排的五维编码框架",
+      "构建并分析 70 个公共 agent-system 项目的来源可追溯横断面语料",
+      "描述跨维度决策的共现关系，并明确不作因果解释",
+      "综合出五种非互斥、非成熟度排名的架构模式",
+      "提出以目标复杂度包络和一致设计组合为核心的选择框架"
+    ],
+    "method": "Protocol-guided、source-grounded 的定性实证研究；从源码、配置和文档编码 70 个公共项目，以分布和支持度、置信度、提升度描述共现，再做解释性模式综合。",
+    "argument_structure": "研究协议与语料 → 五维分布 → 跨维共现 → 五种模式 → 设计选择含义与有效性威胁。",
+    "experiments": [
+      "70 项目横断面架构编码",
+      "15 项目（21%）二次人工审计，初始字段级一致率 94%",
+      "跨维度支持度、置信度和提升度的描述性共现分析"
+    ],
+    "findings": [
+      "子代理拓扑多样且不能解释为线性成熟度阶梯",
+      "hybrid、file-persistent 和 hierarchical 是主要上下文模式",
+      "显式 registry 是工具系统众数，MCP 与插件生态正在形成",
+      "中间强度隔离常见，但结构化和防篡改审计较少",
+      "更深协调常与显式上下文服务共同出现，更强执行常与结构化治理共同出现",
+      "五种架构模式对应不同复杂度包络，不存在单一最佳架构"
+    ],
+    "limitations": [
+      "公开可观察语料偏向开源系统，不能覆盖完整商业和内部生态",
+      "非 PRISMA 式语料构建只支持分析覆盖，不支持普查式外推",
+      "五维编码含解释判断且不是穷尽本体",
+      "共现不能建立因果或证明架构结果优劣",
+      "2026-03-23 的横断面快照会随生态快速过时"
+    ],
+    "reproducibility": [
+      "按论文第 3 节的五维 codebook 逐项目核对源码、配置和文档证据",
+      "保留字段级证据路径与编码置信信息",
+      "将模式视为解释性综合而非可直接复现的聚类标签"
+    ],
+    "concepts": [
+      "Agent Harness",
+      "Architecture Design Space",
+      "Subagent Architecture",
+      "Context Management",
+      "Tool Systems",
+      "Safety Mechanisms",
+      "Orchestration"
+    ],
+    "methods": [
+      "Cross-sectional Architecture Study",
+      "Source-grounded Coding",
+      "Co-occurrence Analysis",
+      "Pattern Synthesis"
+    ],
+    "datasets": [
+      "70-project public agent-system corpus frozen on 2026-03-23"
+    ],
+    "topics": [
+      "Agent Harness",
+      "AI Agent Architecture",
+      "Software Architecture"
+    ],
+    "open_questions": [
+      "用 T1—T4 严格筛选后五维分布是否稳定？",
+      "哪些架构组合与可维护性、安全或任务结果存在可复现关联？",
+      "项目在设计空间中的纵向迁移路径是什么？"
+    ],
+    "evidence": [
+      "第 3 节研究方法",
+      "第 4 节表 4—9",
+      "第 5 节共现分析",
+      "第 6 节五种模式",
+      "第 7.3 节有效性威胁"
+    ],
+    "topic_contribution": "在严格成员测试之外提供经验性的五维架构设计空间与五种权衡模式。",
+    "relations": [
+      {
+        "target": "arxiv:2606.10106",
+        "relation": "complements",
+        "detail": "2606 回答是否为 harness，本文回答如何设计和选择"
+      },
+      {
+        "target": "url:7659f727e260",
+        "relation": "empirically-contextualizes",
+        "detail": "为组件解剖提供 70 项目分布和组合证据"
+      },
+      {
+        "target": "url:38c43325a50c",
+        "relation": "operationalizes-tradeoffs",
+        "detail": "将简单优先原则展开为复杂度包络与设计组合"
+      }
+    ]
+  }
+}

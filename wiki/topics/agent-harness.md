@@ -18,14 +18,26 @@ status: deposited
 - [[url-7659f727e260|The Anatomy of an Agent Harness]]
 - [[url-33f520c0c534|Harness Engineering]]
 - [[arxiv-2606-10106|What makes a harness a harness: necessary and sufficient conditions for an agent harness]]
+- [[arxiv-2604-18071|Architectural Design Decisions in AI Agent Harnesses]]
 
 ## Related knowledge
 
 - [[agent-loop|Agent Loop]]
+- [[architecture-design-space|Architecture Design Space]]
 - [[context-engineering|Context Engineering]]
 - [[control-mechanisms|Control Mechanisms]]
 - [[entropy-management|Entropy Management]]
+- [[orchestration|Orchestration]]
+- [[safety-mechanisms|Safety Mechanisms]]
+- [[subagent-architecture|Subagent Architecture]]
+- [[tool-systems|Tool Systems]]
 - [[deterministic-feedback|Deterministic Feedback]]
 - [[harness-decomposition|Harness Decomposition]]
+- [[co-occurrence-analysis|Co-occurrence Analysis]]
+- [[pattern-synthesis|Pattern Synthesis]]
+
+## Related papers
+
+- [[arxiv-2604-18071|Architectural Design Decisions in AI Agent Harnesses]]
 
 ## User notes

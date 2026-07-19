@@ -70,19 +70,37 @@
       "status": "deposited",
       "report_path": "reports/what-makes-a-harness-a-harness/report.md",
       "report_kind": "paper",
-      "report_sha256": "b26910643d1c8dd78db1ca8c69bc08d7f24a1da9c0be25e666d575c81bca81e4"
+      "report_sha256": "c3d553898ab81f0a1407fc9bd2aacb9d26a71d27cb35feff994180e0c60f8a4b"
+    },
+    {
+      "source_id": "arxiv:2604.18071",
+      "title": "Architectural Design Decisions in AI Agent Harnesses",
+      "url": "https://arxiv.org/abs/2604.18071",
+      "source_type": "paper",
+      "role": "architectural-design-space",
+      "status": "deposited",
+      "report_path": "reports/architectural-design-decisions-agent-harnesses/report.md",
+      "report_kind": "paper",
+      "report_sha256": "49b2975a38a9fec790d5f52b519452ccb3c4de1f1bead84d4e0fca0865ded0a9"
     }
   ],
   "entities": {
     "concepts": [
       "Agent Loop",
+      "Architecture Design Space",
       "Context Engineering",
       "Control Mechanisms",
-      "Entropy Management"
+      "Entropy Management",
+      "Orchestration",
+      "Safety Mechanisms",
+      "Subagent Architecture",
+      "Tool Systems"
     ],
     "methods": [
       "Deterministic Feedback",
-      "Harness Decomposition"
+      "Harness Decomposition",
+      "Co-occurrence Analysis",
+      "Pattern Synthesis"
     ],
     "tools": []
   },

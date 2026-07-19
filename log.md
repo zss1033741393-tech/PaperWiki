@@ -37,3 +37,6 @@
 - 2026-07-19T02:33:59.179348+00:00 deposit arxiv:2606.10106
 - 2026-07-19T02:39:43.036733+00:00 deposit topic:agent-harness
 - 2026-07-19T03:17:29.490237+00:00 deposit topic:agent-harness
+- 2026-07-19T03:27:02.790247+00:00 deposit arxiv:2604.18071
+- 2026-07-19T03:27:18.152044+00:00 deposit arxiv:2606.10106
+- 2026-07-19T03:27:47.334351+00:00 deposit topic:agent-harness

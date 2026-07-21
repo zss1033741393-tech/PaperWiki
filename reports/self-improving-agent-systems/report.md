@@ -46,7 +46,7 @@ $$
 
 近期大多数系统保持 θ 不变，修改 H。H 可以是一段 prompt、一张 workflow graph、一组工具、一个 Skill 目录，也可以是包含 context management、sub-agents、retry policy 和 memory 的完整 Harness。文件格式不重要；真正有意义的是这项状态以后还会不会参与决策。
 
-这个定义排除了几件经常被误叫作 self-improvement 的事。一次 reflection 只让当前答案变好，没有留下持久状态；best-of-N 只是在候选答案中选择，没有产生下一代系统；把新经验临时塞进 context，也未必能跨任务复用。它们都能为改进提供证据，却还不是改进本身。
+这个定义排除了几件经常被误叫作 self-improvement 的事。一次 reflection 只让当前答案变好，没有留下持久状态；best-of-N 只是一次生成多个答案、再从中选出最好的那个，没有产生下一代系统；把新经验临时塞进 context，也未必能跨任务复用。它们都能为改进提供证据，却还不是改进本身。
 
 [定位：H2 1.1，第 1—8 段；H2 2.2，第 8—10 段]
 
@@ -83,8 +83,8 @@ $$
 | --- | --- | --- |
 | 可编辑集合 | 哪些持久状态能改？ | prompt、workflow、tools、Skills、memory、runtime |
 | 更新者关系 | 谁构造下一版本？ | 固定优化器、同模型异角色、历史版本、可编辑 MetaAgent |
-| 证据与评价 | 修改依据和晋升依据是什么？ | labels、tests、traces、oracle、self-preference、deployment outcome |
-| 搜索拓扑 | 候选如何保留和继续探索？ | greedy、Pareto、MCTS、population、open archive |
+| 证据与评价 | 修改依据和晋升依据是什么？ | labels、tests、traces、oracle、self-preference（让模型比较候选优劣）、deployment outcome |
+| 搜索拓扑 | 候选如何保留和继续探索？ | greedy、Pareto（保留在多个指标上互不支配的候选）、MCTS、population、open archive |
 | 更新时间 | 修改何时生效？ | 实验间、部署间、持续轨迹内 |
 | 参数耦合 | 模型权重是否一起变化？ | frozen、alternating、joint adaptation |
 
@@ -98,9 +98,11 @@ $$
 
 这一定义解释了为什么“自动写一个 SKILL.md”只完成了最容易的部分。真正的 Skill evolution 要处理三个连续难题。
 
-第一步是从经验中抽象。EvoSkill 从带标签失败中诊断缺失能力；Trace2Skill 同时阅读多个成功与失败轨迹，把重复出现的教训压缩成可迁移目录；CoEvoSkills 在只有黑盒 pass/fail 的环境里让 Skill generator 和 surrogate verifier 一起演化；OpenSkill 再把证据扩展到开放网络资源。
+第一步是从经验中抽象。EvoSkill 从带标签失败中诊断缺失能力。Trace2Skill 同时阅读多个成功与失败轨迹，把重复出现的教训压缩成可迁移目录。CoEvoSkills 面对只有黑盒 pass/fail 的环境，让 Skill generator 和 surrogate verifier，也就是代替稀疏外部判定、提供更密集检查的验证器，一起演化。OpenSkill 等工作再把证据扩展到开放网络资源。
 
-第二步是管理生命周期。SkillOpt 关注已有 Skill 的执行策略，MUSE-Autoskill 把创建、记忆、管理和评价连起来，SkillClaw 则把多个用户的经验汇入共享库。到了这一步，Skill repository 已经很像软件包仓库：需要注册、检索、依赖、版本、弃用、灰度和回滚。
+第二步是管理生命周期。SkillOpt 关注已有 Skill 的执行策略，MUSE-Autoskill 把创建、记忆、管理和评价连起来；SkillClaw 代表另一种扩展，把多个用户的经验汇入共享库。到了这一步，Skill repository 已经很像软件包仓库：需要注册、检索、依赖、版本、弃用、灰度和回滚。
+
+这些工作放在一起，展示的是一条从“把一次失败写成经验”到“维护一套公共能力资产”的路径。越靠后，难点越少是生成文本，越多是判断何时调用、怎样验证、谁会收到更新，以及出错后怎样撤回。
 
 第三步是承担传播风险。一个本地错误 Skill 只会害一次任务；同步到所有用户后，它变成供应链变更。网络检索还能带来恶意内容、过期知识、许可和 provenance 问题。文章提到了这些风险，但没有把它们发展成完整的安全模型。
 
@@ -110,7 +112,7 @@ $$
 
 Harness 位于模型和环境之间。它装配 context，暴露工具，安排 sub-agent，保存 memory，控制 retry、validation 和 stop condition。Skill 教 agent 做一类事，Harness 决定 agent 何时看到什么、能调用什么、失败后怎么办，以及什么时候停。
 
-编辑 Harness 的收益很大，风险也更集中。AutoHarness 只生成约束环境交互的可执行代码，例如合法动作过滤器。Meta-Harness 优化更宽的端到端脚手架。Agentic Harness Engineering 把可编辑组件、运行经验和每次修改的预测都做成可观察对象。Self-Harness 让同一个基础模型在不同角色中提出自身 Harness 修改。RHO 从无标签历史里找出困难任务和分歧轨迹，再用 self-preference 比较候选。Continual Harness 则在一条持续环境轨迹里原位修改 prompt、sub-agents、Skills 和 memory。
+编辑 Harness 的收益很大，风险也更集中。AutoHarness 代表较窄的入口，只生成合法动作过滤器一类环境约束代码；Meta-Harness 则把优化面扩大到端到端脚手架。Agentic Harness Engineering 进一步把组件、运行经验和每次修改的预测都做成可观察对象，重点是让修改可以被追责。Self-Harness 让同一个基础模型提出自身 Harness 修改，RHO 则展示如何从无标签历史中筛选困难任务，再通过 self-preference 比较候选。到了 Continual Harness，prompt、sub-agents、Skills 和 memory 会在同一条持续环境轨迹中被原位修改。
 
 把这些方法排在一列，会看到真正的风险随着三件事上升：修改面越来越宽，修改越来越快地进入运行环境，评价越来越依赖系统自己产生的信号。
 
@@ -148,7 +150,7 @@ Harness 位于模型和环境之间。它装配 context，暴露工具，安排 
 
 第一，**没有 ground truth 时，优化目标会漂移。** Self-reflection、self-preference、generated tests 和 surrogate verifier 都可以引导搜索，也都可能携带与 updater 相同的盲点。合理做法是把“用来提出修改的证据”和“允许修改上线的权力”分开，并提前写清什么结果会否定当前方向。
 
-第二，**一次涨分不等于持久改进。** 新版本可能过拟合近期任务、增加 token 与延迟、伤害旧能力，或依靠已经污染的 benchmark。评价对象应是一段性能轨迹：跨任务、时间、模型和分布变化，扣除成本、回归和维护负担后，净效用是否仍然为正。SEAGym 已经把 train、frozen validation、held-out ID/OOD、replay 和 cost records 放进统一环境（arXiv:2606.17546），说明这个方向正在从口号变成基础设施。
+第二，**一次涨分不等于持久改进。** 新版本可能过拟合近期任务、增加 token 与延迟、伤害旧能力，或依靠已经污染的 benchmark。评价对象应是一段性能轨迹：跨任务、时间、模型和分布变化，扣除成本、回归和维护负担后，净效用是否仍然为正。SEAGym 已经把 train、frozen validation、held-out ID/OOD、replay 和 cost records 放进同一评价环境（arXiv:2606.17546），为观察这些差异提供了一个具体实现。
 
 第三，**外部状态和模型参数应在不同时间尺度上学习。** Prompt、Skill 和 Harness 更新快、透明、可回滚，适合先试错；参数更紧凑，适合内化反复验证过的稳定模式。过早把弱经验写进权重会让错误更难撤销，模型改变后又可能使原 Harness 的假设失效。问题不在二选一，而在何时晋升、何时遗忘、何时重新验证。
 
@@ -197,9 +199,9 @@ Harness 位于模型和环境之间。它装配 context，暴露工具，安排 
 
 第一个实验可以在 Terminal-Bench 2 上重放 50 次 Harness edits。对照组按 held-out score 晋升；实验组还要求声明受影响任务、成本上限和回滚信号。随后注入任务分布变化、tool API 变化和 evaluator noise，比较两组发现回归的时间、错误上线次数、回滚精度和保留收益。若 assurance case 只能增加文档成本，却不能更早发现失效，这个方向就不成立。
 
-## 读完以后，怎么拿它来用
+## 下次看到“自我改进”宣称时，用这七问核对
 
-下次看到“self-improving agent”时，我会先问七个很朴素的问题：
+前文三问用来理解文章，这里的七问只是一张实用检查表。下次论文、产品或项目声称自己是 self-improving agent 时，可以按顺序核对：
 
 1. 它具体保存了什么变化？
 2. 修改者与被修改对象是什么关系？

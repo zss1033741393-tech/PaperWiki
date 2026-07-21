@@ -42,7 +42,7 @@ pre:not(.mermaid){overflow:auto;padding:1rem 1.2rem;background:#0f172a;color:#e2
 A_t=(\theta_t,H_t)
 $$</p>
 <p>近期大多数系统保持 θ 不变，修改 H。H 可以是一段 prompt、一张 workflow graph、一组工具、一个 Skill 目录，也可以是包含 context management、sub-agents、retry policy 和 memory 的完整 Harness。文件格式不重要；真正有意义的是这项状态以后还会不会参与决策。</p>
-<p>这个定义排除了几件经常被误叫作 self-improvement 的事。一次 reflection 只让当前答案变好，没有留下持久状态；best-of-N 只是在候选答案中选择，没有产生下一代系统；把新经验临时塞进 context，也未必能跨任务复用。它们都能为改进提供证据，却还不是改进本身。</p>
+<p>这个定义排除了几件经常被误叫作 self-improvement 的事。一次 reflection 只让当前答案变好，没有留下持久状态；best-of-N 只是一次生成多个答案、再从中选出最好的那个，没有产生下一代系统；把新经验临时塞进 context，也未必能跨任务复用。它们都能为改进提供证据，却还不是改进本身。</p>
 <p>[定位：H2 1.1，第 1—8 段；H2 2.2，第 8—10 段]</p>
 <h3>第二问：谁在改谁？</h3>
 <p>编辑范围很大，不代表系统更“自我”。ADAS 用固定 MetaAgent 设计代码形式的 target agent，能改的面很宽，但设计者本身不进入演化。SICA 让历史版本中的高效用 agent 参与实现继任者，自指关系才真正出现。DGM 把单一继承链变成开放档案，暂时较弱的分支也可以作为以后继续探索的父代。Hyperagents 又把 TaskAgent 和负责改进的 MetaAgent 放入同一个可编辑程序，使更新机制本身也可能随谱系变化。</p>
@@ -85,12 +85,12 @@ $$</p>
 <tr>
 <td>证据与评价</td>
 <td>修改依据和晋升依据是什么？</td>
-<td>labels、tests、traces、oracle、self-preference、deployment outcome</td>
+<td>labels、tests、traces、oracle、self-preference（让模型比较候选优劣）、deployment outcome</td>
 </tr>
 <tr>
 <td>搜索拓扑</td>
 <td>候选如何保留和继续探索？</td>
-<td>greedy、Pareto、MCTS、population、open archive</td>
+<td>greedy、Pareto（保留在多个指标上互不支配的候选）、MCTS、population、open archive</td>
 </tr>
 <tr>
 <td>更新时间</td>
@@ -109,13 +109,14 @@ $$</p>
 <h2>Skill 为什么值得单独讨论</h2>
 <p>文章对 Skill 的定义比日常用法窄：它是一个可复用、可持久、可移植的能力包。一个成熟 Skill 可以包含触发条件、根指令、脚本、参考资料、测试、依赖、来源和版本历史。它和 prompt 的差别在生命周期，和 tool 的差别在于它会告诉 agent 何时以及如何组合工具，和 Harness 的差别在于它通常只封装局部能力。</p>
 <p>这一定义解释了为什么“自动写一个 SKILL.md”只完成了最容易的部分。真正的 Skill evolution 要处理三个连续难题。</p>
-<p>第一步是从经验中抽象。EvoSkill 从带标签失败中诊断缺失能力；Trace2Skill 同时阅读多个成功与失败轨迹，把重复出现的教训压缩成可迁移目录；CoEvoSkills 在只有黑盒 pass/fail 的环境里让 Skill generator 和 surrogate verifier 一起演化；OpenSkill 再把证据扩展到开放网络资源。</p>
-<p>第二步是管理生命周期。SkillOpt 关注已有 Skill 的执行策略，MUSE-Autoskill 把创建、记忆、管理和评价连起来，SkillClaw 则把多个用户的经验汇入共享库。到了这一步，Skill repository 已经很像软件包仓库：需要注册、检索、依赖、版本、弃用、灰度和回滚。</p>
+<p>第一步是从经验中抽象。EvoSkill 从带标签失败中诊断缺失能力。Trace2Skill 同时阅读多个成功与失败轨迹，把重复出现的教训压缩成可迁移目录。CoEvoSkills 面对只有黑盒 pass/fail 的环境，让 Skill generator 和 surrogate verifier，也就是代替稀疏外部判定、提供更密集检查的验证器，一起演化。OpenSkill 等工作再把证据扩展到开放网络资源。</p>
+<p>第二步是管理生命周期。SkillOpt 关注已有 Skill 的执行策略，MUSE-Autoskill 把创建、记忆、管理和评价连起来；SkillClaw 代表另一种扩展，把多个用户的经验汇入共享库。到了这一步，Skill repository 已经很像软件包仓库：需要注册、检索、依赖、版本、弃用、灰度和回滚。</p>
+<p>这些工作放在一起，展示的是一条从“把一次失败写成经验”到“维护一套公共能力资产”的路径。越靠后，难点越少是生成文本，越多是判断何时调用、怎样验证、谁会收到更新，以及出错后怎样撤回。</p>
 <p>第三步是承担传播风险。一个本地错误 Skill 只会害一次任务；同步到所有用户后，它变成供应链变更。网络检索还能带来恶意内容、过期知识、许可和 provenance 问题。文章提到了这些风险，但没有把它们发展成完整的安全模型。</p>
 <p>[定位：H2 1.3；H2 3.1—3.4 及 Skill 系统对照表]</p>
 <h2>Harness 更难，因为它决定 Agent 怎样活着</h2>
 <p>Harness 位于模型和环境之间。它装配 context，暴露工具，安排 sub-agent，保存 memory，控制 retry、validation 和 stop condition。Skill 教 agent 做一类事，Harness 决定 agent 何时看到什么、能调用什么、失败后怎么办，以及什么时候停。</p>
-<p>编辑 Harness 的收益很大，风险也更集中。AutoHarness 只生成约束环境交互的可执行代码，例如合法动作过滤器。Meta-Harness 优化更宽的端到端脚手架。Agentic Harness Engineering 把可编辑组件、运行经验和每次修改的预测都做成可观察对象。Self-Harness 让同一个基础模型在不同角色中提出自身 Harness 修改。RHO 从无标签历史里找出困难任务和分歧轨迹，再用 self-preference 比较候选。Continual Harness 则在一条持续环境轨迹里原位修改 prompt、sub-agents、Skills 和 memory。</p>
+<p>编辑 Harness 的收益很大，风险也更集中。AutoHarness 代表较窄的入口，只生成合法动作过滤器一类环境约束代码；Meta-Harness 则把优化面扩大到端到端脚手架。Agentic Harness Engineering 进一步把组件、运行经验和每次修改的预测都做成可观察对象，重点是让修改可以被追责。Self-Harness 让同一个基础模型提出自身 Harness 修改，RHO 则展示如何从无标签历史中筛选困难任务，再通过 self-preference 比较候选。到了 Continual Harness，prompt、sub-agents、Skills 和 memory 会在同一条持续环境轨迹中被原位修改。</p>
 <p>把这些方法排在一列，会看到真正的风险随着三件事上升：修改面越来越宽，修改越来越快地进入运行环境，评价越来越依赖系统自己产生的信号。</p>
 <p>所以文章坚持留出一个候选不能随意修改的治理边界 B。权限上限、credentials、hidden tests、resource limits、audit 和 rollback authority 都应放在这里。评价机制 V 也至少要有一条受保护路径。如果 agent 可以同时改行为、测试和上线规则，分数提高只说明它更会控制计分过程。</p>
 <p>[定位：H2 1.4；H2 4.1—4.6]</p>
@@ -134,7 +135,7 @@ $$</p>
 <p>[定位：H2 1.1 关于功能重叠的说明；H2 2.2；H2 5.1]</p>
 <h2>三个未来问题，读完后应该这样理解</h2>
 <p>第一，<strong>没有 ground truth 时，优化目标会漂移。</strong> Self-reflection、self-preference、generated tests 和 surrogate verifier 都可以引导搜索，也都可能携带与 updater 相同的盲点。合理做法是把“用来提出修改的证据”和“允许修改上线的权力”分开，并提前写清什么结果会否定当前方向。</p>
-<p>第二，<strong>一次涨分不等于持久改进。</strong> 新版本可能过拟合近期任务、增加 token 与延迟、伤害旧能力，或依靠已经污染的 benchmark。评价对象应是一段性能轨迹：跨任务、时间、模型和分布变化，扣除成本、回归和维护负担后，净效用是否仍然为正。SEAGym 已经把 train、frozen validation、held-out ID/OOD、replay 和 cost records 放进统一环境（arXiv:2606.17546），说明这个方向正在从口号变成基础设施。</p>
+<p>第二，<strong>一次涨分不等于持久改进。</strong> 新版本可能过拟合近期任务、增加 token 与延迟、伤害旧能力，或依靠已经污染的 benchmark。评价对象应是一段性能轨迹：跨任务、时间、模型和分布变化，扣除成本、回归和维护负担后，净效用是否仍然为正。SEAGym 已经把 train、frozen validation、held-out ID/OOD、replay 和 cost records 放进同一评价环境（arXiv:2606.17546），为观察这些差异提供了一个具体实现。</p>
 <p>第三，<strong>外部状态和模型参数应在不同时间尺度上学习。</strong> Prompt、Skill 和 Harness 更新快、透明、可回滚，适合先试错；参数更紧凑，适合内化反复验证过的稳定模式。过早把弱经验写进权重会让错误更难撤销，模型改变后又可能使原 Harness 的假设失效。问题不在二选一，而在何时晋升、何时遗忘、何时重新验证。</p>
 <p>[定位：H2 5.1—5.3]</p>
 <h2>精读补充（PaperForge 视角）</h2>
@@ -161,8 +162,8 @@ $$</p>
 <p>更值得做的是把 self-improvement 的基本对象从“新版本”改成<strong>带证据的变更声明</strong>。每个候选 edit 都必须附带：它要修复的 failure mode、预计影响的任务集合、明确的不变量、证据来源、评价独立性等级、失效监控和自动回滚条件。部署后，这份声明随新证据持续更新；一旦关键前提失效，版本自动降级或撤回。</p>
 <p>这个方向可以借鉴 self-adaptive systems 的 models-at-runtime 与 continuous assurance（arXiv:1505.00903），也能吸收 AHE 已有的“每次编辑附带可证伪预测”（arXiv:2604.25850）。区别在于，目标不再只是提高下一轮分数，而是维护一条机器可检查的论证链：为什么这项修改目前仍被允许存在。</p>
 <p>第一个实验可以在 Terminal-Bench 2 上重放 50 次 Harness edits。对照组按 held-out score 晋升；实验组还要求声明受影响任务、成本上限和回滚信号。随后注入任务分布变化、tool API 变化和 evaluator noise，比较两组发现回归的时间、错误上线次数、回滚精度和保留收益。若 assurance case 只能增加文档成本，却不能更早发现失效，这个方向就不成立。</p>
-<h2>读完以后，怎么拿它来用</h2>
-<p>下次看到“self-improving agent”时，我会先问七个很朴素的问题：</p>
+<h2>下次看到“自我改进”宣称时，用这七问核对</h2>
+<p>前文三问用来理解文章，这里的七问只是一张实用检查表。下次论文、产品或项目声称自己是 self-improving agent 时，可以按顺序核对：</p>
 <ol>
 <li>它具体保存了什么变化？</li>
 <li>修改者与被修改对象是什么关系？</li>

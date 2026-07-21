@@ -92,7 +92,7 @@
     "topic_contribution": "提供一套跨 agent、Skill 和 Harness 文献的统一审计框架，把自改进从模糊能力标签转化为状态、证据、更新、评价与治理问题。",
     "relations": [
       {
-        "target": "url:38c43325a50c",
+        "target": "arxiv:2606.10106",
         "relation": "extends",
         "detail": "从 Harness 构成与边界扩展到 Harness 的持久自动演化"
       },

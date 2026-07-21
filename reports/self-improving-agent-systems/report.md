@@ -1,0 +1,224 @@
+---
+paper_id: url:b04208f61bbd
+status: reading
+source: https://yigengjiang.github.io/posts/self_improving_agent_systems/
+generated: true
+human_confirmed: false
+---
+
+# 当 Agent 开始修改自己，我们凭什么说它进步了？
+
+——《Self-Improving Agent Systems: A Unified View of Algorithms, Skills, and Harnesses》精读
+
+> **先说我的结论：**这篇文章最有价值的地方，不是又整理了一遍 self-improving agent 的论文名单，而是把一个容易被说得很玄的问题拉回了工程现场。Agent 改了 prompt、Skill 或 Harness，只能证明它会改。只有修改被保存下来，并在独立评价中改善了未来行为，我们才有资格说它进步了。
+
+## 来源信息与阅读范围
+
+- 作者署名：yigeng & GPT 5.6
+- 发布日期：2026-07-12
+- 原文：https://yigengjiang.github.io/posts/self_improving_agent_systems/
+- 类型：研究综述与概念框架博客，不是同行评审论文
+- 阅读范围：全文 6 个一级章节、26 个二级小节、表格及参考文献
+
+下面不是逐句翻译。我按文章的真实论证重写成中文：保留全部核心概念、代表系统、证据边界和未来问题，但把原文平铺的文献目录压缩成一条能顺着读下去的主线。需要回查时，每个关键判断后都留了原文章节定位。
+
+## 先看一个失败场景
+
+假设一个 coding agent 连续三次在同类任务上超时。第四次运行前，它读完失败日志，给自己增加一条规则：“遇到大型仓库，先建立文件索引，再开始修改。”新版本在下一题上快了 30%。
+
+这算自我改进吗？
+
+直觉会说算。但这里至少藏着五个不同问题：规则有没有跨运行保存；下一题是否恰好更简单；新增索引是否拖慢了小仓库；测试题是否被 agent 看过；如果规则让权限检查失效，谁有权阻止它上线？
+
+文章从这个裂缝切入。今天多数 agent 并不会改写自己的模型权重，它们改的是模型周围那层可编辑软件：prompt、workflow、tools、memory、Skills、sub-agents、evaluator 和 runtime policy。真正缺的从来不是“生成一个修改”，而是一套能说明修改对象、证据来源、评价方式和授权边界的语言。
+
+[定位：H2 1.1、2.1、2.2]
+
+## 全文其实只追问三件事
+
+### 第一问：到底改了什么？
+
+文章把运行中的 agent 写成两部分：模型参数 θ，加上模型外的持久状态 H。
+
+$$
+A_t=(\theta_t,H_t)
+$$
+
+近期大多数系统保持 θ 不变，修改 H。H 可以是一段 prompt、一张 workflow graph、一组工具、一个 Skill 目录，也可以是包含 context management、sub-agents、retry policy 和 memory 的完整 Harness。文件格式不重要；真正有意义的是这项状态以后还会不会参与决策。
+
+这个定义排除了几件经常被误叫作 self-improvement 的事。一次 reflection 只让当前答案变好，没有留下持久状态；best-of-N 只是一次生成多个答案、再从中选出最好的那个，没有产生下一代系统；把新经验临时塞进 context，也未必能跨任务复用。它们都能为改进提供证据，却还不是改进本身。
+
+[定位：H2 1.1，第 1—8 段；H2 2.2，第 8—10 段]
+
+### 第二问：谁在改谁？
+
+编辑范围很大，不代表系统更“自我”。ADAS 用固定 MetaAgent 设计代码形式的 target agent，能改的面很宽，但设计者本身不进入演化。SICA 让历史版本中的高效用 agent 参与实现继任者，自指关系才真正出现。DGM 把单一继承链变成开放档案，暂时较弱的分支也可以作为以后继续探索的父代。Hyperagents 又把 TaskAgent 和负责改进的 MetaAgent 放入同一个可编辑程序，使更新机制本身也可能随谱系变化。
+
+这组对照澄清了一个常见混乱：
+
+- **Edit scope** 回答系统允许改多少东西。
+- **Updater–target relationship** 回答修改者和被修改者是什么关系。
+
+两个维度互不替代。一个固定优化器可以改完整 agent；一个 agent 也可能只改自己的一小段 prompt。文章把 DGM 到 Hyperagents 视为明确的方法延续，其余许多箭头只是作者为了比较而做的分析性排序，并非论文之间存在代码或思想继承。
+
+[定位：H2 1.5；H2 2.3—2.5；H2 2.7 的关系证据表]
+
+### 第三问：谁说它真的变好了？
+
+这是全文最关键的一问。作者把“发生了自修改”和“已经证明有改进”拆开：
+
+> 执行证据促成持久修改，说明系统具备自改进过程；独立结果评价证明未来行为优于合适基线，才构成已验证的改进。
+
+因此，一个最小闭环至少要有四样东西：修改能保存；修改由执行或环境证据驱动；存在把证据变成有界差分的 updater；新版本要和基线比较未来表现。
+
+完整过程可以读成：运行当前版本，收集轨迹，诊断失败，提出一个小修改，在允许的边界内应用，随后由独立评价决定接受、拒绝或仅放入档案。候选生成、档案准入和生产部署是三个动作。把它们合成一个按钮，agent 很快就会学会优化按钮，而不是优化任务。
+
+[定位：H2 2.2，第 1—10 段及最小闭环图]
+
+## 一张真正有用的地图
+
+文章最终给出的不是 prompt → workflow → Skill → Harness 这种看似升级打怪的线性阶梯。更稳妥的地图有两个主轴、四个叠加层：
+
+| 维度 | 要问的问题 | 常见选项 |
+| --- | --- | --- |
+| 可编辑集合 | 哪些持久状态能改？ | prompt、workflow、tools、Skills、memory、runtime |
+| 更新者关系 | 谁构造下一版本？ | 固定优化器、同模型异角色、历史版本、可编辑 MetaAgent |
+| 证据与评价 | 修改依据和晋升依据是什么？ | labels、tests、traces、oracle、self-preference（让模型比较候选优劣）、deployment outcome |
+| 搜索拓扑 | 候选如何保留和继续探索？ | greedy、Pareto（保留在多个指标上互不支配的候选）、MCTS、population、open archive |
+| 更新时间 | 修改何时生效？ | 实验间、部署间、持续轨迹内 |
+| 参数耦合 | 模型权重是否一起变化？ | frozen、alternating、joint adaptation |
+
+这张表比“某系统属于第几代自进化”有用得多。它迫使设计者把模糊标签展开成可检查的决定。GEPA 和 AFlow 都使用固定优化器，但前者主要改 prompt，后者搜索可运行 workflow。SICA 和 DGM 都让谱系中的 agent 产生后代，但前者更接近 best-history，后者保留开放分支。Continual Harness 的特殊之处也不只是可编辑面宽，而是修改在同一条不重置的环境轨迹中直接生效。
+
+[定位：H2 2.3 的路线图和系统表；H2 2.4—2.6]
+
+## Skill 为什么值得单独讨论
+
+文章对 Skill 的定义比日常用法窄：它是一个可复用、可持久、可移植的能力包。一个成熟 Skill 可以包含触发条件、根指令、脚本、参考资料、测试、依赖、来源和版本历史。它和 prompt 的差别在生命周期，和 tool 的差别在于它会告诉 agent 何时以及如何组合工具，和 Harness 的差别在于它通常只封装局部能力。
+
+这一定义解释了为什么“自动写一个 SKILL.md”只完成了最容易的部分。真正的 Skill evolution 要处理三个连续难题。
+
+第一步是从经验中抽象。EvoSkill 从带标签失败中诊断缺失能力。Trace2Skill 同时阅读多个成功与失败轨迹，把重复出现的教训压缩成可迁移目录。CoEvoSkills 面对只有黑盒 pass/fail 的环境，让 Skill generator 和 surrogate verifier，也就是代替稀疏外部判定、提供更密集检查的验证器，一起演化。OpenSkill 等工作再把证据扩展到开放网络资源。
+
+第二步是管理生命周期。SkillOpt 关注已有 Skill 的执行策略，MUSE-Autoskill 把创建、记忆、管理和评价连起来；SkillClaw 代表另一种扩展，把多个用户的经验汇入共享库。到了这一步，Skill repository 已经很像软件包仓库：需要注册、检索、依赖、版本、弃用、灰度和回滚。
+
+这些工作放在一起，展示的是一条从“把一次失败写成经验”到“维护一套公共能力资产”的路径。越靠后，难点越少是生成文本，越多是判断何时调用、怎样验证、谁会收到更新，以及出错后怎样撤回。
+
+第三步是承担传播风险。一个本地错误 Skill 只会害一次任务；同步到所有用户后，它变成供应链变更。网络检索还能带来恶意内容、过期知识、许可和 provenance 问题。文章提到了这些风险，但没有把它们发展成完整的安全模型。
+
+[定位：H2 1.3；H2 3.1—3.4 及 Skill 系统对照表]
+
+## Harness 更难，因为它决定 Agent 怎样活着
+
+Harness 位于模型和环境之间。它装配 context，暴露工具，安排 sub-agent，保存 memory，控制 retry、validation 和 stop condition。Skill 教 agent 做一类事，Harness 决定 agent 何时看到什么、能调用什么、失败后怎么办，以及什么时候停。
+
+编辑 Harness 的收益很大，风险也更集中。AutoHarness 代表较窄的入口，只生成合法动作过滤器一类环境约束代码；Meta-Harness 则把优化面扩大到端到端脚手架。Agentic Harness Engineering 进一步把组件、运行经验和每次修改的预测都做成可观察对象，重点是让修改可以被追责。Self-Harness 让同一个基础模型提出自身 Harness 修改，RHO 则展示如何从无标签历史中筛选困难任务，再通过 self-preference 比较候选。到了 Continual Harness，prompt、sub-agents、Skills 和 memory 会在同一条持续环境轨迹中被原位修改。
+
+把这些方法排在一列，会看到真正的风险随着三件事上升：修改面越来越宽，修改越来越快地进入运行环境，评价越来越依赖系统自己产生的信号。
+
+所以文章坚持留出一个候选不能随意修改的治理边界 B。权限上限、credentials、hidden tests、resource limits、audit 和 rollback authority 都应放在这里。评价机制 V 也至少要有一条受保护路径。如果 agent 可以同时改行为、测试和上线规则，分数提高只说明它更会控制计分过程。
+
+[定位：H2 1.4；H2 4.1—4.6]
+
+## 我认为全文最好的两个判断
+
+### “会变化”与“变得更好”之间必须有一道门
+
+很多工作把生成补丁当作 self-improvement 的完成时刻。本文把它降回候选状态。这是一个看似简单、实际很有约束力的语言纪律：未经未来行为评价的在线 edit 只能叫 adaptation；被存入 archive 的版本也不等于可以服务用户。
+
+这会直接改变系统设计。开发 feedback 可以频繁、便宜、甚至由模型自己生成；deployment promotion 必须更慢、更独立，并允许 abstain、defer 或回滚。Google DeepMind 对 safety evaluation 也区分用于迭代的 development evaluation 与保持距离的 assurance evaluation（arXiv:2404.14068），与本文的判断相互印证。
+
+### 自指不是最高等级，而是一种新的风险结构
+
+让 agent 参与修改自己的继任者，确实可能把任务能力和改进能力放进同一个积累过程。但它没有消灭外部依赖，只是移动了边界。Hyperagents 仍依赖外部 evaluator、task distribution、resource limit 和 sandbox。Self-Harness 也把 hidden split、acceptance rule、permission ceiling 和 deployment authority 留在外面。
+
+因此，自指程度越高并不自动代表系统越先进。它意味着 updater 也成了被测对象，原来只评价任务表现的 benchmark 已经不够了。
+
+[定位：H2 2.5，第 10—13 段；H2 4.3]
+
+## 这篇文章哪里还没有站稳
+
+文章是一篇有判断力的 narrative review，但不是 systematic review。它没有给出检索式、纳入标准和排除流程，因此这张地图可以帮助阅读，不能证明已经覆盖完整文献。
+
+更深的问题在于，框架中的类别是作者定义出来的，却没有被实际使用者检验。不同研究者能否对同一个系统的 editable set、updater identity 和 governance boundary 做出一致标注？遇到 updater 本身部分嵌入 Harness、评价器又随时间更新的系统，分类是否仍然稳定？文章用 Hyperagents 解释了集合可以重叠，却没有提供编码手册或一致性数据。
+
+此外，“独立评价”在文中承担了很重的责任，但独立性没有可操作量表。同一模型换一个 prompt 做 judge、由独立代码做 significance test、使用隐藏 benchmark、请外部人类审批，这四者都可以叫 independent，可信度显然不同。
+
+[定位：H2 1.1 关于功能重叠的说明；H2 2.2；H2 5.1]
+
+## 三个未来问题，读完后应该这样理解
+
+第一，**没有 ground truth 时，优化目标会漂移。** Self-reflection、self-preference、generated tests 和 surrogate verifier 都可以引导搜索，也都可能携带与 updater 相同的盲点。合理做法是把“用来提出修改的证据”和“允许修改上线的权力”分开，并提前写清什么结果会否定当前方向。
+
+第二，**一次涨分不等于持久改进。** 新版本可能过拟合近期任务、增加 token 与延迟、伤害旧能力，或依靠已经污染的 benchmark。评价对象应是一段性能轨迹：跨任务、时间、模型和分布变化，扣除成本、回归和维护负担后，净效用是否仍然为正。SEAGym 已经把 train、frozen validation、held-out ID/OOD、replay 和 cost records 放进同一评价环境（arXiv:2606.17546），为观察这些差异提供了一个具体实现。
+
+第三，**外部状态和模型参数应在不同时间尺度上学习。** Prompt、Skill 和 Harness 更新快、透明、可回滚，适合先试错；参数更紧凑，适合内化反复验证过的稳定模式。过早把弱经验写进权重会让错误更难撤销，模型改变后又可能使原 Harness 的假设失效。问题不在二选一，而在何时晋升、何时遗忘、何时重新验证。
+
+[定位：H2 5.1—5.3]
+
+## 精读补充（PaperForge 视角）
+
+> [!note] 关于这一节
+> 下面接着往深里读，补上原文没有直接回答的五个问题。涉及作者未明说的地方，我会在句子里说明证据边界。这不是审稿打分。
+
+### 作者可能是怎么走到这个框架的
+
+如果暂时忘掉文章结论，只看此前已经出现的系统，会先遇到一个命名危机。GEPA 改 prompt，AFlow 改 workflow，ADAS 改 agent code；SICA 和 DGM 让 agent 谱系参与产生后代；EvoSkill 一类工作把经验压成能力包；Harness 研究又把 prompt、tools、memory 和 runtime 一起当作优化对象。大家都使用 evolution、self-improvement 或 self-evolving，却在改不同东西，也由不同角色批准结果。
+
+下一步很自然：不要继续争论哪个名字“更高级”，先把系统拆成状态、更新者、档案、评价和治理。软件工程早已习惯区分代码变更、测试、release gate 和生产权限；self-adaptive systems 也长期研究 runtime adaptation 的 continuous assurance（arXiv:1505.00903）。把这些旧问题带回 agent 文献，就会发现真正稳定的分类变量不是论文自称什么，而是哪些状态可变、谁能改、证据从哪里来，以及谁握有 promotion authority。
+
+这段是我的逆向重建，不是作者对自己思考过程的口述。它能解释为什么文章最后形成多轴坐标，而没有画一条从 prompt optimization 通往 recursive superintelligence 的进化阶梯。
+
+### 整篇真正押在“这些维度可以被稳定标注”上
+
+全文最承重的假设是：不同系统虽然实现复杂，但仍能被可靠分解到 editable state、updater、lineage、evaluation 和 governance 这些功能角色中。如果这个分解只能由文章作者事后解释，换一批读者就得到另一张表，那么它是一套好用的写作修辞，还不是可复用的研究框架。
+
+这个假设可能在强耦合系统里失效。一个 MetaAgent 的 prompt 属于 Harness，也属于 updater；一个从线上反馈持续学习的 judge 既是 evaluation，又是 editable state；一个会生成测试并据此批准自己的 agent，同时跨越 U、V 和 B。原文承认集合不总是互斥，并用 Hyperagents 讨论嵌套关系，但没有展示独立编码者能否稳定复现其分类。
+
+### 花一周就能把它证伪的实验
+
+不用复现任何 self-improving agent。选文章表格中的 12 个系统，隐藏作者给出的坐标描述，只给三名熟悉 agent systems、但未读本文的研究者原论文 method section 和一页编码手册。让他们独立标注：主要 editable set、updater–target relation、evaluation authority、update timing，以及哪些组件属于治理边界。
+
+测量每个维度的 Krippendorff's alpha 或 Fleiss' kappa，并记录争议来自术语含糊还是系统本身重叠。若大部分核心维度达到 0.7 以上，且讨论后能形成稳定共识，这个框架至少具备可复用性。若 updater、evaluation 和 governance 三项长期低于 0.4，文章最核心的统一主张就被削弱：它能启发作者，却不能可靠组织社区知识。
+
+### 最强反例是一套主动模糊边界的系统
+
+设想一个在线 agent：它从用户反馈更新 memory，用同一个模型生成 regression tests，根据这些 tests 调整 tool router；当置信度足够高时，它还能修改 judge prompt 和测试采样分布。为了防漂移，外层只有一个每月查看 aggregate incident rate 的人工委员会。
+
+这不是奇怪的边角案例，而是持续部署系统很可能走向的形态。它在一个月内到底由谁评价？Judge prompt 属于 H、U 还是 V？人工委员会算 governance boundary，但它只能看到系统自己筛选后的事故统计。文章的功能分解仍能描述组件，却很难表达信号污染和授权通过数据链条向外扩散的程度。
+
+这个反例提示，静态的“组件属于哪个集合”还不够。我们还需要记录证据怎样流动、谁能过滤观察、谁能改变评价分布，以及一个修改影响了哪些后续判断。
+
+### 一个值得做的新方向：给每次自修改生成可撤销的 assurance case
+
+最直接的 follow-up 曾经是做更完整的轨迹评价，但 SEAGym 已经在推进这件事（arXiv:2606.17546）。另一个直觉方向是把提案与计分分开，Gated Semantic Quality-Diversity 已用 deterministic sampling、measurement 和 significance testing 明确实现这一点（arXiv:2607.13683）。继续加一个 benchmark 或 gate，已经不算新的 framing。
+
+更值得做的是把 self-improvement 的基本对象从“新版本”改成**带证据的变更声明**。每个候选 edit 都必须附带：它要修复的 failure mode、预计影响的任务集合、明确的不变量、证据来源、评价独立性等级、失效监控和自动回滚条件。部署后，这份声明随新证据持续更新；一旦关键前提失效，版本自动降级或撤回。
+
+这个方向可以借鉴 self-adaptive systems 的 models-at-runtime 与 continuous assurance（arXiv:1505.00903），也能吸收 AHE 已有的“每次编辑附带可证伪预测”（arXiv:2604.25850）。区别在于，目标不再只是提高下一轮分数，而是维护一条机器可检查的论证链：为什么这项修改目前仍被允许存在。
+
+第一个实验可以在 Terminal-Bench 2 上重放 50 次 Harness edits。对照组按 held-out score 晋升；实验组还要求声明受影响任务、成本上限和回滚信号。随后注入任务分布变化、tool API 变化和 evaluator noise，比较两组发现回归的时间、错误上线次数、回滚精度和保留收益。若 assurance case 只能增加文档成本，却不能更早发现失效，这个方向就不成立。
+
+## 下次看到“自我改进”宣称时，用这七问核对
+
+前文三问用来理解文章，这里的七问只是一张实用检查表。下次论文、产品或项目声称自己是 self-improving agent 时，可以按顺序核对：
+
+1. 它具体保存了什么变化？
+2. 修改者与被修改对象是什么关系？
+3. 哪些运行证据触发了修改？
+4. 候选怎样进入档案，又怎样进入生产？
+5. 评价器和修改者共享了多少模型、数据与上下文？
+6. 哪些权限、测试和回滚机制永远不由候选自己修改？
+7. 所谓收益在新任务、旧能力、成本和更长时间窗上还剩多少？
+
+如果一项工作只能回答前两问，它展示的是 self-modification。能回答前四问，才形成一个 improvement loop。七问都能给出清楚证据，才接近可以托付给真实用户的自改进系统。
+
+## 与仓库其他来源的关系
+
+- [[reports/topic-what-is-agent-harness/report|What Is an Agent Harness?]] 解释 Harness 由什么构成；本文继续追问其中哪些表面可以被自动修改。
+- [[reports/what-makes-a-harness-a-harness/report|What Makes a Harness a Harness]] 强调运行控制与治理边界；本文加入 updater、lineage 和 promotion。
+- [[reports/openai-codex-agent-loop/report|Unrolling the Codex Agent Loop]] 展示一次运行如何产生 observation；本文讨论这些 observation 怎样进入下一版本。
+- [[reports/openai-harness-engineering/report|OpenAI Harness Engineering]] 描述人如何维护 agent 环境；本文把同类维护工作放进自动演化闭环。
+- [[reports/agentmaster/report|AgentMaster]] 等多 agent 自演化工作共享同一警示：更强的候选生成能力不能替代可信的晋升机制。
+
+## User notes

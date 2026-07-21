@@ -1,0 +1,92 @@
+{
+  "source_type": "blog",
+  "tldr": "自改进 agent 是由证据驱动的持久状态转移；必须区分修改对象、更新者身份、证据、搜索、时间与治理，并以独立结果评价证明未来行为改善。",
+  "research_question": "如何用统一、可审计的框架理解 agent、Skill 与 Harness 的持久自改进，并区分自修改、演化、自指和已验证改进？",
+  "contributions": [
+    "用模型参数与模型外持久状态的分解扩大自改进分析单位",
+    "提出持久性、证据、有效更新算子和结果评价组成的最小闭环",
+    "以可编辑集合和更新者目标关系为主轴统一 agent 演化路线",
+    "按完整生命周期重构 Skill 演化，并按六维坐标分析 Harness 演化",
+    "把评价真值、持久收益和参数外部状态协调列为未来核心挑战"
+  ],
+  "method": "概念分析与机制级文献综合；按编辑对象、更新者身份、证据、搜索拓扑、更新时间、参数耦合和治理边界比较代表性系统。",
+  "argument_structure": "界定系统状态与术语 → 提出自改进最小闭环和多轴路线图 → 分析 Skill 生命周期 → 分析 Harness 演化坐标 → 提出评价、耐久性与双时间尺度学习挑战。",
+  "findings": [
+    "多数近期自改进系统冻结模型参数并更新持久的模型外状态",
+    "候选生成、档案保留、部署晋升和已验证改进必须分开",
+    "编辑范围大小不能代表自指程度，二者是独立维度",
+    "Skill 的价值来自可复用、可验证、可维护和可回滚的完整生命周期",
+    "Harness 演化必须把至少一层评价与治理权保留在候选可编辑状态之外",
+    "在线无重置更新使状态变化、环境推进与记忆累积发生因果混杂",
+    "长期方向应协调快速可撤销的外部状态学习与较慢的参数固化"
+  ],
+  "limitations": [
+    "属于叙述性概念综述，没有系统综述的检索与纳入协议",
+    "坐标分配和多数论文关系是作者综合而非原论文声明",
+    "大量新近工作成熟度和复现状态不一",
+    "没有统一实验支持跨系统效果排序",
+    "未验证独立读者能否稳定复现各系统的坐标标注",
+    "独立评价与治理边界缺少可操作的强度分级",
+    "对隐私、许可、恶意经验注入和供应链治理仅作原则性讨论"
+  ],
+  "concepts": [
+    "Persistent Editable State",
+    "Updater–Target Relationship",
+    "Governance Boundary",
+    "Self-Reference",
+    "Skill Lifecycle",
+    "Harness Evolution",
+    "Reset-Free Adaptation",
+    "Falsifiable Evaluation Contract"
+  ],
+  "methods": [
+    "Open-Archive Search",
+    "Pareto Selection",
+    "Trajectory Distillation",
+    "Surrogate Verification",
+    "Retrospective Harness Optimization",
+    "Outcome-Based Promotion"
+  ],
+  "topics": [
+    "Self-Improving Agents",
+    "Agent Harness",
+    "Agent Skills",
+    "Automated Agent Design",
+    "Continual Adaptation"
+  ],
+  "tools": [],
+  "open_questions": [
+    "缺少人工真值时如何证明评价器与更新器足够独立？",
+    "如何在无重置在线轨迹中识别 Harness 修改的因果效果？",
+    "不同研究者能否对框架中的编辑面、更新者和治理边界达成稳定一致？",
+    "如何为每次自修改维护可持续更新和自动撤销的 runtime assurance case？",
+    "跨用户 Skill 传播怎样实现来源、撤回和污染治理？",
+    "何时应把稳定的外部经验固化到模型参数？"
+  ],
+  "evidence": [
+    "H2 1.1—1.5：状态分解、Skill、Harness、自改进与自指定义",
+    "H2 2.2—2.3：最小闭环、两个主轴与四个叠加层",
+    "H2 2.4—2.7：GEPA、AFlow、ADAS、SICA、DGM、Hyperagents 与相邻程序演化",
+    "H2 3.1—3.5：Skill 获取、生命周期、验证及与 Harness 的边界",
+    "H2 4.1—4.6：Harness 六维坐标与六类代表系统",
+    "H2 5.1—5.3：无真值评价、持久改进与参数外状态协调"
+  ],
+  "topic_contribution": "提供一套跨 agent、Skill 和 Harness 文献的统一审计框架，把自改进从模糊能力标签转化为状态、证据、更新、评价与治理问题。",
+  "relations": [
+    {
+      "target": "arxiv:2606.10106",
+      "relation": "extends",
+      "detail": "从 Harness 构成与边界扩展到 Harness 的持久自动演化"
+    },
+    {
+      "target": "url:ae10eb4597fe",
+      "relation": "extends",
+      "detail": "从单次 agent loop 扩展到执行证据驱动的跨版本更新闭环"
+    },
+    {
+      "target": "url:f6b93302265d",
+      "relation": "complements",
+      "detail": "将人工 Harness 工程原则与自动修改、独立评价和治理连接起来"
+    }
+  ]
+}
